@@ -192,7 +192,7 @@ input::placeholder, textarea::placeholder { color: #9a3412 !important; opacity: 
       </section>
       <section class="bg-white rounded-2xl p-4 shadow">
         <h3 class="font-bold text-lg mb-2">🗓️ توزيع الورديات الأسبوعي</h3>
-        <p class="text-sm text-slate-500 mb-3">لكل يوم يمكن دمجه: <b>قاعدة عامة لكل الأقسام</b> + <b>قاعدة مستقلة لكل قسم</b> (كل قسم: موظف ثابت أو تناوب بين موظفيه في أي يوم)، واليوم يجمع الجميع — مثلاً: ثابت من قسم الصوت + تناوب من قسم التصوير في نفس اليوم.</p>
+        <p class="text-sm text-slate-500 mb-3">لكل يوم: أضف سطراً واختر <b>ثابتاً (يظهر كل أسبوع)</b> أو <b>تناوباً (دور أسبوعي)</b> — واليوم يجمع الكل: الثابتون من كل الأقسام + صاحب الدور كل أسبوع، وقاعدة عامة وقاعدة لكل قسم على حدة.</p>
         <label class="block text-sm font-bold mb-1">تاريخ بداية التناوب (تُحسب منه دورية الترتيب)</label>
         <input id="rulesAnchor" type="date" class="w-full border rounded-xl p-3 mb-1">
         <p class="text-xs text-slate-500 mb-3">غيّر هذا التاريخ لإعادة ضبط تسلسل التناوب من جديد.</p>
@@ -456,34 +456,44 @@ function rowCandidates(scope, row) {
   return out;
 }
 
-function autoSlotForDate(date, scope, row, rowIndex) {
+function makeAutoSlot(date, scope, row, rowIndex, employee, k) {
+  return { id: 'auto-' + formatKey(date) + '-' + (scope || 'all') + '-' + rowIndex + '-' + employee.id + '-' + k,
+           employeeId: employee.id, start: row.start || '', end: row.end || '', auto: true };
+}
+// ورديات سطر واحد في تاريخ محدد:
+// - ثابت: كل الموظفين المختارين يظهرون كل أسبوع (لا موظف واحد فقط).
+// - تناوب: يظهر الموظف صاحب الدور لهذا الأسبوع فقط.
+function rowSlotsForDate(date, scope, row, rowIndex) {
   const candidates = rowCandidates(scope, row);
-  if (!candidates.length) return null;
-  let employee;
-  if (row.mode !== 'rotate') {
-    employee = candidates[0]; // ثابت
+  if (!candidates.length) return [];
+  const out = [];
+  if (row.mode === 'fixed') {
+    candidates.forEach(function(emp, k) { out.push(makeAutoSlot(date, scope, row, rowIndex, emp, k)); });
   } else {
     const occ = Math.max(weekdayOccurrenceCount(date), 1);
-    employee = candidates[(occ - 1) % candidates.length]; // تناوب
+    const emp = candidates[(occ - 1) % candidates.length];
+    if (emp) out.push(makeAutoSlot(date, scope, row, rowIndex, emp, 0));
   }
-  if (!employee) return null;
-  return { id: 'auto-' + formatKey(date) + '-' + (scope || 'all') + '-' + rowIndex, employeeId: employee.id, start: row.start || '', end: row.end || '', auto: true };
+  return out;
 }
-
-// اليوم يدمج كل النطاقات: سطر عام + سطر لكل قسم يخصُّ ذلك اليوم
+function scopeAutoSlotsForDate(scope, date) {
+  const sc = scheduleRules.scopes[scope];
+  if (!sc || !sc.days) return [];
+  const rule = sc.days[date.getDay()] || { rows: [] };
+  const out = [];
+  (rule.rows || []).forEach(function(row, i) {
+    out.push.apply(out, rowSlotsForDate(date, scope, row, i));
+  });
+  return out;
+}
 function autoSlotsForDate(date) {
   const scopes = ruleScopes();
   const out = [];
-  scopes.forEach(function(scope) {
-    const sc = scheduleRules.scopes[scope];
-    if (!sc || !sc.days) return;
-    const rule = sc.days[date.getDay()] || { rows: [] };
-    (rule.rows || []).forEach(function(row, i) {
-      const slot = autoSlotForDate(date, scope, row, i);
-      if (slot) out.push(slot);
-    });
-  });
+  scopes.forEach(function(scope) { out.push.apply(out, scopeAutoSlotsForDate(scope, date)); });
   return out;
+}
+function autoSlotForDate(date, scope, row, rowIndex) { // توافق قديم: أول وردية للسطر
+  return rowSlotsForDate(date, scope, row, rowIndex)[0] || null;
 }
 
 // ===== واجهة الإعدادات: تحرير القواعد =====
@@ -519,7 +529,8 @@ function ruleRowHtml(scopeIdx, day, row, idx) {
   const scope = scopeKey(scopeIdx);
   const selected = (row.employeeIds || []).map(Number);
   const chips = rowPool(scope).map(function(s) {
-    return '<span class="rule-chip' + (selected.indexOf(Number(s.id)) >= 0 ? ' sel' : '') + '" onclick="toggleRuleEmp(' + scopeIdx + ',' + day + ',' + idx + ',' + Number(s.id) + ')">' + escapeHtml(displayName(s)) + '</span>';
+    const dname = (!scope && deptName(s.deptId)) ? ' · ' + deptName(s.deptId) : '';
+    return '<span class="rule-chip' + (selected.indexOf(Number(s.id)) >= 0 ? ' sel' : '') + '" onclick="toggleRuleEmp(' + scopeIdx + ',' + day + ',' + idx + ',' + Number(s.id) + ')">' + escapeHtml(displayName(s) + dname) + '</span>';
   }).join('');
   const selPool = rowCandidates(scope, row);
   const orderList = (row.mode === 'rotate' && selPool.length > 1)
@@ -533,8 +544,8 @@ function ruleRowHtml(scopeIdx, day, row, idx) {
   return '<div id="ruleRow-' + scopeIdx + '-' + day + '-' + idx + '" class="border border-slate-200 rounded-xl p-2 mb-2 bg-white">' +
     '<div class="flex gap-2 mb-1">' +
       '<select id="ruleMode-' + scopeIdx + '-' + day + '-' + idx + '" onchange="ruleModeChanged(' + scopeIdx + ',' + day + ',' + idx + ')" class="flex-1 border rounded-lg p-2 bg-white text-sm">' +
-        '<option value="fixed"' + (row.mode === 'fixed' ? ' selected' : '') + '>موظف ثابت</option>' +
-        '<option value="rotate"' + (row.mode !== 'fixed' ? ' selected' : '') + '>بالتناوب</option>' +
+        '<option value="fixed"' + (row.mode === 'fixed' ? ' selected' : '') + '>ثابت — يظهر كل أسبوع</option>' +
+        '<option value="rotate"' + (row.mode !== 'fixed' ? ' selected' : '') + '>تناوب — دور كل أسبوع</option>' +
       '</select>' +
       '<button type="button" onclick="removeRuleRow(' + scopeIdx + ',' + day + ',' + idx + ')" class="text-red-500 text-sm px-2" title="حذف السطر">✕</button>' +
     '</div>' +
@@ -544,7 +555,10 @@ function ruleRowHtml(scopeIdx, day, row, idx) {
       '<span class="text-xs text-slate-500">إلى</span>' +
       '<input type="time" id="ruleEnd-' + scopeIdx + '-' + day + '-' + idx + '" value="' + escapeHtml(row.end) + '" onchange="updateRuleTime(' + scopeIdx + ',' + day + ',' + idx + ',\'end\',this.value)" class="flex-1 border rounded-lg p-2 bg-white text-sm">' +
     '</div>' +
-    '<div class="text-xs text-slate-500 mb-1">الموظفون' + (scope ? ' (قسم «' + escapeHtml(deptName(scope)) + '» فقط):' : ' (كل الأقسام):') + '</div>' +
+    '<div class="text-xs text-slate-500 mb-1">الموظفون' + (scope ? ' (قسم «' + escapeHtml(deptName(scope)) + '» فقط):' : ' (كل الأقسام — بجانب الاسم قسمه):') + '</div>' +
+    (row.mode === 'fixed'
+      ? '<p class="text-xs text-teal-700 font-bold mb-1">اختر أكثر من موظف ثابت ليظهروا جميعاً في هذا اليوم كل أسبوع.</p>'
+      : '<p class="text-xs text-slate-500 mb-1">اختر قائمة التناوب بالترتيب — كل أسبوع يظهر الموظف صاحب الدور فوق الثابتين.</p>') +
     (chips || '<p class="text-xs text-gray-500 text-center">لا يوجد موظفون' + (scope ? ' في هذا القسم' : '') + ' — أضفهم من قسم «الموظفون»</p>') +
     '<div id="ruleOrder-' + scopeIdx + '-' + day + '-' + idx + '">' + orderList + '</div>' +
   '</div>';
@@ -591,7 +605,7 @@ function ruleModeChanged(scopeIdx, day, idx) {
   const row = getRuleRow(scopeIdx, day, idx);
   const el = document.getElementById('ruleMode-' + scopeIdx + '-' + day + '-' + idx);
   if (el) row.mode = el.value === 'fixed' ? 'fixed' : 'rotate';
-  if (row.mode === 'fixed') row.employeeIds = row.employeeIds.slice(0, 1); // الثابت يحتاج موظفاً واحداً فقط
+  // الثابت يقبل أكثر من موظف: كل المختارين يظهرون في هذا اليوم كل أسبوع
   rerenderRuleRow(scopeIdx, day, idx);
 }
 function toggleRuleEmp(scopeIdx, day, idx, empId) {
@@ -634,19 +648,15 @@ const REGEN_YEARS = 5;
 function regenerateScopeWeekday(scope, day) {
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const end = new Date(today); end.setFullYear(end.getFullYear() + REGEN_YEARS);
-  const sc = scheduleRules.scopes[scope] || { days: {} };
-  const rows = (sc.days[Number(day)] || { rows: [] }).rows;
   const updates = {};
   for (let c = new Date(today); c < end; c.setDate(c.getDate() + 1)) {
     if (c.getDay() !== Number(day)) continue;
     const key = formatKey(c);
-    const prefix = 'auto-' + key + '-' + (scope || 'all') + '-';
     const existing = Array.isArray(shifts[key]) ? shifts[key] : [];
-    const manual = existing.filter(function(s) { return !s.auto || s.id.indexOf(prefix) !== 0; });
-    rows.forEach(function(row, i) {
-      const slot = autoSlotForDate(c, scope, row, i);
-      if (slot) manual.push(slot);
-    });
+    // نحتفظ باليدوية (تبديلات الغياب) وورديات النطاقات الأخرى،
+    // ونزيل كل تلقائيات هذا اليوم (أي صيغة سابقة) ثم نبنيها من القواعد الحالية.
+    const manual = existing.filter(function(s) { return !s.auto || s.id.indexOf('auto-' + key + '-') !== 0; });
+    manual.push.apply(manual, scopeAutoSlotsForDate(scope, c));
     manual.sort(function(a, b) { return String(a.start).localeCompare(String(b.start)); });
     updates[key] = manual;
   }
@@ -739,12 +749,16 @@ async function generateThisWeek() {
   for (let c = new Date(start); c <= end; c.setDate(c.getDate() + 1)) {
     const key = formatKey(c);
     const existing = Array.isArray(shifts[key]) ? shifts[key] : [];
-    if (existing.length) continue; // يوم فيه ورديات (يدوية أو تلقائية) لا يُمس
-    const auto = autoSlotsForDate(c);
-    if (auto.length) updates[key] = auto;
+    // دمج: اليدوية (تبديلات الغياب) تبقى، والتلقائيات تُبنى من القواعد الحالية
+    // (الثابتون يظهرون كل أسبوع + المتناوبون يُضافون فوقهم — تراكمياً).
+    const manual = existing.filter(function(s) { return !s.auto || s.id.indexOf('auto-' + key + '-') !== 0; });
+    manual.push.apply(manual, autoSlotsForDate(c));
+    manual.sort(function(a, b) { return String(a.start).localeCompare(String(b.start)); });
+    const normalized = JSON.stringify(manual) !== JSON.stringify(existing) || !manual.length ? manual : existing;
+    if (manual.length || existing.length) updates[key] = normalized;
   }
   const keys = Object.keys(updates);
-  if (!keys.length) { toast('لا أيام فارغة هذا الأسبوع، أو لا قواعد قابلة للتطبيق'); return; }
+  if (!keys.length) { toast('لا قواعد قابلة للتطبيق هذا الأسبوع'); return; }
   keys.forEach(function(k) { shifts[k] = updates[k]; });
   saveOfflineShifts(shifts);
   try { await db.ref(path('shifts')).update(updates); } catch (e) {}
