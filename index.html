@@ -222,6 +222,16 @@ input::placeholder, textarea::placeholder { color: #9a3412 !important; opacity: 
 
 <div id="toast" class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 hidden"></div>
 
+<div id="swapModal" class="fixed inset-0 z-50 hidden">
+  <div class="absolute inset-0 bg-black/50" onclick="closeSwapModal()"></div>
+  <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl p-5 w-80" style="max-height:80vh;overflow-y:auto">
+    <h3 class="font-bold text-lg mb-1">⇄ تبديل وردية</h3>
+    <p id="swapInfo" class="text-sm text-slate-500 mb-3"></p>
+    <div id="swapList" class="space-y-2"></div>
+    <button type="button" onclick="closeSwapModal()" class="w-full btn-amber py-2 rounded-xl mt-3">إلغاء</button>
+  </div>
+</div>
+
 <div id="slotModal" class="fixed inset-0 z-50 hidden">
   <div class="absolute inset-0 bg-black/50" onclick="closeSlotModal()"></div>
   <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl p-5 w-80">
@@ -946,7 +956,7 @@ function renderDay() {
     const st = staffById(sl.employeeId) || { name: 'موظف', hex: '#0f766e', title: '' };
     const del = isAdmin() ? '<button onclick="deleteSlot(\'' + sl.id + '\')" class="absolute left-3 top-3 text-white/80">✕</button>' : '';
     return '<div class="slot shadow" style="background:' + (st.hex || '#0f766e') + '">' + del +
-      '<div class="font-extrabold text-xl">' + displayName(st) + (sl.auto ? '<span class="auto-badge">تلقائي ⚡</span>' : '') + '</div>' +
+      '<div class="flex items-center gap-2 flex-wrap"><button type="button" data-key="' + formatKey(viewDate) + '" data-slot="' + sl.id + '" class="swap-trigger font-extrabold text-xl text-left" title="اضغط على الاسم للتبديل في حال الغياب">' + displayName(st) + ' ⇄</button>' + (sl.auto ? '<span class="auto-badge">تلقائي ⚡</span>' : '') + '</div>' +
       '<div class="text-sm opacity-90">' + (st.title || '') + (deptName(st.deptId) ? ' · ' + deptName(st.deptId) : '') + '</div>' +
       '<div class="mt-1 font-bold">⏰ ' + (sl.start || '') + ' — ' + (sl.end || '') + '</div></div>';
   }).join('');
@@ -1148,6 +1158,76 @@ function deleteSlot(id) {
   const list = daySlots(viewDate).filter(function(s) { return s.id !== id; });
   db.ref(path('shifts/' + key)).set(list);
 }
+
+// ===== تبديل سريع من بطاقة اليوم (في حال غياب أحدهم) =====
+let swapTarget = null; // { key, slotId }
+function openSwapModal(key, slotId) {
+  const list = Array.isArray(shifts[key]) ? shifts[key] : [];
+  const slot = list.find(function(s) { return s.id === slotId; });
+  if (!slot) return;
+  const emp = staffById(slot.employeeId);
+  swapTarget = { key: key, slotId: slotId };
+  const info = document.getElementById('swapInfo');
+  if (info) info.textContent = 'وردية ' + (emp ? displayName(emp) : '؟') + ' (' + (slot.start || '—') + ' إلى ' + (slot.end || '—') + ') — اختر من يغطيها:';
+  const sameDept = (emp && emp.deptId)
+    ? staffList().filter(function(s) { return String(s.deptId) === String(emp.deptId) && Number(s.id) !== Number(slot.employeeId); })
+    : [];
+  const others = staffList().filter(function(s) { return Number(s.id) !== Number(slot.employeeId) && sameDept.indexOf(s) < 0; });
+  let html = '';
+  if (sameDept.length) {
+    html += '<div class="text-xs font-bold text-slate-500 mb-1">' + (deptName(emp.deptId) ? 'من قسم «' + deptName(emp.deptId) + '»:' : 'نفس القسم:') + '</div>' + sameDept.map(swapOptionHtml).join('');
+  }
+  if (others.length) {
+    html += '<div class="text-xs font-bold text-slate-500 mt-3 mb-1">' + (sameDept.length ? 'من باقي الأقسام:' : 'كل الموظفين النشطين:') + '</div>' + others.map(swapOptionHtml).join('');
+  }
+  document.getElementById('swapList').innerHTML = html || '<p class="text-sm text-slate-400 text-center py-4">لا يوجد موظف نشط آخر للتبديل</p>';
+  document.getElementById('swapModal').classList.remove('hidden');
+}
+function swapOptionHtml(s) {
+  return '<button type="button" data-swap-to="' + Number(s.id) + '" class="swap-option w-full flex items-center gap-2 border rounded-xl p-3 text-right bg-white" style="margin-bottom:6px">' +
+    '<span class="inline-block rounded-full" style="width:14px;height:14px;background:' + (s.hex || '#0f766e') + '"></span>' +
+    '<span class="flex-1"><span class="font-bold block">' + escapeHtml(displayName(s)) + '</span>' +
+    '<span class="text-xs text-slate-500">' + escapeHtml(s.title || '') + (deptName(s.deptId) ? ' · ' + escapeHtml(deptName(s.deptId)) : '') + '</span></span>' +
+    '<span class="text-teal-700 text-sm font-bold">⇄ تبديل</span></button>';
+}
+async function doSwap(newEmpId) {
+  if (!swapTarget) return;
+  const key = swapTarget.key, slotId = swapTarget.slotId;
+  const list = Array.isArray(shifts[key]) ? shifts[key] : [];
+  const slot = list.find(function(s) { return s.id === slotId; });
+  if (!slot) return;
+  const from = Number(slot.employeeId), to = Number(newEmpId);
+  if (!to || from === to) return;
+  const fromEmp = staffById(from), toEmp = staffById(to);
+  slot.employeeId = to;
+  slot.auto = false; // التبديل اليدوي يلغي صفة التلقائي لهذه الوردية تحديداً
+  if (currentUser && currentUser.role === 'employee') slot.swappedBy = currentUser.username;
+  shifts[key] = list;
+  saveOfflineShifts(shifts);
+  closeSwapModal();
+  try {
+    await db.ref(path('shifts/' + key)).set(list);
+    try {
+      await db.ref(path('swapLog')).push({ date: key, slotId: slotId, from: from, to: to, fromName: fromEmp ? displayName(fromEmp) : '', toName: toEmp ? displayName(toEmp) : '', by: (currentUser && currentUser.username) || '', at: Date.now() });
+    } catch (e) {}
+    toast('✔ تم تبديل الوردية');
+  } catch (e) {
+    toast('تم التبديل على هذا الجهاز — سيُزامن عند عودة الاتصال');
+  }
+  renderAll();
+}
+function closeSwapModal() {
+  document.getElementById('swapModal').classList.add('hidden');
+  swapTarget = null;
+}
+
+// مستمع نقرة واحد على مستوى الصفحة (اسم الموظف في البطاقة أو خيار التبديل في النافذة)
+document.addEventListener('click', function(e) {
+  const t = e.target.closest('.swap-trigger');
+  if (t) { openSwapModal(t.getAttribute('data-key'), t.getAttribute('data-slot')); return; }
+  const o = e.target.closest('.swap-option');
+  if (o) doSwap(o.getAttribute('data-swap-to'));
+});
 
 window.addEventListener('load', async function() {
   // 1) آخر البيانات المعروفة من الجهاز (ورديات/قواعد/أقسام/موظفين) — تعمل فوراً حتى بدون إنترنت

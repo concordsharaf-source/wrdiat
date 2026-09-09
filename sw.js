@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wrdiat-offline-v5';
+const CACHE_NAME = 'wrdiat-offline-v6';
 const ICON = './images/icon-192x192.png';
 const APP_URL = './index.html';
 const APP_SHELL = [
