@@ -30,9 +30,9 @@ body { font-family: 'Tajawal', sans-serif; }
     <img src="images/icon-192x192.png" alt="" class="w-20 h-20 mx-auto mb-4 rounded-2xl shadow-xl">
     <h1 class="text-3xl font-bold mb-1" id="orgTitle">نظام الورديات</h1>
     <p class="text-white/70 mb-2" id="orgSubtitle">إدارة الأقسام والشفتات</p>
-    <p class="text-white/50 text-xs mb-6">الأدمن بالإيميل — الموظف برقم الدخول</p>
-    <input id="loginId" class="w-full mb-3 px-4 py-3 rounded-xl text-center text-slate-900" placeholder="الإيميل أو رقم الموظف">
-    <input id="loginPass" type="password" class="w-full mb-3 px-4 py-3 rounded-xl text-center text-slate-900" placeholder="كلمة المرور أو الرمز">
+    <p class="text-white/50 text-xs mb-6">الأدمن: الإيميل — الموظف: الاسم + الرقم الذي يمنحه الأدمن</p>
+    <input id="loginId" class="w-full mb-3 px-4 py-3 rounded-xl text-center text-slate-900" placeholder="اسم الموظف أو إيميل الأدمن">
+    <input id="loginPass" class="w-full mb-3 px-4 py-3 rounded-xl text-center text-slate-900" placeholder="رقم الدخول أو كلمة مرور الأدمن">
     <div id="loginError" class="text-red-200 text-sm hidden mb-2"></div>
     <button onclick="handleLogin()" class="w-full bg-white text-teal-800 font-bold py-3 rounded-xl">دخول</button>
   </div>
@@ -95,11 +95,14 @@ body { font-family: 'Tajawal', sans-serif; }
       </section>
       <section class="bg-white rounded-2xl p-4 shadow">
         <h3 class="font-bold text-lg mb-2">👥 الموظفون وأرقام الدخول</h3>
-        <input id="stCode" class="w-full border rounded-xl p-3 mb-2" placeholder="رقم الدخول مثل 1024">
         <input id="stName" class="w-full border rounded-xl p-3 mb-2" placeholder="الاسم">
+        <input id="stLast" class="w-full border rounded-xl p-3 mb-2" placeholder="اللقب (اختياري)">
+        <div class="text-sm text-slate-600 mb-2">طريقة عرض الاسم</div>
+        <label class="flex items-center gap-2 mb-1 text-sm"><input type="radio" name="stDisp" value="full" checked> الاسم كاملاً (حقل الاسم فقط)</label>
+        <label class="flex items-center gap-2 mb-3 text-sm"><input type="radio" name="stDisp" value="laqab"> الاسم واللقب</label>
         <input id="stTitle" class="w-full border rounded-xl p-3 mb-2" placeholder="المسمى الوظيفي مثل مصور / طباخ">
         <select id="stDept" class="w-full border rounded-xl p-3 mb-2 bg-white"></select>
-        <input id="stPin" type="password" class="w-full border rounded-xl p-3 mb-2" placeholder="رمز الدخول">
+        <input id="stCode" class="w-full border rounded-xl p-3 mb-2" placeholder="رقم الدخول الذي يُمنح للموظف">
         <input id="stColor" type="color" value="#0f766e" class="w-full h-12 mb-2 rounded-xl">
         <button onclick="addStaff()" class="w-full bg-teal-700 text-white py-2 rounded-xl">حفظ الموظف</button>
         <div id="staffList" class="mt-3 space-y-2"></div>
@@ -178,7 +181,7 @@ async function handleLogin() {
   if (!id || !pass) { errLogin('أدخل البيانات'); return; }
   try {
     if (id.indexOf('@') >= 0) await loginAdmin(id, pass);
-    else await loginStaff(id, pass);
+    else await loginStaff(id, pass); // اسم الموظف + رقم يمنحه الأدمن
   } catch (e) { errLogin(e.message || 'فشل الدخول'); }
 }
 
@@ -199,13 +202,17 @@ async function loginAdmin(email, password) {
   enterApp();
 }
 
-async function loginStaff(code, pin) {
-  const hash = await hashPassword(pin);
-  const rec = (await db.ref(path('staff/' + code)).once('value')).val();
-  if (!rec) throw new Error('رقم الموظف غير موجود');
-  if (rec.pinHash !== hash) throw new Error('الرمز غير صحيح');
-  currentUser = { username: rec.name, id: rec.id, role: 'employee', code: code, deptId: rec.deptId };
-  localStorage.setItem('wrdiatUser', JSON.stringify({ loginType: 'staff', code: code, passwordHash: hash }));
+async function loginStaff(name, number) {
+  const all = (await db.ref(path('staff')).once('value')).val() || {};
+  const code = String(number).trim();
+  let rec = null, recCode = '';
+  Object.keys(all).forEach(function(c) {
+    const s = Object.assign({ code: c }, all[c]);
+    if (namesMatch(s, name) && String(s.code) === code) { rec = s; recCode = c; }
+  });
+  if (!rec) throw new Error('الاسم أو رقم الدخول غير صحيح');
+  currentUser = { username: displayName(rec), id: rec.id, role: 'employee', code: recCode, deptId: rec.deptId };
+  localStorage.setItem('wrdiatUser', JSON.stringify({ loginType: 'staff', code: recCode, name: rec.name, passwordHash: rec.pinHash || '' }));
   enterApp();
 }
 
@@ -266,7 +273,7 @@ function renderDay() {
     const st = staffById(sl.employeeId) || { name: 'موظف', hex: '#0f766e', title: '' };
     const del = isAdmin() ? '<button onclick="deleteSlot(\'' + sl.id + '\')" class="absolute left-3 top-3 text-white/80">✕</button>' : '';
     return '<div class="slot shadow" style="background:' + (st.hex || '#0f766e') + '">' + del +
-      '<div class="font-extrabold text-xl">' + (st.name || '') + '</div>' +
+      '<div class="font-extrabold text-xl">' + displayName(st) + '</div>' +
       '<div class="text-sm opacity-90">' + (st.title || '') + (deptName(st.deptId) ? ' · ' + deptName(st.deptId) : '') + '</div>' +
       '<div class="mt-1 font-bold">⏰ ' + (sl.start || '') + ' — ' + (sl.end || '') + '</div></div>';
   }).join('');
@@ -306,7 +313,7 @@ function renderStats() {
     });
   }
   document.getElementById('statsBox').innerHTML = staffList().map(function(s) {
-    return '<div class="p-4 rounded-2xl text-white" style="background:' + (s.hex||'#0f766e') + '"><div class="flex justify-between"><span class="font-bold">' + s.name + '</span><span>' + (counts[s.id]||0) + ' وردية</span></div><div class="text-xs opacity-80">' + (s.title||'') + ' · ' + deptName(s.deptId) + '</div></div>';
+    return '<div class="p-4 rounded-2xl text-white" style="background:' + (s.hex||'#0f766e') + '"><div class="flex justify-between"><span class="font-bold">' + displayName(s) + '</span><span>' + (counts[s.id]||0) + ' وردية</span></div><div class="text-xs opacity-80">' + (s.title||'') + ' · ' + deptName(s.deptId) + '</div></div>';
   }).join('') || '<p class="text-slate-400">لا يوجد موظفون</p>';
 }
 
@@ -322,7 +329,7 @@ function renderSettingsLists() {
   }).join('');
   const sl = document.getElementById('staffList');
   if (sl) sl.innerHTML = staffList().map(function(s) {
-    return '<div class="border rounded-xl p-3"><div class="font-bold">' + s.name + ' — رقم ' + s.code + '</div><div class="text-sm text-slate-500">' + (s.title||'') + ' · ' + deptName(s.deptId) + '</div></div>';
+    return '<div class="border rounded-xl p-3"><div class="font-bold">' + displayName(s) + ' — رقم ' + s.code + '</div><div class="text-sm text-slate-500">' + (s.title||'') + ' · ' + deptName(s.deptId) + '</div></div>';
   }).join('') || '<p class="text-slate-400 text-sm">لا موظفون بعد</p>';
 }
 
@@ -356,7 +363,7 @@ async function addStaff() {
 function openSlotModal() {
   const sel = document.getElementById('slotEmp');
   sel.innerHTML = staffList().map(function(s) {
-    return '<option value="' + s.id + '">' + s.name + (s.title ? ' — ' + s.title : '') + '</option>';
+    return '<option value="' + s.id + '">' + displayName(s) + (s.title ? ' — ' + s.title : '') + '</option>';
   }).join('');
   if (!staffList().length) { alert('أضف موظفين أولاً من الإعدادات'); return; }
   document.getElementById('slotModal').classList.remove('hidden');
@@ -394,8 +401,8 @@ window.addEventListener('load', async function() {
       }
     } else if (u.loginType === 'staff' && u.code) {
       const rec = (await db.ref(path('staff/' + u.code)).once('value')).val();
-      if (rec && rec.pinHash === u.passwordHash) {
-        currentUser = { username: rec.name, id: rec.id, role: 'employee', code: u.code, deptId: rec.deptId };
+      if (rec && !rec.disabled) {
+        currentUser = { username: displayName(Object.assign({ code: u.code }, rec)), id: rec.id, role: 'employee', code: u.code, deptId: rec.deptId };
         enterApp();
       }
     }
