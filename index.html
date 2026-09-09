@@ -89,6 +89,7 @@ input::placeholder, textarea::placeholder { color: #9a3412 !important; opacity: 
     <p class="text-white/70 mb-6" id="orgSubtitle">إدارة الأقسام والشفتات</p>
 
     <div id="homeChoice">
+      <div id="sessionNote" class="text-amber-200 text-sm hidden mb-3 text-center"></div>
       <button type="button" onclick="showLoginPanel()" class="btn-amber w-full py-3 rounded-xl mb-3 text-lg">تسجيل الدخول</button>
       <button type="button" onclick="showSignupPanel()" class="btn-dark w-full py-3 rounded-xl text-lg">إنشاء حساب</button>
     </div>
@@ -293,6 +294,8 @@ const RULE_DAY_ORDER = [6, 0, 1, 2, 3, 4, 5]; // السبت → الجمعة (م
 const RULE_DAY_NAMES = { 6: 'السبت', 0: 'الأحد', 1: 'الإثنين', 2: 'الثلاثاء', 3: 'الأربعاء', 4: 'الخميس', 5: 'الجمعة' };
 const OFFLINE_RULES_KEY = 'wrdiat_schedule_rules_v1';
 const OFFLINE_SHIFTS_KEY = 'wrdiat_offline_shifts_v1';
+const OFFLINE_DEPARTMENTS_KEY = 'wrdiat_offline_departments_v1';
+const OFFLINE_STAFF_KEY = 'wrdiat_offline_staff_v1';
 
 scheduleRules = normalizeScheduleRules(null); // التهيئة هنا بعد تعريف الثوابت أعلاه
 
@@ -333,7 +336,17 @@ function normalizeScheduleRules(value) {
 
 function saveOfflineRules(value) { try { localStorage.setItem(OFFLINE_RULES_KEY, JSON.stringify(value)); } catch (e) {} }
 function saveOfflineShifts(value) { try { localStorage.setItem(OFFLINE_SHIFTS_KEY, JSON.stringify(value || {})); } catch (e) {} }
+function saveOfflineDepartments(value) { try { localStorage.setItem(OFFLINE_DEPARTMENTS_KEY, JSON.stringify(value || {})); } catch (e) {} }
+function saveOfflineStaff(value) { try { localStorage.setItem(OFFLINE_STAFF_KEY, JSON.stringify(value || {})); } catch (e) {} }
 function restoreOfflineData() {
+  try {
+    const d = JSON.parse(localStorage.getItem(OFFLINE_DEPARTMENTS_KEY) || 'null');
+    if (d && typeof d === 'object' && !Array.isArray(d)) departments = d;
+  } catch (e) {}
+  try {
+    const st = JSON.parse(localStorage.getItem(OFFLINE_STAFF_KEY) || 'null');
+    if (st && typeof st === 'object' && !Array.isArray(st)) staff = st;
+  } catch (e) {}
   try {
     const r = JSON.parse(localStorage.getItem(OFFLINE_RULES_KEY) || 'null');
     if (r && typeof r === 'object') scheduleRules = normalizeScheduleRules(r);
@@ -631,11 +644,13 @@ function showHomeChoice() {
   document.getElementById('signupPanel').classList.add('hidden');
 }
 function showLoginPanel() {
+  logoutNote('');
   document.getElementById('homeChoice').classList.add('hidden');
   document.getElementById('loginPanel').classList.remove('hidden');
   document.getElementById('signupPanel').classList.add('hidden');
 }
 function showSignupPanel() {
+  logoutNote('');
   document.getElementById('homeChoice').classList.add('hidden');
   document.getElementById('loginPanel').classList.add('hidden');
   document.getElementById('signupPanel').classList.remove('hidden');
@@ -665,7 +680,7 @@ async function handleSignup() {
     if (exists) { errSignup('هذا الإيميل مسجّل مسبقاً، استخدم تسجيل الدخول'); return; }
     await db.ref(path('admins/' + key)).set({ email: email, passwordHash: hash, role: 'admin', name: name });
     currentUser = { username: name, email: email, role: 'admin' };
-    localStorage.setItem('wrdiatUser', JSON.stringify({ loginType: 'admin', email: email, passwordHash: hash }));
+    localStorage.setItem('wrdiatUser', JSON.stringify({ loginType: 'admin', email: email, passwordHash: hash, name: name, role: 'admin' }));
     enterApp();
   } catch (e) {
     const msg = String(e.message || e.code || e);
@@ -695,7 +710,7 @@ async function loginAdmin(email, password) {
     if (rec.passwordHash !== hash) throw new Error('كلمة المرور غير صحيحة');
     currentUser = { username: rec.name || email, email: email, role: 'admin' };
   }
-  localStorage.setItem('wrdiatUser', JSON.stringify({ loginType: 'admin', email: email, passwordHash: hash }));
+  localStorage.setItem('wrdiatUser', JSON.stringify({ loginType: 'admin', email: email, passwordHash: hash, name: rec.name || email, role: 'admin' }));
   enterApp();
 }
 
@@ -708,17 +723,53 @@ async function loginStaff(name, number) {
     if (namesMatch(s, name) && String(s.code) === code) { rec = s; recCode = c; }
   });
   if (!rec) throw new Error('الاسم أو رقم الدخول غير صحيح');
-  currentUser = { username: displayName(rec), id: rec.id, role: 'employee', code: recCode, deptId: rec.deptId };
-  localStorage.setItem('wrdiatUser', JSON.stringify({ loginType: 'staff', code: recCode, name: rec.name, passwordHash: rec.pinHash || '' }));
+  const uname = displayName(rec);
+  currentUser = { username: uname, id: rec.id, role: 'employee', code: recCode, deptId: rec.deptId };
+  localStorage.setItem('wrdiatUser', JSON.stringify({ loginType: 'staff', code: recCode, name: rec.name, username: uname, id: rec.id, deptId: rec.deptId, role: 'employee' }));
   enterApp();
 }
 
-function logout() {
+// ===== الجلسة الدائمة =====
+// لا يُسحب الدخول إلا بزر «تسجيل الخروج»، أو إذا حذف الأدمن الحساب/أوقف الموظف.
+// انقطاع الإنترنت أو تغيّر كلمة المرور لا يمس الجلسة إطلاقاً.
+function logout(message) {
   currentUser = null;
   localStorage.removeItem('wrdiatUser');
   document.getElementById('mainApp').classList.add('hidden');
   document.getElementById('loginScreen').classList.remove('hidden');
   showHomeChoice();
+  logoutNote(message || '');
+}
+function logoutNote(msg) {
+  const el = document.getElementById('sessionNote');
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.toggle('hidden', !msg);
+}
+function sessionToCurrentUser(u) {
+  if (!u || typeof u !== 'object') return null;
+  if (u.loginType === 'admin' && u.email) return { username: u.name || u.email, email: u.email, role: 'admin' };
+  if (u.loginType === 'staff' && u.code) return { username: u.username || u.name || 'موظف', id: Number(u.id) || null, role: 'employee', code: u.code, deptId: u.deptId };
+  return null;
+}
+// تحقق صامت في الخلفية بعد الاستعادة المحلية: لا يخرج إلا عند إيقاف/حذف الحساب فعلياً
+async function validateSessionInBackground(u) {
+  try {
+    if (u && u.loginType === 'admin' && u.email) {
+      const rec = (await db.ref(path('admins/' + emailKey(u.email))).once('value')).val();
+      if (!rec) { logout('⚠️ حُذف حساب الأدمن — أنشئ حساباً جديداً'); return; }
+      // تحديث الاسم إن تغيّر + تحديث الجلسة المحفوظة (تغيير كلمة المرور لا يخرج المستخدم)
+      if (rec.name && rec.name !== u.name) {
+        u.name = rec.name;
+        localStorage.setItem('wrdiatUser', JSON.stringify(u));
+        const cu = sessionToCurrentUser(u);
+        if (cu) { currentUser = cu; document.getElementById('welcomeMessage').textContent = '👋 ' + cu.username; }
+      }
+    } else if (u && u.loginType === 'staff' && u.code) {
+      const rec = (await db.ref(path('staff/' + u.code)).once('value')).val();
+      if (!rec || rec.disabled) { logout('⚠️ تم إيقاف حسابك من قبل الأدمن'); return; }
+    }
+  } catch (e) { /* لا إنترنت أو خطأ مؤقت → الجلسة تبقى كما هي */ }
 }
 
 function enterApp() {
@@ -732,8 +783,8 @@ function enterApp() {
 }
 
 function listenData() {
-  db.ref(path('departments')).on('value', function(s) { departments = s.val() || {}; renderAll(); });
-  db.ref(path('staff')).on('value', function(s) { staff = s.val() || {}; renderAll(); });
+  db.ref(path('departments')).on('value', function(s) { departments = s.val() || {}; saveOfflineDepartments(departments); renderAll(); });
+  db.ref(path('staff')).on('value', function(s) { staff = s.val() || {}; saveOfflineStaff(staff); renderAll(); });
   db.ref(path('shifts')).on('value', function(s) { shifts = s.val() || {}; saveOfflineShifts(shifts); renderAll(); });
   db.ref(path('scheduleRules')).on('value', function(s) {
     scheduleRules = normalizeScheduleRules(s.val() || {});
@@ -920,26 +971,19 @@ function deleteSlot(id) {
 }
 
 window.addEventListener('load', async function() {
-  restoreOfflineData(); // عرض آخر بيانات معروفة (الورديات والقواعد) قبل وصول الشبكة
+  // 1) آخر البيانات المعروفة من الجهاز (ورديات/قواعد/أقسام/موظفين) — تعمل فوراً حتى بدون إنترنت
+  restoreOfflineData();
   renderAll();
+  // 2) الجلسة الدائمة: استعادة من الجهاز فوراً بدون أي انتظار أو فحص كلمة مرور
   const saved = localStorage.getItem('wrdiatUser');
   if (!saved) return;
-  try {
-    const u = JSON.parse(saved);
-    if (u.loginType === 'admin' && u.email) {
-      const rec = (await db.ref(path('admins/' + emailKey(u.email))).once('value')).val();
-      if (rec && rec.passwordHash === u.passwordHash) {
-        currentUser = { username: rec.name || u.email, email: u.email, role: 'admin' };
-        enterApp();
-      }
-    } else if (u.loginType === 'staff' && u.code) {
-      const rec = (await db.ref(path('staff/' + u.code)).once('value')).val();
-      if (rec && !rec.disabled) {
-        currentUser = { username: displayName(Object.assign({ code: u.code }, rec)), id: rec.id, role: 'employee', code: u.code, deptId: rec.deptId };
-        enterApp();
-      }
-    }
-  } catch (e) {}
+  let u = null;
+  try { u = JSON.parse(saved); } catch (e) {}
+  const cu = sessionToCurrentUser(u);
+  if (!cu) return;
+  currentUser = cu;
+  enterApp(); // الدخول مضمون — لا يخرج إلا بزر تسجيل الخروج
+  validateSessionInBackground(u); // تحقق صامت في الخلفية
 });
 
 if ('serviceWorker' in navigator) {
