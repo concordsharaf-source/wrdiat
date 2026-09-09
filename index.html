@@ -203,15 +203,10 @@ input::placeholder, textarea::placeholder { color: #9a3412 !important; opacity: 
           <button type="button" onclick="generateThisWeek()" class="flex-1 btn-amber py-2 rounded-xl text-sm">✨ توليد هذا الأسبوع</button>
         </div>
         <div class="mt-3 bg-slate-50 border border-slate-200 rounded-xl p-3">
-          <div class="font-bold text-sm mb-2">🔄 تطبيق القواعد على فترة محددة (من تاريخ حتى نهاية السنة أو سنوات لاحقة)</div>
-          <div class="flex items-center gap-2 mb-2">
-            <label class="text-xs text-slate-500 whitespace-nowrap">من</label>
-            <input id="applyFromDate" type="date" class="flex-1 border rounded-lg p-2 bg-white text-sm">
-            <label class="text-xs text-slate-500 whitespace-nowrap">إلى (فارغ = نهاية السنة)</label>
-            <input id="applyToDate" type="date" class="flex-1 border rounded-lg p-2 bg-white text-sm">
-          </div>
-          <button type="button" onclick="applyScheduleToFuture()" class="w-full btn-dark py-2 rounded-xl text-sm">🔄 تطبيق القواعد على هذه الفترة</button>
-          <p class="text-xs text-slate-500 mt-1">الأيام قبل تاريخ البداية تبقى كما هي؛ ضمن الفترة تُستبدل اليدوية بالتوزيع التلقائي.</p>
+          <div class="font-bold text-sm mb-2">🔄 التطبيق التلقائي — 5 سنوات قادمة</div>
+          <p class="text-xs text-slate-500 mb-2">زر «حفظ التغييرات» تحت كل يوم يطبّق قواعد ذلك اليوم (ثابت أو تناوب) فوراً على هذا اليوم الأسبوعي في كل الأسابيع القادمة حتى <b>5 سنوات</b> — بدون تحديد تواريخ: السبت الثابت يظهر في كل السبتات، والتناوب يتحرك أسبوعاً بأسبوع.</p>
+          <button type="button" onclick="applyScheduleToFuture()" class="w-full btn-dark py-2 rounded-xl text-sm">🔄 إعادة تطبيق كل القواعد على 5 سنوات كاملة</button>
+          <p class="text-xs text-slate-500 mt-1">الأيام الماضية تبقى كما هي؛ والورديات اليدوية ضمن الفترة تُستبدل بالتوزيع التلقائي.</p>
         </div>
         <p class="text-xs text-slate-500 mt-3">الورديات المولَّدة تلقائياً تحمل شارة ⚡ ويمكن حذفها كأي وردية.</p>
       </section>
@@ -513,13 +508,6 @@ function toast(msg) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(function() { el.classList.add('hidden'); }, 2800);
 }
-function deptOptionsHtml(selectedDept) {
-  let html = '<option value=""' + (!selectedDept ? ' selected' : '') + '>كل الأقسام</option>';
-  html += Object.keys(departments).map(function(id) {
-    return '<option value="' + id + '"' + (String(id) === String(selectedDept) ? ' selected' : '') + '>' + escapeHtml(departments[id].name) + '</option>';
-  }).join('');
-  return html;
-}
 // scopeIdx يقصد به ترتيب النطاق في ruleScopeKeys (تجنب مشاكل الاقتباس في معرفات الأقسام)
 let ruleScopeKeys = [''];
 function scopeKey(scopeIdx) { return ruleScopeKeys[Number(scopeIdx)] === undefined ? '' : ruleScopeKeys[Number(scopeIdx)]; }
@@ -567,8 +555,6 @@ function renderScheduleRules() {
   if (!container) return;
   const anchorEl = document.getElementById('rulesAnchor');
   if (anchorEl) anchorEl.value = anchorInputValue();
-  const fromEl = document.getElementById('applyFromDate');
-  if (fromEl && !fromEl.value) fromEl.value = todayKey();
   ruleScopeKeys = ruleScopes();
   const labels = { '': { name: '🌐 كل الأقسام (قاعدة عامة)', note: 'تُطبَّق على جميع الموظفين النشطين في كل الأقسام — وتُدمج مع قواعد الأقسام.' } };
   Object.keys(departments).forEach(function(id) {
@@ -586,6 +572,7 @@ function renderScheduleRules() {
           (day === 5 ? '<span class="text-xs font-bold text-orange-700">ترتيب مستقل للجمعة</span>' : '') +
         '</div>' + rowsHtml +
         '<button type="button" onclick="addRuleRow(' + si + ',' + day + ')" class="text-sm text-teal-700 font-bold">+ إضافة سطر لهذا اليوم</button>' +
+        '<button type="button" onclick="saveDayRules(' + si + ',' + day + ')" class="w-full mt-2 btn-teal py-2 rounded-xl text-sm">💾 حفظ تغييرات هذا اليوم — وتطبيقها 5 سنوات</button>' +
       '</div>';
     }).join('');
     return '<div class="border-2 border-orange-100 rounded-xl p-3 mb-3 bg-orange-50">' +
@@ -639,9 +626,65 @@ function removeRuleRow(scopeIdx, day, idx) {
   renderScheduleRules();
 }
 
-function todayKey() {
-  const d = new Date();
-  return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+// ===== التطبيق التلقائي: 5 سنوات قادمة (بدون تحديد تواريخ) =====
+const REGEN_YEARS = 5;
+
+// يعيد بناء ورديات يوم أسبوعي واحد (مثلاً السبت) لنطاق واحد لخمس سنوات قادمة:
+// يبقي اليدوية + تلقائيات النطاقات الأخرى، ويستبدل تلقائيات هذا النطاق فقط.
+function regenerateScopeWeekday(scope, day) {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const end = new Date(today); end.setFullYear(end.getFullYear() + REGEN_YEARS);
+  const sc = scheduleRules.scopes[scope] || { days: {} };
+  const rows = (sc.days[Number(day)] || { rows: [] }).rows;
+  const updates = {};
+  for (let c = new Date(today); c < end; c.setDate(c.getDate() + 1)) {
+    if (c.getDay() !== Number(day)) continue;
+    const key = formatKey(c);
+    const prefix = 'auto-' + key + '-' + (scope || 'all') + '-';
+    const existing = Array.isArray(shifts[key]) ? shifts[key] : [];
+    const manual = existing.filter(function(s) { return !s.auto || s.id.indexOf(prefix) !== 0; });
+    rows.forEach(function(row, i) {
+      const slot = autoSlotForDate(c, scope, row, i);
+      if (slot) manual.push(slot);
+    });
+    manual.sort(function(a, b) { return String(a.start).localeCompare(String(b.start)); });
+    updates[key] = manual;
+  }
+  Object.keys(updates).forEach(function(k) { shifts[k] = updates[k]; });
+  return updates;
+}
+
+// حفظ تغييرات يوم واحد من الواجهة، ثم تطبيقها على كل هذا اليوم الأسبوعي لـ5 سنوات
+async function saveDayRules(scopeIdx, day) {
+  if (!isAdmin()) return;
+  const scope = scopeKey(scopeIdx);
+  if (!scheduleRules.scopes[scope]) scheduleRules.scopes[scope] = { days: emptyRuleDays() };
+  const sc = scheduleRules.scopes[scope];
+  if (!sc.days[day]) sc.days[day] = { rows: [] };
+  const rows = sc.days[day].rows;
+  rows.forEach(function(row, idx) {
+    const modeEl = document.getElementById('ruleMode-' + scopeIdx + '-' + day + '-' + idx);
+    const startEl = document.getElementById('ruleStart-' + scopeIdx + '-' + day + '-' + idx);
+    const endEl = document.getElementById('ruleEnd-' + scopeIdx + '-' + day + '-' + idx);
+    if (modeEl) row.mode = modeEl.value === 'fixed' ? 'fixed' : 'rotate';
+    if (startEl) row.start = startEl.value;
+    if (endEl) row.end = endEl.value;
+  });
+  if (rows.some(function(row) { return row.mode === 'fixed' && !row.employeeIds.length; })) {
+    toast('يوم ' + RULE_DAY_NAMES[day] + ': اختر موظفاً واحداً على الأقل للنوع «موظف ثابت»');
+    return;
+  }
+  scheduleRules = normalizeScheduleRules(scheduleRules);
+  saveOfflineRules(scheduleRules);
+  const updates = regenerateScopeWeekday(scope, day);
+  try {
+    await db.ref(path('scheduleRules')).set(scheduleRules);
+    if (Object.keys(updates).length) await db.ref(path('shifts')).update(updates);
+    toast('✔ تم حفظ وتطبيق ' + RULE_DAY_NAMES[day] + ' على ' + Object.keys(updates).length + ' يوماً (5 سنوات)');
+  } catch (e) {
+    toast('تم الحفظ محلياً — سيُزامن عند عودة الاتصال');
+  }
+  renderAll();
 }
 // حفظ القواعد: يقرأ النوع/الوقت من كل نطاق ويحدّثها ثم يُرسل لقاعدة البيانات
 async function saveScheduleRules() {
@@ -709,54 +752,31 @@ async function generateThisWeek() {
   toast('✔ تم توليد ' + keys.length + ' يوم تلقائياً حسب القواعد');
 }
 
-// تطبيق القواعد من تاريخ محدد حتى نهاية السنة الحالية أو لسنوات لاحقة
+// إعادة تطبيق كل القواعد (كل النطاقات وكل الأيام) على 5 سنوات قادمة
 async function applyScheduleToFuture() {
   if (!isAdmin()) return;
-  const fromEl = document.getElementById('applyFromDate');
-  const fromVal = (fromEl && fromEl.value) || todayKey();
-  if (!/^\d{4}-\d{1,2}-\d{1,2}$/.test(fromVal)) { toast('حدد تاريخ بداية صحيحاً'); return; }
-  const parts = fromVal.split('-').map(Number);
-  const start = new Date(parts[0], parts[1] - 1, parts[2]);
-  start.setHours(0, 0, 0, 0);
-  const toEl = document.getElementById('applyToDate');
-  let end;
-  if (toEl && toEl.value) {
-    const ep = toEl.value.split('-').map(Number);
-    end = new Date(ep[0], ep[1] - 1, ep[2]);
-    end.setHours(0, 0, 0, 0);
-    end.setDate(end.getDate() + 1); // شامل
-  } else {
-    end = new Date(start.getFullYear(), 11, 31); // نهاية السنة
-    end.setHours(0, 0, 0, 0);
-    end.setDate(end.getDate() + 1);
-  }
-  if (end <= start) { toast('تاريخ النهاية يجب أن بعد البداية'); return; }
-  const fromFmt = formatKey(start), toFmt = formatKey(new Date(end.getTime() - 86400000));
-  if (!confirm('سيتم توزيع الورديات حسب قواعد الأسبوع (ثابت/تناوب لكل قسم) من ' + fromFmt + ' إلى ' + toFmt + '. أيام ما قبل هذا التاريخ تبقى محفوظة، والورديات اليدوية في هذه الفترة تُستبدل بالتوزيع التلقائي. متابعة؟')) return;
+  if (!confirm('سيتم إعادة بناء الورديات من اليوم وحتى ' + REGEN_YEARS + ' سنوات قادمة حسب كل القواعد الحالية (ثابت/تناوب لكل قسم). ما قبل اليوم يبقى كما هو، والورديات اليدوية ضمن الفترة تُستبدل بالتوزيع التلقائي. متابعة؟')) return;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const end = new Date(today); end.setFullYear(end.getFullYear() + REGEN_YEARS);
   const preserved = {};
   Object.keys(shifts).forEach(function(key) {
     const kp = key.split('-').map(Number);
     const d = new Date(kp[0], kp[1] - 1, kp[2]);
-    if (!isNaN(d.getTime()) && d < start) preserved[key] = shifts[key];
+    if (!isNaN(d.getTime()) && d < today) preserved[key] = shifts[key];
   });
   const generated = {};
-  for (let c = new Date(start); c < end; c.setDate(c.getDate() + 1)) {
+  for (let c = new Date(today); c < end; c.setDate(c.getDate() + 1)) {
     const key = formatKey(c);
     const generatedSlots = autoSlotsForDate(c);
     const existing = Array.isArray(shifts[key]) ? shifts[key] : [];
-    // اليدوية ضمن نطاق التطبيق تُستبدل (قرار متعمد)، لكن الأيام التي لا تغطيها
-    // أي قاعدة (لا موظفين في النطاقات) تُبقي وردياتها اليدوية كما هي.
-    if (!generatedSlots.length && existing.length) {
-      generated[key] = existing.slice();
-    } else {
-      generated[key] = generatedSlots;
-    }
+    // الأيام التي لا تغطيها أي قاعدة (لا موظفين) تُبقي وردياتها اليدوية كما هي.
+    generated[key] = generatedSlots.length ? generatedSlots : existing.slice();
   }
   shifts = Object.assign({}, preserved, generated);
   saveOfflineShifts(shifts);
   try { await db.ref(path('shifts')).set(shifts); } catch (e) {}
   renderAll();
-  toast('✔ تم تطبيق التوزيع على ' + Object.keys(generated).length + ' يوماً');
+  toast('✔ تم تطبيق القواعد على ' + Object.keys(generated).length + ' يوماً (' + REGEN_YEARS + ' سنوات)');
 }
 
 function showHomeChoice() {
