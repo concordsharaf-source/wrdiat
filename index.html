@@ -16,6 +16,18 @@
 body { font-family: 'Tajawal', sans-serif; }
 .hidden { display: none !important; }
 .login-wrap { min-height: 100vh; background: linear-gradient(160deg, #0f766e, #115e59, #134e4a); }
+input:not([type=color]):not([type=radio]):not([type=checkbox]):not([type=file]),
+select, textarea {
+  background: #fff7ed !important;
+  color: #1c1917 !important;
+  border: 2px solid #fb923c !important;
+  outline: none;
+}
+input::placeholder, textarea::placeholder { color: #9a3412 !important; opacity: 1; }
+.btn-amber { background: #fbbf24; color: #111827; font-weight: 800; }
+.btn-dark { background: #111827; color: #fde047; font-weight: 800; }
+.btn-teal { background: #115e59; color: #fef3c7; font-weight: 800; }
+.home-card { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25); }
 .slot { border-radius: 16px; color: #fff; padding: 12px 14px; margin-bottom: 8px; position: relative; overflow: hidden; }
 .slot::after { content: ''; position: absolute; inset: 0; background: linear-gradient(115deg, rgba(255,255,255,.28), transparent 55%); pointer-events: none; }
 .dept-chip { display: inline-block; background: #ecfeff; color: #0f766e; border-radius: 999px; padding: 2px 10px; font-size: 12px; }
@@ -29,12 +41,32 @@ body { font-family: 'Tajawal', sans-serif; }
   <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 w-full max-w-md text-center text-white">
     <img src="images/icon-192x192.png" alt="" class="w-20 h-20 mx-auto mb-4 rounded-2xl shadow-xl">
     <h1 class="text-3xl font-bold mb-1" id="orgTitle">نظام الورديات</h1>
-    <p class="text-white/70 mb-2" id="orgSubtitle">إدارة الأقسام والشفتات</p>
-    <p class="text-white/50 text-xs mb-6">الأدمن: الإيميل — الموظف: الاسم + الرقم الذي يمنحه الأدمن</p>
-    <input id="loginId" class="w-full mb-3 px-4 py-3 rounded-xl text-center text-slate-900" placeholder="اسم الموظف أو إيميل الأدمن">
-    <input id="loginPass" class="w-full mb-3 px-4 py-3 rounded-xl text-center text-slate-900" placeholder="رقم الدخول أو كلمة مرور الأدمن">
-    <div id="loginError" class="text-red-200 text-sm hidden mb-2"></div>
-    <button onclick="handleLogin()" class="w-full bg-white text-teal-800 font-bold py-3 rounded-xl">دخول</button>
+    <p class="text-white/70 mb-6" id="orgSubtitle">إدارة الأقسام والشفتات</p>
+
+    <div id="homeChoice">
+      <button type="button" onclick="showLoginPanel()" class="btn-amber w-full py-3 rounded-xl mb-3 text-lg">تسجيل الدخول</button>
+      <button type="button" onclick="showSignupPanel()" class="btn-dark w-full py-3 rounded-xl text-lg">إنشاء حساب</button>
+    </div>
+
+    <div id="loginPanel" class="hidden text-right">
+      <p class="text-white/70 text-xs mb-3 text-center">الأدمن بالإيميل — الموظف بالاسم ورقم الدخول</p>
+      <input id="loginId" class="w-full mb-3 px-4 py-3 rounded-xl text-center" placeholder="اسم الموظف أو إيميل الأدمن">
+      <input id="loginPass" type="password" class="w-full mb-3 px-4 py-3 rounded-xl text-center" placeholder="رقم الدخول أو كلمة مرور الأدمن">
+      <div id="loginError" class="text-amber-200 text-sm hidden mb-2 text-center"></div>
+      <button type="button" onclick="handleLogin()" class="btn-amber w-full py-3 rounded-xl mb-2">دخول</button>
+      <button type="button" onclick="showHomeChoice()" class="text-white/80 text-sm w-full">رجوع</button>
+    </div>
+
+    <div id="signupPanel" class="hidden text-right">
+      <p class="text-white/70 text-xs mb-3 text-center">حساب أدمن جديد للمؤسسة</p>
+      <input id="suName" class="w-full mb-3 px-4 py-3 rounded-xl text-center" placeholder="الاسم">
+      <input id="suEmail" class="w-full mb-3 px-4 py-3 rounded-xl text-center" placeholder="الإيميل">
+      <input id="suPass" type="password" class="w-full mb-3 px-4 py-3 rounded-xl text-center" placeholder="كلمة المرور">
+      <input id="suPass2" type="password" class="w-full mb-3 px-4 py-3 rounded-xl text-center" placeholder="تأكيد كلمة المرور">
+      <div id="signupError" class="text-amber-200 text-sm hidden mb-2 text-center"></div>
+      <button type="button" onclick="handleSignup()" class="btn-dark w-full py-3 rounded-xl mb-2">إنشاء الحساب</button>
+      <button type="button" onclick="showHomeChoice()" class="text-white/80 text-sm w-full">رجوع</button>
+    </div>
   </div>
 </div>
 
@@ -62,14 +94,14 @@ body { font-family: 'Tajawal', sans-serif; }
     </div>
     <div id="deptFilter" class="flex flex-wrap gap-2 mb-4"></div>
     <div id="slotsList"></div>
-    <button id="addSlotBtn" onclick="openSlotModal()" class="hidden w-full mt-4 bg-teal-700 text-white font-bold py-3 rounded-2xl">➕ إضافة وردية في هذا اليوم</button>
+    <button id="addSlotBtn" onclick="openSlotModal()" class="hidden w-full mt-4 btn-amber py-3 rounded-2xl">➕ إضافة وردية في هذا اليوم</button>
   </div>
 
   <div id="calPage" class="page hidden max-w-3xl mx-auto p-4">
     <div class="flex justify-between bg-white rounded-xl p-3 mb-4 shadow">
-      <button onclick="moveMonth(-1)" class="bg-teal-700 text-white px-3 py-1 rounded-lg">السابق</button>
+      <button onclick="moveMonth(-1)" class="btn-teal px-3 py-1 rounded-lg">السابق</button>
       <h2 id="calTitle" class="font-bold"></h2>
-      <button onclick="moveMonth(1)" class="bg-teal-700 text-white px-3 py-1 rounded-lg">التالي</button>
+      <button onclick="moveMonth(1)" class="btn-teal px-3 py-1 rounded-lg">التالي</button>
     </div>
     <div class="bg-white rounded-xl overflow-hidden shadow">
       <div class="grid grid-cols-7 bg-slate-800 text-white text-center text-sm font-bold">
@@ -90,7 +122,7 @@ body { font-family: 'Tajawal', sans-serif; }
         <h3 class="font-bold text-lg mb-2">🏢 الأقسام — أضف بلا حد</h3>
         <p class="text-sm text-slate-500 mb-3">صوت، تصوير، إخراج، مطبخ، كاشير… أي قسم تريده.</p>
         <input id="newDeptName" class="w-full border rounded-xl p-3 mb-2" placeholder="اسم القسم">
-        <button onclick="addDepartment()" class="w-full bg-teal-700 text-white py-2 rounded-xl">إضافة قسم</button>
+        <button onclick="addDepartment()" class="w-full btn-teal py-2 rounded-xl">إضافة قسم</button>
         <div id="deptList" class="mt-3 space-y-2"></div>
       </section>
       <section class="bg-white rounded-2xl p-4 shadow">
@@ -104,11 +136,11 @@ body { font-family: 'Tajawal', sans-serif; }
         <select id="stDept" class="w-full border rounded-xl p-3 mb-2 bg-white"></select>
         <input id="stCode" class="w-full border rounded-xl p-3 mb-2" placeholder="رقم الدخول الذي يُمنح للموظف">
         <input id="stColor" type="color" value="#0f766e" class="w-full h-12 mb-2 rounded-xl">
-        <button onclick="addStaff()" class="w-full bg-teal-700 text-white py-2 rounded-xl">حفظ الموظف</button>
+        <button onclick="addStaff()" class="w-full btn-teal py-2 rounded-xl">حفظ الموظف</button>
         <div id="staffList" class="mt-3 space-y-2"></div>
       </section>
     </div>
-    <button onclick="logout()" class="w-full bg-red-500 text-white font-bold py-3 rounded-2xl mt-6">تسجيل الخروج</button>
+    <button onclick="logout()" class="w-full bg-red-600 text-amber-100 font-bold py-3 rounded-2xl mt-6">تسجيل الخروج</button>
   </div>
 </div>
 
@@ -124,8 +156,8 @@ body { font-family: 'Tajawal', sans-serif; }
     <input id="slotEnd" type="time" value="14:00" class="w-full border rounded-xl p-3 mb-2">
     <div id="slotErr" class="text-red-500 text-sm hidden mb-2"></div>
     <div class="flex gap-2">
-      <button onclick="saveSlot()" class="flex-1 bg-teal-700 text-white py-2 rounded-xl">حفظ</button>
-      <button onclick="closeSlotModal()" class="flex-1 bg-slate-200 py-2 rounded-xl">إلغاء</button>
+      <button onclick="saveSlot()" class="flex-1 btn-teal py-2 rounded-xl">حفظ</button>
+      <button onclick="closeSlotModal()" class="flex-1 btn-amber py-2 rounded-xl">إلغاء</button>
     </div>
   </div>
 </div>
@@ -169,9 +201,49 @@ function daySlots(d) {
   return arr.slice().sort(function(a,b) { return String(a.start).localeCompare(String(b.start)); });
 }
 
+function showHomeChoice() {
+  document.getElementById('homeChoice').classList.remove('hidden');
+  document.getElementById('loginPanel').classList.add('hidden');
+  document.getElementById('signupPanel').classList.add('hidden');
+}
+function showLoginPanel() {
+  document.getElementById('homeChoice').classList.add('hidden');
+  document.getElementById('loginPanel').classList.remove('hidden');
+  document.getElementById('signupPanel').classList.add('hidden');
+}
+function showSignupPanel() {
+  document.getElementById('homeChoice').classList.add('hidden');
+  document.getElementById('loginPanel').classList.add('hidden');
+  document.getElementById('signupPanel').classList.remove('hidden');
+}
 function errLogin(m) {
   const el = document.getElementById('loginError');
   el.textContent = m; el.classList.remove('hidden');
+}
+function errSignup(m) {
+  const el = document.getElementById('signupError');
+  el.textContent = m; el.classList.remove('hidden');
+}
+async function handleSignup() {
+  const name = document.getElementById('suName').value.trim();
+  const email = document.getElementById('suEmail').value.trim();
+  const pass = document.getElementById('suPass').value;
+  const pass2 = document.getElementById('suPass2').value;
+  document.getElementById('signupError').classList.add('hidden');
+  if (name.length < 2) { errSignup('أدخل الاسم'); return; }
+  if (email.indexOf('@') < 0) { errSignup('أدخل إيميل صحيح'); return; }
+  if (pass.length < 4) { errSignup('كلمة المرور قصيرة'); return; }
+  if (pass !== pass2) { errSignup('كلمتا المرور غير متطابقتين'); return; }
+  try {
+    const hash = await hashPassword(pass);
+    const key = emailKey(email);
+    const exists = (await db.ref(path('admins/' + key)).once('value')).val();
+    if (exists) { errSignup('هذا الإيميل مسجّل مسبقاً، استخدم تسجيل الدخول'); return; }
+    await db.ref(path('admins/' + key)).set({ email: email, passwordHash: hash, role: 'admin', name: name });
+    currentUser = { username: name, email: email, role: 'admin' };
+    localStorage.setItem('wrdiatUser', JSON.stringify({ loginType: 'admin', email: email, passwordHash: hash }));
+    enterApp();
+  } catch (e) { errSignup(e.message || 'تعذر إنشاء الحساب'); }
 }
 
 async function handleLogin() {
@@ -190,10 +262,7 @@ async function loginAdmin(email, password) {
   const key = emailKey(email);
   const rec = (await db.ref(path('admins/' + key)).once('value')).val();
   if (!rec) {
-    const all = (await db.ref(path('admins')).once('value')).val() || {};
-    if (Object.keys(all).length) throw new Error('هذا الإيميل غير مسجّل');
-    await db.ref(path('admins/' + key)).set({ email: email, passwordHash: hash, role: 'admin', name: email.split('@')[0] });
-    currentUser = { username: email.split('@')[0], email: email, role: 'admin' };
+    throw new Error('هذا الإيميل غير مسجّل، أنشئ حساباً أولاً');
   } else {
     if (rec.passwordHash !== hash) throw new Error('كلمة المرور غير صحيحة');
     currentUser = { username: rec.name || email, email: email, role: 'admin' };
