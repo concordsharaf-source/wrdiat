@@ -136,7 +136,8 @@ input::placeholder, textarea::placeholder { color: #9a3412 !important; opacity: 
         <select id="stDept" class="w-full border rounded-xl p-3 mb-2 bg-white"></select>
         <input id="stCode" class="w-full border rounded-xl p-3 mb-2" placeholder="رقم الدخول الذي يُمنح للموظف">
         <input id="stColor" type="color" value="#0f766e" class="w-full h-12 mb-2 rounded-xl">
-        <button onclick="addStaff()" class="w-full btn-teal py-2 rounded-xl">حفظ الموظف</button>
+        <button type="button" onclick="addStaff()" class="w-full btn-teal py-2 rounded-xl">حفظ الموظف</button>
+        <div id="staffMsg" class="text-sm mt-2 hidden"></div>
         <div id="staffList" class="mt-3 space-y-2"></div>
       </section>
     </div>
@@ -189,6 +190,20 @@ let filterDept = '';
 function isAdmin() { return currentUser && currentUser.role === 'admin'; }
 function staffList() {
   return Object.keys(staff).map(function(c) { return Object.assign({ code: c }, staff[c]); }).filter(function(s) { return !s.disabled; });
+}
+function displayName(s) {
+  if (!s) return '';
+  if (s.displayMode === 'laqab' && (s.lastName || s.laqab)) {
+    return String(s.name || '') + ' ' + String(s.lastName || s.laqab || '');
+  }
+  return String(s.name || s.fullName || '');
+}
+function namesMatch(s, typed) {
+  const t = String(typed || '').replace(/\s+/g, ' ').trim();
+  if (!t) return false;
+  const full = displayName(s).replace(/\s+/g, ' ').trim();
+  const first = String(s.name || '').replace(/\s+/g, ' ').trim();
+  return t === full || t === first;
 }
 function staffById(id) {
   return staffList().find(function(s) { return Number(s.id) === Number(id); });
@@ -294,6 +309,7 @@ function logout() {
   localStorage.removeItem('wrdiatUser');
   document.getElementById('mainApp').classList.add('hidden');
   document.getElementById('loginScreen').classList.remove('hidden');
+  showHomeChoice();
 }
 
 function enterApp() {
@@ -414,23 +430,41 @@ function addDepartment() {
 }
 function removeDept(id) { if (confirm('حذف القسم؟')) db.ref(path('departments/' + id)).remove(); }
 
+function staffMsg(text, ok) {
+  const el = document.getElementById('staffMsg');
+  if (!el) { alert(text); return; }
+  el.textContent = text;
+  el.classList.remove('hidden');
+  el.className = 'text-sm mt-2 ' + (ok ? 'text-teal-700' : 'text-red-600');
+}
 async function addStaff() {
-  const code = document.getElementById('stCode').value.trim();
-  const name = document.getElementById('stName').value.trim();
-  const title = document.getElementById('stTitle').value.trim();
-  const deptId = document.getElementById('stDept').value;
-  const pin = document.getElementById('stPin').value;
-  const hex = document.getElementById('stColor').value;
-  if (!/^\d+$/.test(code)) { alert('الرقم أرقام فقط'); return; }
-  if (name.length < 2 || pin.length < 3) { alert('أكمل الاسم والرمز'); return; }
-  const pinHash = await hashPassword(pin);
-  const ids = staffList().map(function(s) { return Number(s.id)||0; });
-  const id = (ids.length ? Math.max.apply(null, ids) : 0) + 1;
-  await db.ref(path('staff/' + code)).set({ name: name, title: title, deptId: deptId, pinHash: pinHash, id: id, hex: hex, disabled: false });
-  document.getElementById('stCode').value = '';
-  document.getElementById('stName').value = '';
-  document.getElementById('stTitle').value = '';
-  document.getElementById('stPin').value = '';
+  try {
+    const code = document.getElementById('stCode').value.trim();
+    const name = document.getElementById('stName').value.trim();
+    const lastEl = document.getElementById('stLast');
+    const lastName = lastEl ? lastEl.value.trim() : '';
+    const title = document.getElementById('stTitle').value.trim();
+    const deptId = document.getElementById('stDept').value;
+    const hex = document.getElementById('stColor').value;
+    const dispEl = document.querySelector('input[name="stDisp"]:checked');
+    const displayMode = dispEl ? dispEl.value : 'full';
+    if (!/^\d+$/.test(code)) { staffMsg('رقم الدخول أرقام فقط'); return; }
+    if (name.length < 2) { staffMsg('أدخل اسم الموظف'); return; }
+    if (displayMode === 'laqab' && lastName.length < 1) { staffMsg('أدخل اللقب أو اختر عرض الاسم كاملاً'); return; }
+    const ids = staffList().map(function(s) { return Number(s.id)||0; });
+    const id = (ids.length ? Math.max.apply(null, ids) : 0) + 1;
+    await db.ref(path('staff/' + code)).set({
+      name: name, lastName: lastName, displayMode: displayMode,
+      title: title, deptId: deptId, id: id, hex: hex, disabled: false, code: code
+    });
+    document.getElementById('stCode').value = '';
+    document.getElementById('stName').value = '';
+    if (lastEl) lastEl.value = '';
+    document.getElementById('stTitle').value = '';
+    staffMsg('تم حفظ الموظف', true);
+  } catch (e) {
+    staffMsg('تعذر الحفظ: ' + (e.message || e));
+  }
 }
 
 function openSlotModal() {
