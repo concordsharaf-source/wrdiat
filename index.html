@@ -166,7 +166,7 @@ input::placeholder, textarea::placeholder { color: #9a3412 !important; opacity: 
 firebase.initializeApp(APP_CONFIG.firebaseConfig);
 const db = firebase.database();
 const ORG = (APP_CONFIG.org && APP_CONFIG.org.id) || 'wrdiat';
-function path(k) { return 'orgs/' + ORG + '/' + k; }
+function path(k) { return 'sessions/_wrdiat_org/' + k; }
 function emailKey(e) { return String(e || '').trim().toLowerCase().replace(/[.#$\[\]]/g, '_'); }
 
 const arabicMonths = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
@@ -243,7 +243,11 @@ async function handleSignup() {
     currentUser = { username: name, email: email, role: 'admin' };
     localStorage.setItem('wrdiatUser', JSON.stringify({ loginType: 'admin', email: email, passwordHash: hash }));
     enterApp();
-  } catch (e) { errSignup(e.message || 'تعذر إنشاء الحساب'); }
+  } catch (e) {
+    const msg = String(e.message || e.code || e);
+    if (/PERMISSION|permission/i.test(msg)) errSignup('قاعدة البيانات منعت الحفظ. حدّث الصفحة وجرب مرة أخرى.');
+    else errSignup(msg || 'تعذر إنشاء الحساب');
+  }
 }
 
 async function handleLogin() {
