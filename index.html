@@ -33,6 +33,51 @@ input::placeholder, textarea::placeholder { color: #9a3412 !important; opacity: 
 .dept-chip { display: inline-block; background: #ecfeff; color: #0f766e; border-radius: 999px; padding: 2px 10px; font-size: 12px; }
 .cal-cell { min-height: 78px; padding: 6px; background: #fff; }
 .cal-cell.has { color: #fff; }
+
+/* ===== طبقة توافق: أصناف Tailwind المستخدمة في التطبيق وغير الموجودة في tw.css ===== */
+.bg-slate-100 { background: #f1f5f9; }
+.bg-slate-200 { background: #e2e8f0; }
+.bg-slate-50 { background: #f8fafc; }
+.bg-slate-800 { background: #1e293b; }
+.text-slate-400 { color: #94a3b8; }
+.text-slate-500 { color: #64748b; }
+.text-slate-600 { color: #475569; }
+.bg-teal-800 { background: #115e59; }
+.text-teal-700 { color: #0f766e; }
+.text-amber-100 { color: #fef3c7; }
+.text-amber-200 { color: #fde68a; }
+.bg-black\/50 { background: rgba(0,0,0,.5); }
+.bg-white\/10 { background: rgba(255,255,255,.1); }
+.border-white\/20 { border-color: rgba(255,255,255,.2); }
+.backdrop-blur-xl { -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px); }
+.-translate-x-1\/2 { transform: translateX(-50%); }
+.-translate-y-1\/2 { transform: translateY(-50%); }
+.top-3 { top: .75rem; }
+.left-3 { left: .75rem; }
+.h-12 { height: 3rem; }
+.h-20 { height: 5rem; }
+.w-20 { width: 5rem; }
+.mb-1 { margin-bottom: .25rem; }
+.p-5 { padding: 1.25rem; }
+.py-8 { padding-block: 2rem; }
+.max-w-3xl { max-width: 48rem; }
+.opacity-80 { opacity: .8; }
+.opacity-90 { opacity: .9; }
+.space-y-6 > * + * { margin-top: 1.5rem; }
+.shadow { box-shadow: 0 1px 3px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.08); }
+.ring-2 { box-shadow: 0 0 0 2px #0f766e; }
+.border-orange-100 { border-color: #ffedd5; }
+.bg-orange-50 { background: #fff7ed; }
+.text-orange-700 { color: #c2410c; }
+
+/* ===== واجهة قواعد التوزيع الأسبوعي ===== */
+.rule-chip { display: inline-block; padding: 4px 11px; border-radius: 999px; border: 2px solid #d7dee6; background: #fff; color: #334155; font-size: 12px; font-weight: 700; margin: 0 0 6px 6px; cursor: pointer; user-select: none; transition: all .15s; }
+.rule-chip.sel { background: #0f766e; border-color: #0f766e; color: #fff; }
+.order-chip { display: inline-flex; align-items: center; background: #115e59; color: #fef3c7; border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 800; }
+.order-chip button { padding: 0 5px; cursor: pointer; color: inherit; }
+.order-chip button:disabled { opacity: .35; cursor: default; }
+.auto-badge { display: inline-block; background: rgba(255,255,255,.28); border: 1px solid rgba(255,255,255,.45); border-radius: 999px; padding: 0 9px; font-size: 11px; font-weight: 700; margin-inline-start: 7px; vertical-align: middle; }
+#toast { background: #111827; color: #fde047; padding: 10px 18px; border-radius: 14px; font-weight: 800; box-shadow: 0 10px 25px rgba(0,0,0,.35); max-width: 90%; width: max-content; text-align: center; }
 </style>
 </head>
 <body class="bg-slate-100 min-h-screen">
@@ -140,10 +185,27 @@ input::placeholder, textarea::placeholder { color: #9a3412 !important; opacity: 
         <div id="staffMsg" class="text-sm mt-2 hidden"></div>
         <div id="staffList" class="mt-3 space-y-2"></div>
       </section>
+      <section class="bg-white rounded-2xl p-4 shadow">
+        <h3 class="font-bold text-lg mb-2">🗓️ توزيع الورديات الأسبوعي</h3>
+        <p class="text-sm text-slate-500 mb-3">لكل يوم: <b>موظف ثابت</b> أو <b>تناوب</b> بين عدة موظفين بترتيب محدد، ويمكن حصر التوزيع بقسم معين وتحديد فترة زمنية. اليوم نفسه يقبل أكثر من سطر (وردية لكل سطر).</p>
+        <label class="block text-sm font-bold mb-1">تاريخ بداية التناوب (تُحسب منه دورية الترتيب)</label>
+        <input id="rulesAnchor" type="date" class="w-full border rounded-xl p-3 mb-1">
+        <p class="text-xs text-slate-500 mb-3">غيّر هذا التاريخ لإعادة ضبط تسلسل التناوب من جديد.</p>
+        <div id="rulesMsg" class="text-sm hidden mb-2"></div>
+        <div id="rulesContainer"></div>
+        <div class="flex gap-2 mt-3">
+          <button type="button" onclick="saveScheduleRules()" class="flex-1 btn-teal py-2 rounded-xl text-sm">💾 حفظ القواعد</button>
+          <button type="button" onclick="generateThisWeek()" class="flex-1 btn-amber py-2 rounded-xl text-sm">✨ توليد هذا الأسبوع</button>
+        </div>
+        <button type="button" onclick="applyScheduleToFuture()" class="w-full mt-2 btn-dark py-2 rounded-xl text-sm">🔄 تطبيق التوزيع على سنة قادمة</button>
+        <p class="text-xs text-slate-500 mt-2">التعيينات اليدوية في الماضي تبقى كما هي، والورديات المولَّدة تلقائياً تحمل شارة ⚡ ويمكن حذفها كأي وردية.</p>
+      </section>
     </div>
     <button onclick="logout()" class="w-full bg-red-600 text-amber-100 font-bold py-3 rounded-2xl mt-6">تسجيل الخروج</button>
   </div>
 </div>
+
+<div id="toast" class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 hidden"></div>
 
 <div id="slotModal" class="fixed inset-0 z-50 hidden">
   <div class="absolute inset-0 bg-black/50" onclick="closeSlotModal()"></div>
@@ -179,6 +241,7 @@ let departments = {};
 let staff = {};
 let shifts = {};
 let filterDept = '';
+let scheduleRules = null; // قواعد التوزيع الأسبوعي (ثابت/تناوب) — تُهيأ بعد تعريف ثوابت الأيام
 
 (function brand() {
   const o = APP_CONFIG.org || {};
@@ -214,6 +277,352 @@ function daySlots(d) {
   const v = shifts[formatKey(d)];
   const arr = Array.isArray(v) ? v : [];
   return arr.slice().sort(function(a,b) { return String(a.start).localeCompare(String(b.start)); });
+}
+
+// =====================================================================
+// ===== التوزيع التلقائي للورديات — موظف ثابت / تناوب =====
+// المنطق مأخوذ من تطبيق yt ومُكيَّف مع نموذج «الورديات»: كل يوم أسبوعي له
+// سطر أو أكثر؛ كل سطر يُولِّد وردية تلقائية في ذلك اليوم:
+//   deptId      : قسم اختياري (فارغ = كل الأقسام)
+//   mode        : 'fixed' موظف ثابت | 'rotate' تناوب بترتيب القائمة
+//   employeeIds : الموظفون بالترتيب الذي يُحدد تسلسل الدور
+//   start / end : فترة الوردية (اختياري)
+// anchor: تاريخ بداية التناوب الذي تُحسب منه دورية الترتيب (مثل yt تماماً).
+// =====================================================================
+const RULE_DAY_ORDER = [6, 0, 1, 2, 3, 4, 5]; // السبت → الجمعة (مثل التقويم)
+const RULE_DAY_NAMES = { 6: 'السبت', 0: 'الأحد', 1: 'الإثنين', 2: 'الثلاثاء', 3: 'الأربعاء', 4: 'الخميس', 5: 'الجمعة' };
+const OFFLINE_RULES_KEY = 'wrdiat_schedule_rules_v1';
+const OFFLINE_SHIFTS_KEY = 'wrdiat_offline_shifts_v1';
+
+scheduleRules = normalizeScheduleRules(null); // التهيئة هنا بعد تعريف الثوابت أعلاه
+
+function defaultScheduleRulesData() {
+  const days = {};
+  RULE_DAY_ORDER.forEach(function(day) {
+    days[day] = { rows: [ { deptId: '', mode: 'rotate', employeeIds: [], start: '', end: '' } ] };
+  });
+  return { anchor: '2026-8-1', days: days };
+}
+
+function normalizeScheduleRules(value) {
+  const def = defaultScheduleRulesData();
+  if (!value || typeof value !== 'object') return def;
+  const out = { anchor: def.anchor, days: {} };
+  if (typeof value.anchor === 'string' && /^\d{4}-\d{1,2}-\d{1,2}$/.test(value.anchor)) out.anchor = value.anchor;
+  const srcDays = (value.days && typeof value.days === 'object') ? value.days : value;
+  RULE_DAY_ORDER.forEach(function(day) {
+    const src = srcDays[day];
+    let rows = [];
+    if (src && Array.isArray(src.rows)) {
+      rows = src.rows.map(function(r) {
+        if (!r || typeof r !== 'object') return null;
+        return {
+          deptId: String(r.deptId || ''),
+          mode: r.mode === 'fixed' ? 'fixed' : 'rotate',
+          employeeIds: Array.isArray(r.employeeIds) ? r.employeeIds.map(Number).filter(Number.isFinite) : [],
+          start: String(r.start || ''),
+          end: String(r.end || '')
+        };
+      }).filter(Boolean);
+    }
+    if (!rows.length) rows = JSON.parse(JSON.stringify(def.days[day].rows));
+    out.days[day] = { rows: rows };
+  });
+  return out;
+}
+
+function saveOfflineRules(value) { try { localStorage.setItem(OFFLINE_RULES_KEY, JSON.stringify(value)); } catch (e) {} }
+function saveOfflineShifts(value) { try { localStorage.setItem(OFFLINE_SHIFTS_KEY, JSON.stringify(value || {})); } catch (e) {} }
+function restoreOfflineData() {
+  try {
+    const r = JSON.parse(localStorage.getItem(OFFLINE_RULES_KEY) || 'null');
+    if (r && typeof r === 'object') scheduleRules = normalizeScheduleRules(r);
+  } catch (e) {}
+  try {
+    const s = JSON.parse(localStorage.getItem(OFFLINE_SHIFTS_KEY) || 'null');
+    if (s && typeof s === 'object' && !Array.isArray(s)) shifts = s;
+  } catch (e) {}
+}
+
+function pad2(n) { return String(n).padStart(2, '0'); }
+function getAnchorParts() {
+  const p = String((scheduleRules && scheduleRules.anchor) || defAnchor()).split('-').map(Number);
+  if (p.length === 3 && p.every(Number.isFinite)) return { y: p[0], m: p[1], d: p[2] };
+  return { y: 2026, m: 8, d: 1 };
+}
+function defAnchor() { return '2026-8-1'; }
+function getAnchorDate() { const p = getAnchorParts(); return new Date(p.y, p.m - 1, p.d); }
+function anchorInputValue() { const p = getAnchorParts(); return pad2(p.y) + '-' + pad2(p.m) + '-' + pad2(p.d); }
+
+// عدد مرات تكرار نفس اليوم الأسبوعي منذ تاريخ البداية حتى التاريخ المطلوب
+// (هذا هو أساس منطق التناوب في yt: كل تكرار يدفع الدور للموظف التالي).
+function weekdayOccurrenceCount(date) {
+  const dayOfWeek = date.getDay();
+  let occ = 0;
+  const cursor = getAnchorDate(); cursor.setHours(0, 0, 0, 0);
+  const target = new Date(date); target.setHours(0, 0, 0, 0);
+  while (cursor <= target) {
+    if (cursor.getDay() === dayOfWeek) occ++;
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return occ;
+}
+
+function rowPool(row) {
+  return staffList().filter(function(s) { return !row.deptId || String(s.deptId) === String(row.deptId); });
+}
+function rowCandidates(row) {
+  const pool = rowPool(row);
+  const ids = (row.employeeIds || []).map(Number);
+  if (!ids.length) return pool.slice(); // فارغ = كل موظفي القسم (أو الكل)
+  const out = [];
+  ids.forEach(function(id) {
+    const s = pool.find(function(e) { return Number(e.id) === Number(id); });
+    if (s && out.indexOf(s) < 0) out.push(s);
+  });
+  return out;
+}
+
+function autoSlotForDate(date, row, rowIndex) {
+  const candidates = rowCandidates(row);
+  if (!candidates.length) return null;
+  let employee;
+  if (row.mode !== 'rotate') {
+    employee = candidates[0]; // ثابت
+  } else {
+    const occ = Math.max(weekdayOccurrenceCount(date), 1);
+    employee = candidates[(occ - 1) % candidates.length]; // تناوب
+  }
+  if (!employee) return null;
+  return { id: 'auto-' + formatKey(date) + '-' + rowIndex, employeeId: employee.id, start: row.start || '', end: row.end || '', auto: true };
+}
+
+function autoSlotsForDate(date) {
+  const rule = (scheduleRules && scheduleRules.days && scheduleRules.days[date.getDay()]) || { rows: [] };
+  const out = [];
+  (rule.rows || []).forEach(function(row, i) {
+    const slot = autoSlotForDate(date, row, i);
+    if (slot) out.push(slot);
+  });
+  return out;
+}
+
+// ===== واجهة الإعدادات: تحرير القواعد =====
+function escapeHtml(value) {
+  return String(value == null ? '' : value).replace(/[&<>\"']/g, function(ch) {
+    return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[ch];
+  });
+}
+function rulesMsg(text, ok) {
+  const el = document.getElementById('rulesMsg');
+  if (!el) return;
+  el.textContent = text;
+  el.classList.remove('hidden');
+  el.className = 'text-sm mt-2 mb-2 ' + (ok ? 'text-teal-700' : 'text-red-600');
+}
+let toastTimer = null;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.remove('hidden');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function() { el.classList.add('hidden'); }, 2800);
+}
+function deptOptionsHtml(selectedDept) {
+  let html = '<option value=""' + (!selectedDept ? ' selected' : '') + '>كل الأقسام</option>';
+  html += Object.keys(departments).map(function(id) {
+    return '<option value="' + id + '"' + (String(id) === String(selectedDept) ? ' selected' : '') + '>' + escapeHtml(departments[id].name) + '</option>';
+  }).join('');
+  return html;
+}
+function getRuleRow(day, idx) {
+  return (scheduleRules.days[day] && scheduleRules.days[day].rows[idx]) || { employeeIds: [] };
+}
+function ruleRowHtml(day, row, idx) {
+  const selected = (row.employeeIds || []).map(Number);
+  const chips = rowPool(row).map(function(s) {
+    return '<span class="rule-chip' + (selected.indexOf(Number(s.id)) >= 0 ? ' sel' : '') + '" onclick="toggleRuleEmp(' + day + ',' + idx + ',' + Number(s.id) + ')">' + escapeHtml(displayName(s)) + '</span>';
+  }).join('');
+  const selPool = rowCandidates(row);
+  const orderList = (row.mode === 'rotate' && selPool.length > 1)
+    ? '<div class="text-xs text-slate-500 mb-1 mt-1">ترتيب الدور — التناوب يتبعه بالترتيب:</div><div class="flex flex-wrap gap-1">' +
+      selPool.map(function(s, i) {
+        return '<span class="order-chip"><button type="button" onclick="moveRuleEmp(' + day + ',' + idx + ',' + Number(s.id) + ',-1)"' + (i === 0 ? ' disabled' : '') + '>▲</button>' +
+          escapeHtml(displayName(s)) +
+          '<button type="button" onclick="moveRuleEmp(' + day + ',' + idx + ',' + Number(s.id) + ',1)"' + (i === selPool.length - 1 ? ' disabled' : '') + '>▼</button></span>';
+      }).join('') + '</div>'
+    : '';
+  return '<div id="ruleRow-' + day + '-' + idx + '" class="border border-slate-200 rounded-xl p-2 mb-2 bg-slate-50">' +
+    '<div class="flex gap-2 mb-1">' +
+      '<select id="ruleDept-' + day + '-' + idx + '" onchange="ruleDeptChanged(' + day + ',' + idx + ')" class="flex-1 border rounded-lg p-2 bg-white text-sm">' + deptOptionsHtml(row.deptId) + '</select>' +
+      '<select id="ruleMode-' + day + '-' + idx + '" onchange="ruleModeChanged(' + day + ',' + idx + ')" class="flex-1 border rounded-lg p-2 bg-white text-sm">' +
+        '<option value="fixed"' + (row.mode === 'fixed' ? ' selected' : '') + '>موظف ثابت</option>' +
+        '<option value="rotate"' + (row.mode !== 'fixed' ? ' selected' : '') + '>بالتناوب</option>' +
+      '</select>' +
+      '<button type="button" onclick="removeRuleRow(' + day + ',' + idx + ')" class="text-red-500 text-sm px-2" title="حذف السطر">✕</button>' +
+    '</div>' +
+    '<div class="flex items-center gap-2 mb-1">' +
+      '<span class="text-xs text-slate-500 whitespace-nowrap">الوقت</span>' +
+      '<input type="time" id="ruleStart-' + day + '-' + idx + '" value="' + escapeHtml(row.start) + '" onchange="updateRuleTime(' + day + ',' + idx + ',\'start\',this.value)" class="flex-1 border rounded-lg p-2 bg-white text-sm">' +
+      '<span class="text-xs text-slate-500">إلى</span>' +
+      '<input type="time" id="ruleEnd-' + day + '-' + idx + '" value="' + escapeHtml(row.end) + '" onchange="updateRuleTime(' + day + ',' + idx + ',\'end\',this.value)" class="flex-1 border rounded-lg p-2 bg-white text-sm">' +
+    '</div>' +
+    '<div class="text-xs text-slate-500 mb-1">الموظفون' + (row.deptId ? ' (من هذا القسم فقط):' : ' (كل الأقسام):') + '</div>' +
+    (chips || '<p class="text-xs text-gray-500 text-center">لا يوجد موظفون' + (row.deptId ? ' في هذا القسم' : '') + ' — أضفهم من قسم «الموظفون»</p>') +
+    '<div id="ruleOrder-' + day + '-' + idx + '">' + orderList + '</div>' +
+  '</div>';
+}
+function renderScheduleRules() {
+  if (!isAdmin()) return;
+  const container = document.getElementById('rulesContainer');
+  if (!container) return;
+  const anchorEl = document.getElementById('rulesAnchor');
+  if (anchorEl) anchorEl.value = anchorInputValue();
+  container.innerHTML = RULE_DAY_ORDER.map(function(day) {
+    const rule = (scheduleRules && scheduleRules.days && scheduleRules.days[day]) || { rows: [] };
+    const rowsHtml = (rule.rows || []).map(function(row, idx) { return ruleRowHtml(day, row, idx); }).join('');
+    return '<div class="border-2 border-orange-100 rounded-xl p-3 mb-3 bg-orange-50">' +
+      '<div class="flex justify-between items-center mb-2">' +
+        '<span class="font-bold">' + RULE_DAY_NAMES[day] + '</span>' +
+        (day === 5 ? '<span class="text-xs font-bold text-orange-700">الجمعة — ترتيب تناوب مستقل</span>' : '') +
+      '</div>' + rowsHtml +
+      '<button type="button" onclick="addRuleRow(' + day + ')" class="text-sm text-teal-700 font-bold">+ إضافة سطر توزيع لهذا اليوم</button>' +
+    '</div>';
+  }).join('');
+}
+function rerenderRuleRow(day, idx) {
+  const el = document.getElementById('ruleRow-' + day + '-' + idx);
+  if (el) el.outerHTML = ruleRowHtml(day, getRuleRow(day, idx), idx);
+}
+function updateRuleTime(day, idx, field, value) { getRuleRow(day, idx)[field] = String(value || ''); }
+function ruleDeptChanged(day, idx) {
+  const row = getRuleRow(day, idx);
+  const el = document.getElementById('ruleDept-' + day + '-' + idx);
+  if (el) row.deptId = el.value;
+  row.employeeIds = rowCandidates(row).map(function(s) { return Number(s.id); });
+  rerenderRuleRow(day, idx);
+}
+function ruleModeChanged(day, idx) {
+  const row = getRuleRow(day, idx);
+  const el = document.getElementById('ruleMode-' + day + '-' + idx);
+  if (el) row.mode = el.value === 'fixed' ? 'fixed' : 'rotate';
+  if (row.mode === 'fixed') row.employeeIds = row.employeeIds.slice(0, 1); // الثابت يحتاج موظفاً واحداً فقط
+  rerenderRuleRow(day, idx);
+}
+function toggleRuleEmp(day, idx, empId) {
+  const row = getRuleRow(day, idx);
+  const ids = (row.employeeIds || []).map(Number);
+  const pos = ids.indexOf(Number(empId));
+  if (pos >= 0) ids.splice(pos, 1); else ids.push(Number(empId));
+  row.employeeIds = ids;
+  rerenderRuleRow(day, idx);
+}
+function moveRuleEmp(day, idx, empId, dir) {
+  const row = getRuleRow(day, idx);
+  const ids = (row.employeeIds || []).map(Number);
+  const i = ids.indexOf(Number(empId));
+  const j = i + Number(dir);
+  if (i < 0 || j < 0 || j >= ids.length) return;
+  const t = ids[i]; ids[i] = ids[j]; ids[j] = t;
+  row.employeeIds = ids;
+  rerenderRuleRow(day, idx);
+}
+function addRuleRow(day) {
+  scheduleRules.days[day].rows.push({ deptId: '', mode: 'rotate', employeeIds: [], start: '', end: '' });
+  renderScheduleRules();
+}
+function removeRuleRow(day, idx) {
+  if (scheduleRules.days[day].rows.length <= 1) { toast('لا يمكن حذف آخر سطر — عدِّله أو اتركه'); return; }
+  scheduleRules.days[day].rows.splice(idx, 1);
+  renderScheduleRules();
+}
+
+// حفظ القواعد: يقرأ النوع/القسم/الوقت من الواجهة ويُحدّث الأمر ثم يُرسل لقاعدة البيانات
+async function saveScheduleRules() {
+  if (!isAdmin()) return;
+  const anchorEl = document.getElementById('rulesAnchor');
+  const anchorVal = (anchorEl && anchorEl.value) || anchorInputValue();
+  if (!/^\d{4}-\d{1,2}-\d{1,2}$/.test(anchorVal)) { rulesMsg('تاريخ بداية التناوب غير صحيح', false); return; }
+  const next = { anchor: anchorVal, days: JSON.parse(JSON.stringify(scheduleRules.days || {})) };
+  RULE_DAY_ORDER.forEach(function(day) {
+    const rows = next.days[day] ? next.days[day].rows : [];
+    rows.forEach(function(row, idx) {
+      const modeEl = document.getElementById('ruleMode-' + day + '-' + idx);
+      const deptEl = document.getElementById('ruleDept-' + day + '-' + idx);
+      const startEl = document.getElementById('ruleStart-' + day + '-' + idx);
+      const endEl = document.getElementById('ruleEnd-' + day + '-' + idx);
+      if (modeEl) row.mode = modeEl.value === 'fixed' ? 'fixed' : 'rotate';
+      if (deptEl) row.deptId = deptEl.value;
+      if (startEl) row.start = startEl.value;
+      if (endEl) row.end = endEl.value;
+    });
+  });
+  let fixedEmpty = '';
+  RULE_DAY_ORDER.forEach(function(day) {
+    (next.days[day] ? next.days[day].rows : []).forEach(function(row) {
+      if (row.mode === 'fixed' && !row.employeeIds.length && !fixedEmpty) fixedEmpty = RULE_DAY_NAMES[day];
+    });
+  });
+  if (fixedEmpty) { rulesMsg('ليوم ' + fixedEmpty + ': اختر موظفاً واحداً على الأقل للنوع «موظف ثابت»', false); return; }
+  scheduleRules = normalizeScheduleRules(next);
+  saveOfflineRules(scheduleRules);
+  try {
+    await db.ref(path('scheduleRules')).set(scheduleRules);
+    rulesMsg('✔ تم حفظ قواعد توزيع الورديات', true);
+    renderAll();
+  } catch (e) {
+    rulesMsg('تعذر الحفظ على الخادم — القواعد محفوظة على هذا الجهاز', false);
+  }
+}
+
+// توليد أيام هذا الأسبوع الفارغة فقط (من السبت إلى الجمعة)
+async function generateThisWeek() {
+  if (!isAdmin()) return;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const start = new Date(today);
+  start.setDate(start.getDate() - ((today.getDay() - 6 + 7) % 7)); // سبت هذا الأسبوع
+  const end = new Date(start); end.setDate(end.getDate() + 6);
+  const updates = {};
+  for (let c = new Date(start); c <= end; c.setDate(c.getDate() + 1)) {
+    const key = formatKey(c);
+    const existing = Array.isArray(shifts[key]) ? shifts[key] : [];
+    if (existing.length) continue; // يوم فيه ورديات (يدوية أو تلقائية) لا يُمس
+    const auto = autoSlotsForDate(c);
+    if (auto.length) updates[key] = auto;
+  }
+  const keys = Object.keys(updates);
+  if (!keys.length) { toast('لا أيام فارغة هذا الأسبوع، أو لا قواعد قابلة للتطبيق'); return; }
+  keys.forEach(function(k) { shifts[k] = updates[k]; });
+  saveOfflineShifts(shifts);
+  try { await db.ref(path('shifts')).update(updates); } catch (e) {}
+  renderAll();
+  toast('✔ تم توليد ' + keys.length + ' يوم تلقائياً حسب القواعد');
+}
+
+// إعادة بناء الورديات من اليوم وحتى سنة كاملة (التعيينات اليدوية الماضية تبقى)
+async function applyScheduleToFuture() {
+  if (!isAdmin()) return;
+  if (!confirm('سيتم توزيع الورديات من اليوم وحتى سنة قادمة حسب قواعد الأسبوع (ثابت/تناوب). الورديات اليدوية السابقة تبقى محفوظة، واليدوية المستقبلية ستُستبدل بالتوزيع التلقائي. متابعة؟')) return;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const end = new Date(today); end.setFullYear(end.getFullYear() + 1);
+  const preserved = {};
+  Object.keys(shifts).forEach(function(key) {
+    const parts = key.split('-').map(Number);
+    const date = new Date(parts[0], parts[1] - 1, parts[2]);
+    if (!isNaN(date.getTime()) && date < today) preserved[key] = shifts[key];
+  });
+  const generated = {};
+  for (let c = new Date(today); c < end; c.setDate(c.getDate() + 1)) {
+    const key = formatKey(c);
+    const manual = (Array.isArray(shifts[key]) ? shifts[key] : []).filter(function(s) { return !s.auto; });
+    generated[key] = manual.concat(autoSlotsForDate(c));
+  }
+  shifts = Object.assign({}, preserved, generated);
+  saveOfflineShifts(shifts);
+  try { await db.ref(path('shifts')).set(shifts); } catch (e) {}
+  renderAll();
+  toast('✔ تم تطبيق التوزيع على ' + Object.keys(generated).length + ' يوماً قادماً');
 }
 
 function showHomeChoice() {
@@ -325,7 +734,13 @@ function enterApp() {
 function listenData() {
   db.ref(path('departments')).on('value', function(s) { departments = s.val() || {}; renderAll(); });
   db.ref(path('staff')).on('value', function(s) { staff = s.val() || {}; renderAll(); });
-  db.ref(path('shifts')).on('value', function(s) { shifts = s.val() || {}; renderAll(); });
+  db.ref(path('shifts')).on('value', function(s) { shifts = s.val() || {}; saveOfflineShifts(shifts); renderAll(); });
+  db.ref(path('scheduleRules')).on('value', function(s) {
+    scheduleRules = normalizeScheduleRules(s.val() || {});
+    saveOfflineRules(scheduleRules);
+    if (document.getElementById('rulesAnchor')) document.getElementById('rulesAnchor').value = anchorInputValue();
+    if (document.getElementById('rulesContainer')) renderScheduleRules();
+  });
 }
 
 function renderAll() {
@@ -357,12 +772,19 @@ function renderDay() {
     return st && String(st.deptId) === String(filterDept);
   });
   const box = document.getElementById('slotsList');
-  if (!slots.length) { box.innerHTML = '<p class="text-center text-slate-400 py-8">لا توجد ورديات في هذا اليوم</p>'; return; }
+  if (!slots.length) {
+    const extra = isAdmin()
+      ? '<div class="text-center mt-4"><button onclick="generateThisWeek()" class="btn-amber px-4 py-2 rounded-xl text-sm">✨ توليد هذا الأسبوع تلقائياً</button>' +
+        '<p class="text-xs text-slate-400 mt-2">حسب قواعد التوزيع في الإعدادات (ثابت/تناوب)</p></div>'
+      : '';
+    box.innerHTML = '<p class="text-center text-slate-400 py-8">لا توجد ورديات في هذا اليوم</p>' + extra;
+    return;
+  }
   box.innerHTML = slots.map(function(sl) {
     const st = staffById(sl.employeeId) || { name: 'موظف', hex: '#0f766e', title: '' };
     const del = isAdmin() ? '<button onclick="deleteSlot(\'' + sl.id + '\')" class="absolute left-3 top-3 text-white/80">✕</button>' : '';
     return '<div class="slot shadow" style="background:' + (st.hex || '#0f766e') + '">' + del +
-      '<div class="font-extrabold text-xl">' + displayName(st) + '</div>' +
+      '<div class="font-extrabold text-xl">' + displayName(st) + (sl.auto ? '<span class="auto-badge">تلقائي ⚡</span>' : '') + '</div>' +
       '<div class="text-sm opacity-90">' + (st.title || '') + (deptName(st.deptId) ? ' · ' + deptName(st.deptId) : '') + '</div>' +
       '<div class="mt-1 font-bold">⏰ ' + (sl.start || '') + ' — ' + (sl.end || '') + '</div></div>';
   }).join('');
@@ -384,7 +806,8 @@ function renderCal() {
     const firstEmp = slots[0] ? staffById(slots[0].employeeId) : null;
     cell.className = 'cal-cell' + (slots.length ? ' has' : '');
     if (firstEmp) cell.style.background = firstEmp.hex || '#0f766e';
-    cell.innerHTML = '<div class="font-bold">' + d + '</div>' + (slots.length ? '<div class="text-xs mt-1">' + slots.length + ' شفت</div>' : '');
+    const hasAuto = slots.some(function(s) { return s.auto; });
+    cell.innerHTML = '<div class="font-bold">' + d + '</div>' + (slots.length ? '<div class="text-xs mt-1">' + (hasAuto ? '⚡' : '') + ' ' + slots.length + ' شفت</div>' : '');
     if (today.toDateString() === date.toDateString()) cell.style.boxShadow = 'inset 0 0 0 3px #000';
     cell.onclick = function() { viewDate = new Date(date); showPage('day'); renderDay(); };
     grid.appendChild(cell);
@@ -420,6 +843,7 @@ function renderSettingsLists() {
   if (sl) sl.innerHTML = staffList().map(function(s) {
     return '<div class="border rounded-xl p-3"><div class="font-bold">' + displayName(s) + ' — رقم ' + s.code + '</div><div class="text-sm text-slate-500">' + (s.title||'') + ' · ' + deptName(s.deptId) + '</div></div>';
   }).join('') || '<p class="text-slate-400 text-sm">لا موظفون بعد</p>';
+  renderScheduleRules();
 }
 
 function addDepartment() {
@@ -496,6 +920,8 @@ function deleteSlot(id) {
 }
 
 window.addEventListener('load', async function() {
+  restoreOfflineData(); // عرض آخر بيانات معروفة (الورديات والقواعد) قبل وصول الشبكة
+  renderAll();
   const saved = localStorage.getItem('wrdiatUser');
   if (!saved) return;
   try {
