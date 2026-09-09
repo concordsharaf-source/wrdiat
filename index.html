@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>نظام الورديات</title>
+<script src="firebase-app.js"></script>
+<script src="firebase-database.js"></script>
+<link rel="stylesheet" href="tw.css">
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#0f766e">
+<link rel="apple-touch-icon" href="images/icon-192x192.png">
+<script src="config.js"></script>
+<style>
+@import url('fonts.css');
+body { font-family: 'Tajawal', sans-serif; }
+.hidden { display: none !important; }
+.login-wrap { min-height: 100vh; background: linear-gradient(160deg, #0f766e, #115e59, #134e4a); }
+.slot { border-radius: 16px; color: #fff; padding: 12px 14px; margin-bottom: 8px; position: relative; overflow: hidden; }
+.slot::after { content: ''; position: absolute; inset: 0; background: linear-gradient(115deg, rgba(255,255,255,.28), transparent 55%); pointer-events: none; }
+.dept-chip { display: inline-block; background: #ecfeff; color: #0f766e; border-radius: 999px; padding: 2px 10px; font-size: 12px; }
+.cal-cell { min-height: 78px; padding: 6px; background: #fff; }
+.cal-cell.has { color: #fff; }
+</style>
+</head>
+<body class="bg-slate-100 min-h-screen">
+
+<div id="loginScreen" class="login-wrap flex items-center justify-center p-4">
+  <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 w-full max-w-md text-center text-white">
+    <img src="images/icon-192x192.png" alt="" class="w-20 h-20 mx-auto mb-4 rounded-2xl shadow-xl">
+    <h1 class="text-3xl font-bold mb-1" id="orgTitle">نظام الورديات</h1>
+    <p class="text-white/70 mb-2" id="orgSubtitle">إدارة الأقسام والشفتات</p>
+    <p class="text-white/50 text-xs mb-6">الأدمن بالإيميل — الموظف برقم الدخول</p>
+    <input id="loginId" class="w-full mb-3 px-4 py-3 rounded-xl text-center text-slate-900" placeholder="الإيميل أو رقم الموظف">
+    <input id="loginPass" type="password" class="w-full mb-3 px-4 py-3 rounded-xl text-center text-slate-900" placeholder="كلمة المرور أو الرمز">
+    <div id="loginError" class="text-red-200 text-sm hidden mb-2"></div>
+    <button onclick="handleLogin()" class="w-full bg-white text-teal-800 font-bold py-3 rounded-xl">دخول</button>
+  </div>
+</div>
+
+<div id="mainApp" class="hidden">
+  <nav class="bg-teal-800 text-white sticky top-0 z-40 shadow">
+    <div class="max-w-3xl mx-auto px-3 py-2 flex justify-between items-center">
+      <div class="font-bold text-sm" id="welcomeMessage">مرحباً</div>
+      <div class="flex gap-2">
+        <button onclick="showPage('day')" class="p-2">📅</button>
+        <button onclick="showPage('cal')" class="p-2">🗓️</button>
+        <button onclick="showPage('stats')" class="p-2">📊</button>
+        <button onclick="showPage('settings')" class="p-2">⚙️</button>
+      </div>
+    </div>
+  </nav>
+
+  <div id="dayPage" class="page max-w-3xl mx-auto p-4">
+    <div class="flex justify-between items-center mb-4">
+      <button onclick="shiftDay(-1)" class="bg-white px-3 py-2 rounded-xl shadow">◀</button>
+      <div class="text-center">
+        <div class="text-4xl font-extrabold" id="dayNum"></div>
+        <div class="font-bold text-slate-600" id="dayLabel"></div>
+      </div>
+      <button onclick="shiftDay(1)" class="bg-white px-3 py-2 rounded-xl shadow">▶</button>
+    </div>
+    <div id="deptFilter" class="flex flex-wrap gap-2 mb-4"></div>
+    <div id="slotsList"></div>
+    <button id="addSlotBtn" onclick="openSlotModal()" class="hidden w-full mt-4 bg-teal-700 text-white font-bold py-3 rounded-2xl">➕ إضافة وردية في هذا اليوم</button>
+  </div>
+
+  <div id="calPage" class="page hidden max-w-3xl mx-auto p-4">
+    <div class="flex justify-between bg-white rounded-xl p-3 mb-4 shadow">
+      <button onclick="moveMonth(-1)" class="bg-teal-700 text-white px-3 py-1 rounded-lg">السابق</button>
+      <h2 id="calTitle" class="font-bold"></h2>
+      <button onclick="moveMonth(1)" class="bg-teal-700 text-white px-3 py-1 rounded-lg">التالي</button>
+    </div>
+    <div class="bg-white rounded-xl overflow-hidden shadow">
+      <div class="grid grid-cols-7 bg-slate-800 text-white text-center text-sm font-bold">
+        <div class="p-2">سبت</div><div class="p-2">أحد</div><div class="p-2">إثن</div><div class="p-2">ثلا</div><div class="p-2">أرب</div><div class="p-2">خمي</div><div class="p-2">جمع</div>
+      </div>
+      <div id="calGrid" class="grid grid-cols-7 gap-px bg-slate-200"></div>
+    </div>
+  </div>
+
+  <div id="statsPage" class="page hidden max-w-3xl mx-auto p-4">
+    <h2 class="text-xl font-bold mb-3">إحصائيات الشهر</h2>
+    <div id="statsBox" class="space-y-3"></div>
+  </div>
+
+  <div id="settingsPage" class="page hidden max-w-3xl mx-auto p-4">
+    <div id="adminSettings" class="hidden space-y-6">
+      <section class="bg-white rounded-2xl p-4 shadow">
+        <h3 class="font-bold text-lg mb-2">🏢 الأقسام — أضف بلا حد</h3>
+        <p class="text-sm text-slate-500 mb-3">صوت، تصوير، إخراج، مطبخ، كاشير… أي قسم تريده.</p>
+        <input id="newDeptName" class="w-full border rounded-xl p-3 mb-2" placeholder="اسم القسم">
+        <button onclick="addDepartment()" class="w-full bg-teal-700 text-white py-2 rounded-xl">إضافة قسم</button>
+        <div id="deptList" class="mt-3 space-y-2"></div>
+      </section>
+      <section class="bg-white rounded-2xl p-4 shadow">
+        <h3 class="font-bold text-lg mb-2">👥 الموظفون وأرقام الدخول</h3>
+        <input id="stCode" class="w-full border rounded-xl p-3 mb-2" placeholder="رقم الدخول مثل 1024">
+        <input id="stName" class="w-full border rounded-xl p-3 mb-2" placeholder="الاسم">
+        <input id="stTitle" class="w-full border rounded-xl p-3 mb-2" placeholder="المسمى الوظيفي مثل مصور / طباخ">
+        <select id="stDept" class="w-full border rounded-xl p-3 mb-2 bg-white"></select>
+        <input id="stPin" type="password" class="w-full border rounded-xl p-3 mb-2" placeholder="رمز الدخول">
+        <input id="stColor" type="color" value="#0f766e" class="w-full h-12 mb-2 rounded-xl">
+        <button onclick="addStaff()" class="w-full bg-teal-700 text-white py-2 rounded-xl">حفظ الموظف</button>
+        <div id="staffList" class="mt-3 space-y-2"></div>
+      </section>
+    </div>
+    <button onclick="logout()" class="w-full bg-red-500 text-white font-bold py-3 rounded-2xl mt-6">تسجيل الخروج</button>
+  </div>
+</div>
+
+<div id="slotModal" class="fixed inset-0 z-50 hidden">
+  <div class="absolute inset-0 bg-black/50" onclick="closeSlotModal()"></div>
+  <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl p-5 w-80">
+    <h3 class="font-bold text-lg mb-3">وردية في هذا اليوم</h3>
+    <label class="text-sm text-slate-500">الموظف</label>
+    <select id="slotEmp" class="w-full border rounded-xl p-3 mb-2 bg-white"></select>
+    <label class="text-sm text-slate-500">من</label>
+    <input id="slotStart" type="time" value="08:00" class="w-full border rounded-xl p-3 mb-2">
+    <label class="text-sm text-slate-500">إلى</label>
+    <input id="slotEnd" type="time" value="14:00" class="w-full border rounded-xl p-3 mb-2">
+    <div id="slotErr" class="text-red-500 text-sm hidden mb-2"></div>
+    <div class="flex gap-2">
+      <button onclick="saveSlot()" class="flex-1 bg-teal-700 text-white py-2 rounded-xl">حفظ</button>
+      <button onclick="closeSlotModal()" class="flex-1 bg-slate-200 py-2 rounded-xl">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<script>
+firebase.initializeApp(APP_CONFIG.firebaseConfig);
+const db = firebase.database();
+const ORG = (APP_CONFIG.org && APP_CONFIG.org.id) || 'wrdiat';
+function path(k) { return 'orgs/' + ORG + '/' + k; }
+function emailKey(e) { return String(e || '').trim().toLowerCase().replace(/[.#$\[\]]/g, '_'); }
+
+const arabicMonths = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+const arabicDays = ['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+let currentUser = null;
+let viewDate = new Date();
+let calDate = new Date();
+let departments = {};
+let staff = {};
+let shifts = {};
+let filterDept = '';
+
+(function brand() {
+  const o = APP_CONFIG.org || {};
+  if (document.getElementById('orgTitle')) document.getElementById('orgTitle').textContent = o.name || 'نظام الورديات';
+  if (document.getElementById('orgSubtitle')) document.getElementById('orgSubtitle').textContent = o.subtitle || '';
+  document.title = o.name || 'نظام الورديات';
+})();
+
+function isAdmin() { return currentUser && currentUser.role === 'admin'; }
+function staffList() {
+  return Object.keys(staff).map(function(c) { return Object.assign({ code: c }, staff[c]); }).filter(function(s) { return !s.disabled; });
+}
+function staffById(id) {
+  return staffList().find(function(s) { return Number(s.id) === Number(id); });
+}
+function deptName(id) { return (departments[id] && departments[id].name) || ''; }
+function formatKey(d) { return d.getFullYear() + '-' + (d.getMonth()+1) + '-' + d.getDate(); }
+function daySlots(d) {
+  const v = shifts[formatKey(d)];
+  const arr = Array.isArray(v) ? v : [];
+  return arr.slice().sort(function(a,b) { return String(a.start).localeCompare(String(b.start)); });
+}
+
+function errLogin(m) {
+  const el = document.getElementById('loginError');
+  el.textContent = m; el.classList.remove('hidden');
+}
+
+async function handleLogin() {
+  const id = document.getElementById('loginId').value.trim();
+  const pass = document.getElementById('loginPass').value;
+  document.getElementById('loginError').classList.add('hidden');
+  if (!id || !pass) { errLogin('أدخل البيانات'); return; }
+  try {
+    if (id.indexOf('@') >= 0) await loginAdmin(id, pass);
+    else await loginStaff(id, pass);
+  } catch (e) { errLogin(e.message || 'فشل الدخول'); }
+}
+
+async function loginAdmin(email, password) {
+  const hash = await hashPassword(password);
+  const key = emailKey(email);
+  const rec = (await db.ref(path('admins/' + key)).once('value')).val();
+  if (!rec) {
+    const all = (await db.ref(path('admins')).once('value')).val() || {};
+    if (Object.keys(all).length) throw new Error('هذا الإيميل غير مسجّل');
+    await db.ref(path('admins/' + key)).set({ email: email, passwordHash: hash, role: 'admin', name: email.split('@')[0] });
+    currentUser = { username: email.split('@')[0], email: email, role: 'admin' };
+  } else {
+    if (rec.passwordHash !== hash) throw new Error('كلمة المرور غير صحيحة');
+    currentUser = { username: rec.name || email, email: email, role: 'admin' };
+  }
+  localStorage.setItem('wrdiatUser', JSON.stringify({ loginType: 'admin', email: email, passwordHash: hash }));
+  enterApp();
+}
+
+async function loginStaff(code, pin) {
+  const hash = await hashPassword(pin);
+  const rec = (await db.ref(path('staff/' + code)).once('value')).val();
+  if (!rec) throw new Error('رقم الموظف غير موجود');
+  if (rec.pinHash !== hash) throw new Error('الرمز غير صحيح');
+  currentUser = { username: rec.name, id: rec.id, role: 'employee', code: code, deptId: rec.deptId };
+  localStorage.setItem('wrdiatUser', JSON.stringify({ loginType: 'staff', code: code, passwordHash: hash }));
+  enterApp();
+}
+
+function logout() {
+  currentUser = null;
+  localStorage.removeItem('wrdiatUser');
+  document.getElementById('mainApp').classList.add('hidden');
+  document.getElementById('loginScreen').classList.remove('hidden');
+}
+
+function enterApp() {
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('mainApp').classList.remove('hidden');
+  document.getElementById('welcomeMessage').textContent = '👋 ' + currentUser.username;
+  document.getElementById('addSlotBtn').classList.toggle('hidden', !isAdmin());
+  document.getElementById('adminSettings').classList.toggle('hidden', !isAdmin());
+  listenData();
+  showPage('day');
+}
+
+function listenData() {
+  db.ref(path('departments')).on('value', function(s) { departments = s.val() || {}; renderAll(); });
+  db.ref(path('staff')).on('value', function(s) { staff = s.val() || {}; renderAll(); });
+  db.ref(path('shifts')).on('value', function(s) { shifts = s.val() || {}; renderAll(); });
+}
+
+function renderAll() {
+  renderDay(); renderCal(); renderStats(); renderSettingsLists();
+}
+
+function showPage(name) {
+  ['day','cal','stats','settings'].forEach(function(n) {
+    document.getElementById(n + 'Page').classList.toggle('hidden', n !== name);
+  });
+  if (name === 'settings' && isAdmin()) renderSettingsLists();
+}
+
+function shiftDay(n) { viewDate.setDate(viewDate.getDate() + n); renderDay(); }
+function moveMonth(n) { calDate.setMonth(calDate.getMonth() + n); renderCal(); }
+
+function renderDay() {
+  document.getElementById('dayNum').textContent = viewDate.getDate();
+  document.getElementById('dayLabel').textContent = arabicDays[viewDate.getDay()] + ' — ' + arabicMonths[viewDate.getMonth()] + ' ' + viewDate.getFullYear();
+  const f = document.getElementById('deptFilter');
+  const deptIds = Object.keys(departments);
+  f.innerHTML = '<button onclick="filterDept=\'\';renderDay()" class="dept-chip ' + (!filterDept ? 'ring-2 ring-teal-700' : '') + '">الكل</button>' +
+    deptIds.map(function(id) {
+      return '<button onclick="filterDept=\'' + id + '\';renderDay()" class="dept-chip ' + (filterDept===id ? 'ring-2 ring-teal-700' : '') + '">' + departments[id].name + '</button>';
+    }).join('');
+  let slots = daySlots(viewDate);
+  if (filterDept) slots = slots.filter(function(sl) {
+    const st = staffById(sl.employeeId);
+    return st && String(st.deptId) === String(filterDept);
+  });
+  const box = document.getElementById('slotsList');
+  if (!slots.length) { box.innerHTML = '<p class="text-center text-slate-400 py-8">لا توجد ورديات في هذا اليوم</p>'; return; }
+  box.innerHTML = slots.map(function(sl) {
+    const st = staffById(sl.employeeId) || { name: 'موظف', hex: '#0f766e', title: '' };
+    const del = isAdmin() ? '<button onclick="deleteSlot(\'' + sl.id + '\')" class="absolute left-3 top-3 text-white/80">✕</button>' : '';
+    return '<div class="slot shadow" style="background:' + (st.hex || '#0f766e') + '">' + del +
+      '<div class="font-extrabold text-xl">' + (st.name || '') + '</div>' +
+      '<div class="text-sm opacity-90">' + (st.title || '') + (deptName(st.deptId) ? ' · ' + deptName(st.deptId) : '') + '</div>' +
+      '<div class="mt-1 font-bold">⏰ ' + (sl.start || '') + ' — ' + (sl.end || '') + '</div></div>';
+  }).join('');
+}
+
+function renderCal() {
+  const y = calDate.getFullYear(), m = calDate.getMonth();
+  document.getElementById('calTitle').textContent = arabicMonths[m] + ' ' + y;
+  const grid = document.getElementById('calGrid');
+  grid.innerHTML = '';
+  const first = (new Date(y, m, 1).getDay() + 1) % 7;
+  const days = new Date(y, m+1, 0).getDate();
+  const today = new Date();
+  for (let i=0;i<first;i++) grid.appendChild(Object.assign(document.createElement('div'), { className: 'cal-cell bg-slate-50' }));
+  for (let d=1; d<=days; d++) {
+    const date = new Date(y, m, d);
+    const slots = daySlots(date);
+    const cell = document.createElement('div');
+    const firstEmp = slots[0] ? staffById(slots[0].employeeId) : null;
+    cell.className = 'cal-cell' + (slots.length ? ' has' : '');
+    if (firstEmp) cell.style.background = firstEmp.hex || '#0f766e';
+    cell.innerHTML = '<div class="font-bold">' + d + '</div>' + (slots.length ? '<div class="text-xs mt-1">' + slots.length + ' شفت</div>' : '');
+    if (today.toDateString() === date.toDateString()) cell.style.boxShadow = 'inset 0 0 0 3px #000';
+    cell.onclick = function() { viewDate = new Date(date); showPage('day'); renderDay(); };
+    grid.appendChild(cell);
+  }
+}
+
+function renderStats() {
+  const y = viewDate.getFullYear(), m = viewDate.getMonth();
+  const counts = {};
+  staffList().forEach(function(s) { counts[s.id] = 0; });
+  const last = new Date(y, m+1, 0).getDate();
+  for (let d=1; d<=last; d++) {
+    daySlots(new Date(y, m, d)).forEach(function(sl) {
+      if (counts[sl.employeeId] !== undefined) counts[sl.employeeId]++;
+    });
+  }
+  document.getElementById('statsBox').innerHTML = staffList().map(function(s) {
+    return '<div class="p-4 rounded-2xl text-white" style="background:' + (s.hex||'#0f766e') + '"><div class="flex justify-between"><span class="font-bold">' + s.name + '</span><span>' + (counts[s.id]||0) + ' وردية</span></div><div class="text-xs opacity-80">' + (s.title||'') + ' · ' + deptName(s.deptId) + '</div></div>';
+  }).join('') || '<p class="text-slate-400">لا يوجد موظفون</p>';
+}
+
+function renderSettingsLists() {
+  const dl = document.getElementById('deptList');
+  if (dl) dl.innerHTML = Object.keys(departments).map(function(id) {
+    return '<div class="flex justify-between items-center border rounded-xl p-2"><span>' + departments[id].name + '</span>' +
+      (isAdmin() ? '<button onclick="removeDept(\'' + id + '\')" class="text-red-500 text-sm">حذف</button>' : '') + '</div>';
+  }).join('') || '<p class="text-slate-400 text-sm">لا أقسام بعد</p>';
+  const sel = document.getElementById('stDept');
+  if (sel) sel.innerHTML = '<option value="">بدون قسم</option>' + Object.keys(departments).map(function(id) {
+    return '<option value="' + id + '">' + departments[id].name + '</option>';
+  }).join('');
+  const sl = document.getElementById('staffList');
+  if (sl) sl.innerHTML = staffList().map(function(s) {
+    return '<div class="border rounded-xl p-3"><div class="font-bold">' + s.name + ' — رقم ' + s.code + '</div><div class="text-sm text-slate-500">' + (s.title||'') + ' · ' + deptName(s.deptId) + '</div></div>';
+  }).join('') || '<p class="text-slate-400 text-sm">لا موظفون بعد</p>';
+}
+
+function addDepartment() {
+  const name = document.getElementById('newDeptName').value.trim();
+  if (!name) return;
+  db.ref(path('departments')).push({ name: name, createdAt: Date.now() });
+  document.getElementById('newDeptName').value = '';
+}
+function removeDept(id) { if (confirm('حذف القسم؟')) db.ref(path('departments/' + id)).remove(); }
+
+async function addStaff() {
+  const code = document.getElementById('stCode').value.trim();
+  const name = document.getElementById('stName').value.trim();
+  const title = document.getElementById('stTitle').value.trim();
+  const deptId = document.getElementById('stDept').value;
+  const pin = document.getElementById('stPin').value;
+  const hex = document.getElementById('stColor').value;
+  if (!/^\d+$/.test(code)) { alert('الرقم أرقام فقط'); return; }
+  if (name.length < 2 || pin.length < 3) { alert('أكمل الاسم والرمز'); return; }
+  const pinHash = await hashPassword(pin);
+  const ids = staffList().map(function(s) { return Number(s.id)||0; });
+  const id = (ids.length ? Math.max.apply(null, ids) : 0) + 1;
+  await db.ref(path('staff/' + code)).set({ name: name, title: title, deptId: deptId, pinHash: pinHash, id: id, hex: hex, disabled: false });
+  document.getElementById('stCode').value = '';
+  document.getElementById('stName').value = '';
+  document.getElementById('stTitle').value = '';
+  document.getElementById('stPin').value = '';
+}
+
+function openSlotModal() {
+  const sel = document.getElementById('slotEmp');
+  sel.innerHTML = staffList().map(function(s) {
+    return '<option value="' + s.id + '">' + s.name + (s.title ? ' — ' + s.title : '') + '</option>';
+  }).join('');
+  if (!staffList().length) { alert('أضف موظفين أولاً من الإعدادات'); return; }
+  document.getElementById('slotModal').classList.remove('hidden');
+}
+function closeSlotModal() { document.getElementById('slotModal').classList.add('hidden'); }
+
+function saveSlot() {
+  const employeeId = Number(document.getElementById('slotEmp').value);
+  const start = document.getElementById('slotStart').value;
+  const end = document.getElementById('slotEnd').value;
+  if (!employeeId || !start || !end) return;
+  if (end <= start) { document.getElementById('slotErr').textContent = 'وقت النهاية بعد البداية'; document.getElementById('slotErr').classList.remove('hidden'); return; }
+  const key = formatKey(viewDate);
+  const list = daySlots(viewDate);
+  list.push({ id: Date.now().toString(36), employeeId: employeeId, start: start, end: end });
+  db.ref(path('shifts/' + key)).set(list);
+  closeSlotModal();
+}
+function deleteSlot(id) {
+  const key = formatKey(viewDate);
+  const list = daySlots(viewDate).filter(function(s) { return s.id !== id; });
+  db.ref(path('shifts/' + key)).set(list);
+}
+
+window.addEventListener('load', async function() {
+  const saved = localStorage.getItem('wrdiatUser');
+  if (!saved) return;
+  try {
+    const u = JSON.parse(saved);
+    if (u.loginType === 'admin' && u.email) {
+      const rec = (await db.ref(path('admins/' + emailKey(u.email))).once('value')).val();
+      if (rec && rec.passwordHash === u.passwordHash) {
+        currentUser = { username: rec.name || u.email, email: u.email, role: 'admin' };
+        enterApp();
+      }
+    } else if (u.loginType === 'staff' && u.code) {
+      const rec = (await db.ref(path('staff/' + u.code)).once('value')).val();
+      if (rec && rec.pinHash === u.passwordHash) {
+        currentUser = { username: rec.name, id: rec.id, role: 'employee', code: u.code, deptId: rec.deptId };
+        enterApp();
+      }
+    }
+  } catch (e) {}
+});
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' });
+  });
+}
+</script>
+</body>
+</html>
