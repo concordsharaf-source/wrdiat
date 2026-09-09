@@ -1189,18 +1189,23 @@ function openSwapModal(key, slotId) {
   swapTarget = { key: key, slotId: slotId };
   const info = document.getElementById('swapInfo');
   if (info) info.textContent = 'وردية ' + (emp ? displayName(emp) : '؟') + ' (' + (slot.start || '—') + ' إلى ' + (slot.end || '—') + ') — اختر من يغطيها:';
-  const sameDept = (emp && emp.deptId)
-    ? staffList().filter(function(s) { return String(s.deptId) === String(emp.deptId) && Number(s.id) !== Number(slot.employeeId); })
-    : [];
-  const others = staffList().filter(function(s) { return Number(s.id) !== Number(slot.employeeId) && sameDept.indexOf(s) < 0; });
+  // التبديل بين موظفي نفس القسم فقط (طباخ ← طباخ، كاشير ← كاشير…)
+  // إن لم يكن للموظف قسم (بدون قسم) يقف التبديل عند كل الموظفين النشطين.
+  const sameDept = staffList().filter(function(s) {
+    return Number(s.id) !== Number(slot.employeeId) &&
+      (!(emp && emp.deptId) || String(s.deptId) === String(emp.deptId));
+  });
+  const deptLabel = (emp && emp.deptId)
+    ? 'من قسم «' + deptName(emp.deptId) + '» فقط:'
+    : 'كل الموظفين النشطين (موظف بدون قسم):';
   let html = '';
   if (sameDept.length) {
-    html += '<div class="text-xs font-bold text-slate-500 mb-1">' + (deptName(emp.deptId) ? 'من قسم «' + deptName(emp.deptId) + '»:' : 'نفس القسم:') + '</div>' + sameDept.map(swapOptionHtml).join('');
+    html += '<div class="text-xs font-bold text-slate-500 mb-1">' + deptLabel + '</div>' + sameDept.map(swapOptionHtml).join('');
   }
-  if (others.length) {
-    html += '<div class="text-xs font-bold text-slate-500 mt-3 mb-1">' + (sameDept.length ? 'من باقي الأقسام:' : 'كل الموظفين النشطين:') + '</div>' + others.map(swapOptionHtml).join('');
-  }
-  document.getElementById('swapList').innerHTML = html || '<p class="text-sm text-slate-400 text-center py-4">لا يوجد موظف نشط آخر للتبديل</p>';
+  const noOneMsg = (emp && emp.deptId)
+    ? 'لا يوجد موظف آخر في قسم «' + deptName(emp.deptId) + '» للتبديل'
+    : 'لا يوجد موظف نشط آخر للتبديل';
+  document.getElementById('swapList').innerHTML = html || '<p class="text-sm text-slate-400 text-center py-4">' + noOneMsg + '</p>';
   document.getElementById('swapModal').classList.remove('hidden');
 }
 function swapOptionHtml(s) {
