@@ -82,49 +82,47 @@ input::placeholder, textarea::placeholder { color: #9a3412 !important; opacity: 
 </head>
 <body class="bg-slate-100 min-h-screen">
 
-<div id="loginScreen" class="login-wrap flex items-center justify-center p-4">
-  <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 w-full max-w-md text-center text-white">
-    <img src="images/icon-192x192.png" alt="" class="w-20 h-20 mx-auto mb-4 rounded-2xl shadow-xl">
-    <h1 class="text-3xl font-bold mb-1" id="orgTitle">نظام الورديات</h1>
-    <p class="text-white/70 mb-6" id="orgSubtitle">إدارة الأقسام والشفتات</p>
-
-    <div id="homeChoice">
-      <div id="sessionNote" class="text-amber-200 text-sm hidden mb-3 text-center"></div>
-      <button type="button" onclick="showLoginPanel()" class="btn-amber w-full py-3 rounded-xl mb-3 text-lg">تسجيل الدخول</button>
-      <button type="button" onclick="showSignupPanel()" class="btn-dark w-full py-3 rounded-xl text-lg">إنشاء حساب</button>
+<!-- ===== نافذة دخول الأدمن فقط (الموظفون والزوّار يشاهدون الجدول مباشرة) ===== -->
+<div id="loginModal" class="fixed inset-0 z-50 hidden">
+  <div class="absolute inset-0 bg-black/60" onclick="closeLoginModal()"></div>
+  <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 bg-white rounded-2xl p-6 shadow-2xl">
+    <div class="flex items-center justify-between mb-3">
+      <h3 class="font-bold text-lg" id="loginModalTitle">دخول الأدمن</h3>
+      <button type="button" onclick="closeLoginModal()" class="text-slate-400 text-xl leading-none">×</button>
     </div>
 
-    <div id="loginPanel" class="hidden text-right">
-      <p class="text-white/70 text-xs mb-3 text-center">الأدمن بالإيميل — الموظف بالاسم ورقم الدخول</p>
-      <input id="loginId" class="w-full mb-3 px-4 py-3 rounded-xl text-center" placeholder="اسم الموظف أو إيميل الأدمن">
-      <input id="loginPass" type="password" class="w-full mb-3 px-4 py-3 rounded-xl text-center" placeholder="رقم الدخول أو كلمة مرور الأدمن">
-      <div id="loginError" class="text-amber-200 text-sm hidden mb-2 text-center"></div>
+    <div id="loginEmailPanel">
+      <p class="text-xs text-slate-500 mb-3">عبر الإيميل وكلمة المرور — الأدمن فقط يستطيع إدارة الأقسام والموظفين والورديات.</p>
+      <input id="loginId" class="w-full border rounded-xl p-3 mb-2 text-center" placeholder="إيميل الأدمن">
+      <input id="loginPass" type="password" class="w-full border rounded-xl p-3 mb-2 text-center" placeholder="كلمة المرور">
+      <div id="loginError" class="text-red-600 text-sm hidden mb-2 text-center"></div>
       <button type="button" onclick="handleLogin()" class="btn-amber w-full py-3 rounded-xl mb-2">دخول</button>
-      <button type="button" onclick="showHomeChoice()" class="text-white/80 text-sm w-full">رجوع</button>
+      <div id="sessionNote" class="text-red-500 text-sm hidden mb-2 text-center"></div>
+      <button type="button" onclick="showSignupPanel()" class="text-teal-700 text-sm w-full font-bold">لا يوجد حساب؟ أنشئ حساب أدمن جديد</button>
     </div>
 
-    <div id="signupPanel" class="hidden text-right">
-      <p class="text-white/70 text-xs mb-3 text-center">حساب أدمن جديد للمؤسسة</p>
-      <input id="suName" class="w-full mb-3 px-4 py-3 rounded-xl text-center" placeholder="الاسم">
-      <input id="suEmail" class="w-full mb-3 px-4 py-3 rounded-xl text-center" placeholder="الإيميل">
-      <input id="suPass" type="password" class="w-full mb-3 px-4 py-3 rounded-xl text-center" placeholder="كلمة المرور">
-      <input id="suPass2" type="password" class="w-full mb-3 px-4 py-3 rounded-xl text-center" placeholder="تأكيد كلمة المرور">
-      <div id="signupError" class="text-amber-200 text-sm hidden mb-2 text-center"></div>
+    <div id="signupPanel" class="hidden">
+      <p class="text-xs text-slate-500 mb-3">أول إيميل يُسجَّل يصبح أدمن المؤسسة.</p>
+      <input id="suName" class="w-full border rounded-xl p-3 mb-2 text-center" placeholder="الاسم">
+      <input id="suEmail" class="w-full border rounded-xl p-3 mb-2 text-center" placeholder="الإيميل">
+      <input id="suPass" type="password" class="w-full border rounded-xl p-3 mb-2 text-center" placeholder="كلمة المرور">
+      <input id="suPass2" type="password" class="w-full border rounded-xl p-3 mb-2 text-center" placeholder="تأكيد كلمة المرور">
+      <div id="signupError" class="text-red-600 text-sm hidden mb-2 text-center"></div>
       <button type="button" onclick="handleSignup()" class="btn-dark w-full py-3 rounded-xl mb-2">إنشاء الحساب</button>
-      <button type="button" onclick="showHomeChoice()" class="text-white/80 text-sm w-full">رجوع</button>
+      <button type="button" onclick="showLoginPanel()" class="text-teal-700 text-sm w-full font-bold">→ رجوع لتسجيل الدخول</button>
     </div>
   </div>
 </div>
 
-<div id="mainApp" class="hidden">
+<div id="mainApp">
   <nav class="bg-teal-800 text-white sticky top-0 z-40 shadow">
     <div class="max-w-3xl mx-auto px-3 py-2 flex justify-between items-center">
-      <div class="font-bold text-sm" id="welcomeMessage">مرحباً</div>
+      <div class="font-bold text-sm" id="welcomeMessage">👀 وضع الاطلاع — يمكن للجميع مشاهدة الورديات</div>
       <div class="flex gap-2">
-        <button onclick="showPage('day')" class="p-2">📅</button>
-        <button onclick="showPage('cal')" class="p-2">🗓️</button>
-        <button onclick="showPage('stats')" class="p-2">📊</button>
-        <button onclick="showPage('settings')" class="p-2">⚙️</button>
+        <button onclick="showPage('day')" class="p-2" title="اليوم">📅</button>
+        <button onclick="showPage('cal')" class="p-2" title="التقويم">🗓️</button>
+        <button onclick="showPage('stats')" class="p-2" title="الإحصائيات">📊</button>
+        <button id="adminBtn" onclick="onAdminClick()" class="p-2" title="الإعدادات / دخول الأدمن">⚙️</button>
       </div>
     </div>
   </nav>
@@ -163,55 +161,69 @@ input::placeholder, textarea::placeholder { color: #9a3412 !important; opacity: 
   </div>
 
   <div id="settingsPage" class="page hidden max-w-3xl mx-auto p-4">
-    <div id="adminSettings" class="hidden space-y-6">
-      <section class="bg-white rounded-2xl p-4 shadow">
-        <h3 class="font-bold text-lg mb-2">🏢 الأقسام — أضف بلا حد</h3>
-        <p class="text-sm text-slate-500 mb-3">صوت، تصوير، إخراج، مطبخ، كاشير… أي قسم تريده.</p>
-        <input id="newDeptName" class="w-full border rounded-xl p-3 mb-2" placeholder="اسم القسم">
-        <button onclick="addDepartment()" class="w-full btn-teal py-2 rounded-xl">إضافة قسم</button>
-        <div id="deptList" class="mt-3 space-y-2"></div>
-      </section>
-      <section class="bg-white rounded-2xl p-4 shadow">
-        <h3 class="font-bold text-lg mb-2">👥 الموظفون وأرقام الدخول</h3>
-        <input id="stName" class="w-full border rounded-xl p-3 mb-2" placeholder="الاسم">
-        <input id="stLast" class="w-full border rounded-xl p-3 mb-2" placeholder="اللقب (اختياري)">
-        <div class="text-sm text-slate-600 mb-2">طريقة عرض الاسم</div>
+    <div id="adminSettings" class="hidden">
+      <div class="flex gap-2 mb-4 bg-white rounded-2xl p-2 shadow">
+        <button id="tabBtn-depts" onclick="showSettingsTab('depts')" class="flex-1 py-2 rounded-xl font-bold text-sm">🏢 الأقسام</button>
+        <button id="tabBtn-staff" onclick="showSettingsTab('staff')" class="flex-1 py-2 rounded-xl font-bold text-sm">👥 الموظفون</button>
+        <button id="tabBtn-shifts" onclick="showSettingsTab('shifts')" class="flex-1 py-2 rounded-xl font-bold text-sm">🗓️ الورديات</button>
+      </div>
+
+      <div id="tab-depts" class="tab-panel space-y-6">
+        <section class="bg-white rounded-2xl p-4 shadow">
+          <h3 class="font-bold text-lg mb-2">🏢 الأقسام — أضف بلا حد</h3>
+          <p class="text-sm text-slate-500 mb-3">صوت، تصوير، إخراج، مطبخ، كاشير… أي قسم تريده.</p>
+          <input id="newDeptName" class="w-full border rounded-xl p-3 mb-2" placeholder="اسم القسم">
+          <button onclick="addDepartment()" class="w-full btn-teal py-2 rounded-xl">إضافة قسم</button>
+          <div id="deptList" class="mt-3 space-y-2"></div>
+        </section>
+      </div>
+
+      <div id="tab-staff" class="tab-panel hidden">
+        <section class="bg-white rounded-2xl p-4 shadow">
+          <h3 class="font-bold text-lg mb-2">👥 الموظفون — بدون أرقام دخول، يُضافون ويُعدَّلون من هنا</h3>
+          <p class="text-sm text-slate-500 mb-3">لا حاجة لأرقام دخول — الجميع يشاهدون الورديات مباشرة، والأدمن فقط من يُعدّل.</p>
+          <input id="stName" class="w-full border rounded-xl p-3 mb-2" placeholder="الاسم">
+          <input id="stLast" class="w-full border rounded-xl p-3 mb-2" placeholder="اللقب (اختياري)">
+          <div class="text-sm text-slate-600 mb-2">طريقة عرض الاسم</div>
         <label class="flex items-center gap-2 mb-1 text-sm"><input type="radio" name="stDisp" value="full" checked> الاسم كاملاً (حقل الاسم فقط)</label>
         <label class="flex items-center gap-2 mb-3 text-sm"><input type="radio" name="stDisp" value="laqab"> الاسم واللقب</label>
-        <input id="stTitle" class="w-full border rounded-xl p-3 mb-2" placeholder="المسمى الوظيفي مثل مصور / طباخ">
+          <input id="stTitle" class="w-full border rounded-xl p-3 mb-2" placeholder="المسمى الوظيفي مثل مصور / طباخ">
         <select id="stDept" class="w-full border rounded-xl p-3 mb-2 bg-white"></select>
-        <input id="stCode" class="w-full border rounded-xl p-3 mb-2" placeholder="رقم الدخول الذي يُمنح للموظف">
-        <input id="stColor" type="color" value="#0f766e" class="w-full h-12 mb-2 rounded-xl">
-        <div class="flex gap-2">
+          <input id="stColor" type="color" value="#0f766e" class="w-full h-12 mb-2 rounded-xl">
+          <div class="flex gap-2">
           <button type="button" onclick="addStaff()" id="staffSaveBtn" class="flex-1 btn-teal py-2 rounded-xl"><span id="staffBtnLabel">حفظ الموظف</span></button>
           <button type="button" onclick="cancelStaffEdit()" id="staffCancelEdit" class="btn-amber px-4 py-2 rounded-xl hidden">إلغاء التعديل</button>
         </div>
-        <p class="text-xs text-slate-500 mt-2">بعد الحفظ يمكنك تعديل بيانات أي موظف بزر «تعديل» من القائمة، أو إيقافه/تفعيله، أو حذفه.</p>
-        <div id="staffMsg" class="text-sm mt-2 hidden"></div>
-        <div id="staffList" class="mt-3 space-y-2"></div>
-      </section>
-      <section class="bg-white rounded-2xl p-4 shadow">
-        <h3 class="font-bold text-lg mb-2">🗓️ توزيع الورديات الأسبوعي</h3>
-        <p class="text-sm text-slate-500 mb-3">لكل يوم: أضف سطراً واختر <b>ثابتاً (يظهر كل أسبوع)</b> أو <b>تناوباً (دور أسبوعي)</b> — واليوم يجمع الكل: الثابتون من كل الأقسام + صاحب الدور كل أسبوع، وقاعدة عامة وقاعدة لكل قسم على حدة.</p>
-        <label class="block text-sm font-bold mb-1">تاريخ بداية التناوب (تُحسب منه دورية الترتيب)</label>
-        <input id="rulesAnchor" type="date" class="w-full border rounded-xl p-3 mb-1">
-        <p class="text-xs text-slate-500 mb-3">غيّر هذا التاريخ لإعادة ضبط تسلسل التناوب من جديد.</p>
-        <div id="rulesMsg" class="text-sm hidden mb-2"></div>
-        <div id="rulesContainer"></div>
-        <div class="flex gap-2 mt-3">
+          <p class="text-xs text-slate-500 mt-2">بعد الحفظ يمكنك تعديل بيانات أي موظف بزر «تعديل» من القائمة، أو إيقافه/تفعيله، أو حذفه.</p>
+          <div id="staffMsg" class="text-sm mt-2 hidden"></div>
+          <div id="staffList" class="mt-3 space-y-2"></div>
+        </section>
+
+      </div>
+      <div id="tab-shifts" class="tab-panel hidden">
+        <section class="bg-white rounded-2xl p-4 shadow">
+          <h3 class="font-bold text-lg mb-2">🗓️ توزيع الورديات الأسبوعي</h3>
+          <p class="text-sm text-slate-500 mb-3">لكل يوم: أضف سطراً واختر <b>ثابتاً (يظهر كل أسبوع)</b> أو <b>تناوباً (دور أسبوعي)</b> — واليوم يجمع الكل: الثابتون من كل الأقسام + صاحب الدور كل أسبوع، وقاعدة عامة وقاعدة لكل قسم على حدة.</p>
+          <label class="block text-sm font-bold mb-1">تاريخ بداية التناوب (تُحسب منه دورية الترتيب)</label>
+          <input id="rulesAnchor" type="date" class="w-full border rounded-xl p-3 mb-1">
+          <p class="text-xs text-slate-500 mb-3">غيّر هذا التاريخ لإعادة ضبط تسلسل التناوب من جديد.</p>
+          <div id="rulesMsg" class="text-sm hidden mb-2"></div>
+          <div id="rulesContainer"></div>
+          <div class="flex gap-2 mt-3">
           <button type="button" onclick="saveScheduleRules()" class="flex-1 btn-teal py-2 rounded-xl text-sm">💾 حفظ القواعد</button>
           <button type="button" onclick="generateThisWeek()" class="flex-1 btn-amber py-2 rounded-xl text-sm">✨ توليد هذا الأسبوع</button>
         </div>
-        <div class="mt-3 bg-slate-50 border border-slate-200 rounded-xl p-3">
+          <div class="mt-3 bg-slate-50 border border-slate-200 rounded-xl p-3">
           <div class="font-bold text-sm mb-2">🔄 التطبيق التلقائي — 5 سنوات قادمة</div>
           <p class="text-xs text-slate-500 mb-2">زر «حفظ التغييرات» تحت كل يوم يطبّق قواعد ذلك اليوم (ثابت أو تناوب) فوراً على هذا اليوم الأسبوعي في كل الأسابيع القادمة حتى <b>5 سنوات</b> — بدون تحديد تواريخ: السبت الثابت يظهر في كل السبتات، والتناوب يتحرك أسبوعاً بأسبوع.</p>
           <button type="button" onclick="applyScheduleToFuture()" class="w-full btn-dark py-2 rounded-xl text-sm">🔄 إعادة تطبيق كل القواعد على 5 سنوات كاملة</button>
           <p class="text-xs text-slate-500 mt-1">الأيام الماضية تبقى كما هي؛ والورديات اليدوية ضمن الفترة تُستبدل بالتوزيع التلقائي.</p>
         </div>
-        <p class="text-xs text-slate-500 mt-3">الورديات المولَّدة تلقائياً تحمل شارة ⚡ ويمكن حذفها كأي وردية.</p>
-      </section>
+          <p class="text-xs text-slate-500 mt-3">الورديات المولَّدة تلقائياً تحمل شارة ⚡ ويمكن حذفها كأي وردية.</p>
+        </section>
+      </div>
     </div>
-    <button onclick="logout()" class="w-full bg-red-600 text-amber-100 font-bold py-3 rounded-2xl mt-6">تسجيل الخروج</button>
+    <button id="logoutBtn" onclick="logout()" class="hidden w-full bg-red-600 text-amber-100 font-bold py-3 rounded-2xl mt-6">تسجيل الخروج</button>
   </div>
 </div>
 
@@ -793,21 +805,27 @@ async function applyScheduleToFuture() {
   toast('✔ تم تطبيق القواعد على ' + Object.keys(generated).length + ' يوماً (' + REGEN_YEARS + ' سنوات)');
 }
 
-function showHomeChoice() {
-  document.getElementById('homeChoice').classList.remove('hidden');
-  document.getElementById('loginPanel').classList.add('hidden');
+// ===== نافذة دخول الأدمن (التطبيق يفتح للاطلاع للجميع) =====
+function openLoginModal() {
+  document.getElementById('loginModal').classList.remove('hidden');
+  document.getElementById('loginEmailPanel').classList.remove('hidden');
   document.getElementById('signupPanel').classList.add('hidden');
+  document.getElementById('loginError').classList.add('hidden');
+  logoutNote('');
+  const id = document.getElementById('loginId');
+  if (id) id.focus();
+}
+function closeLoginModal() {
+  document.getElementById('loginModal').classList.add('hidden');
 }
 function showLoginPanel() {
   logoutNote('');
-  document.getElementById('homeChoice').classList.add('hidden');
-  document.getElementById('loginPanel').classList.remove('hidden');
+  document.getElementById('loginEmailPanel').classList.remove('hidden');
   document.getElementById('signupPanel').classList.add('hidden');
 }
 function showSignupPanel() {
   logoutNote('');
-  document.getElementById('homeChoice').classList.add('hidden');
-  document.getElementById('loginPanel').classList.add('hidden');
+  document.getElementById('loginEmailPanel').classList.add('hidden');
   document.getElementById('signupPanel').classList.remove('hidden');
 }
 function errLogin(m) {
@@ -836,6 +854,7 @@ async function handleSignup() {
     await db.ref(path('admins/' + key)).set({ email: email, passwordHash: hash, role: 'admin', name: name });
     currentUser = { username: name, email: email, role: 'admin' };
     localStorage.setItem('wrdiatUser', JSON.stringify({ loginType: 'admin', email: email, passwordHash: hash, name: name, role: 'admin' }));
+    closeLoginModal();
     enterApp();
   } catch (e) {
     const msg = String(e.message || e.code || e);
@@ -849,10 +868,8 @@ async function handleLogin() {
   const pass = document.getElementById('loginPass').value;
   document.getElementById('loginError').classList.add('hidden');
   if (!id || !pass) { errLogin('أدخل البيانات'); return; }
-  try {
-    if (id.indexOf('@') >= 0) await loginAdmin(id, pass);
-    else await loginStaff(id, pass); // اسم الموظف + رقم يمنحه الأدمن
-  } catch (e) { errLogin(e.message || 'فشل الدخول'); }
+  if (id.indexOf('@') < 0) { errLogin('أدخل إيميل الأدمن'); return; }
+  try { await loginAdmin(id, pass); } catch (e) { errLogin(e.message || 'فشل الدخول'); }
 }
 
 async function loginAdmin(email, password) {
@@ -866,23 +883,10 @@ async function loginAdmin(email, password) {
     currentUser = { username: rec.name || email, email: email, role: 'admin' };
   }
   localStorage.setItem('wrdiatUser', JSON.stringify({ loginType: 'admin', email: email, passwordHash: hash, name: rec.name || email, role: 'admin' }));
+  closeLoginModal();
   enterApp();
 }
 
-async function loginStaff(name, number) {
-  const all = (await db.ref(path('staff')).once('value')).val() || {};
-  const code = String(number).trim();
-  let rec = null, recCode = '';
-  Object.keys(all).forEach(function(c) {
-    const s = Object.assign({ code: c }, all[c]);
-    if (namesMatch(s, name) && String(s.code) === code) { rec = s; recCode = c; }
-  });
-  if (!rec) throw new Error('الاسم أو رقم الدخول غير صحيح');
-  const uname = displayName(rec);
-  currentUser = { username: uname, id: rec.id, role: 'employee', code: recCode, deptId: rec.deptId };
-  localStorage.setItem('wrdiatUser', JSON.stringify({ loginType: 'staff', code: recCode, name: rec.name, username: uname, id: rec.id, deptId: rec.deptId, role: 'employee' }));
-  enterApp();
-}
 
 // ===== الجلسة الدائمة =====
 // لا يُسحب الدخول إلا بزر «تسجيل الخروج»، أو إذا حذف الأدمن الحساب/أوقف الموظف.
@@ -890,10 +894,9 @@ async function loginStaff(name, number) {
 function logout(message) {
   currentUser = null;
   localStorage.removeItem('wrdiatUser');
-  document.getElementById('mainApp').classList.add('hidden');
-  document.getElementById('loginScreen').classList.remove('hidden');
-  showHomeChoice();
-  logoutNote(message || '');
+  document.getElementById('loginModal').classList.add('hidden');
+  enterApp(); // العودة لوضع الاطلاع (لا شاشة دخول)
+  if (message) { openLoginModal(); logoutNote(message); }
 }
 function logoutNote(msg) {
   const el = document.getElementById('sessionNote');
@@ -928,13 +931,39 @@ async function validateSessionInBackground(u) {
 }
 
 function enterApp() {
-  document.getElementById('loginScreen').classList.add('hidden');
+  // التطبيق مفتوح دائماً للجميع: الزائر يرى فقط، والأدمن يرى أدوات التعديل
   document.getElementById('mainApp').classList.remove('hidden');
-  document.getElementById('welcomeMessage').textContent = '👋 ' + currentUser.username;
-  document.getElementById('addSlotBtn').classList.toggle('hidden', !isAdmin());
-  document.getElementById('adminSettings').classList.toggle('hidden', !isAdmin());
-  listenData();
-  showPage('day');
+  document.getElementById('loginModal').classList.add('hidden');
+  const isAdm = isAdmin();
+  document.getElementById('welcomeMessage').textContent = isAdm
+    ? '⚙️ ' + currentUser.username + ' — أدمن'
+    : '👀 وضع الاطلاع — يشاهد الجميع الورديات';
+  document.getElementById('addSlotBtn').classList.toggle('hidden', !isAdm);
+  document.getElementById('adminSettings').classList.toggle('hidden', !isAdm);
+  document.getElementById('logoutBtn').classList.toggle('hidden', !isAdm);
+  const adminBtn = document.getElementById('adminBtn');
+  if (adminBtn) adminBtn.title = isAdm ? 'الإعدادات' : 'دخول الأدمن';
+  renderAll();
+  if (!window.__dataStarted) { window.__dataStarted = true; listenData(); }
+  if (!document.querySelector('.page:not(.hidden)')) showPage('day');
+}
+// زر ⚙️ في الهيدر: أدمن → الإعدادات، زائر → نافذة دخول الأدمن
+function onAdminClick() {
+  if (isAdmin()) showPage('settings');
+  else openLoginModal();
+}
+// أزرار تبويب الإعدادات: الأقسام / الموظفين / الورديات
+function showSettingsTab(name) {
+  ['depts', 'staff', 'shifts'].forEach(function(n) {
+    const panel = document.getElementById('tab-' + n);
+    const btn = document.getElementById('tabBtn-' + n);
+    if (panel) panel.classList.toggle('hidden', n !== name);
+    if (btn) btn.classList.toggle('btn-teal', n === name);
+    if (btn) btn.classList.toggle('bg-slate-100', n !== name);
+  });
+  if (name === 'depts') renderSettingsLists();
+  if (name === 'staff') renderSettingsLists();
+  if (name === 'shifts') renderScheduleRules();
 }
 
 function listenData() {
@@ -951,13 +980,17 @@ function listenData() {
 
 function renderAll() {
   renderDay(); renderCal(); renderStats(); renderSettingsLists();
+  const isAdm = isAdmin();
+  const adminBtn = document.getElementById('adminBtn');
+  if (adminBtn) { adminBtn.textContent = isAdm ? '⚙️' : '🔑'; adminBtn.title = isAdm ? 'الإعدادات' : 'دخول الأدمن'; }
 }
 
 function showPage(name) {
+  if (name === 'settings' && !isAdmin()) { openLoginModal(); return; }
   ['day','cal','stats','settings'].forEach(function(n) {
     document.getElementById(n + 'Page').classList.toggle('hidden', n !== name);
   });
-  if (name === 'settings' && isAdmin()) renderSettingsLists();
+  if (name === 'settings' && isAdmin()) showSettingsTab('depts');
 }
 
 function shiftDay(n) { viewDate.setDate(viewDate.getDate() + n); renderDay(); }
@@ -990,7 +1023,9 @@ function renderDay() {
     const st = staffById(sl.employeeId) || { name: 'موظف', hex: '#0f766e', title: '' };
     const del = isAdmin() ? '<button onclick="deleteSlot(\'' + sl.id + '\')" class="absolute left-3 top-3 text-white/80">✕</button>' : '';
     return '<div class="slot shadow" style="background:' + (st.hex || '#0f766e') + '">' + del +
-      '<div class="flex items-center gap-2 flex-wrap"><button type="button" data-key="' + formatKey(viewDate) + '" data-slot="' + sl.id + '" class="swap-trigger font-extrabold text-xl text-left" title="اضغط على الاسم للتبديل في حال الغياب">' + displayName(st) + ' ⇄</button>' + (sl.auto ? '<span class="auto-badge">تلقائي ⚡</span>' : '') + '</div>' +
+      '<div class="flex items-center gap-2 flex-wrap">' + (isAdmin()
+        ? '<button type="button" data-key="' + formatKey(viewDate) + '" data-slot="' + sl.id + '" class="swap-trigger font-extrabold text-xl text-left" title="اضغط على الاسم للتبديل في حال الغياب">' + displayName(st) + ' ⇄</button>'
+        : '<span class="font-extrabold text-xl text-left">' + displayName(st) + '</span>') + (sl.auto ? '<span class="auto-badge">تلقائي ⚡</span>' : '') + '</div>' +
       '<div class="text-sm opacity-90">' + (st.title || '') + (deptName(st.deptId) ? ' · ' + deptName(st.deptId) : '') + '</div>' +
       '<div class="mt-1 font-bold">⏰ ' + (sl.start || '') + ' — ' + (sl.end || '') + '</div></div>';
   }).join('');
@@ -1048,7 +1083,7 @@ function renderSettingsLists() {
   const sl = document.getElementById('staffList');
   if (sl) sl.innerHTML = allStaffList().map(function(s) {
     return '<div class="border rounded-xl p-3"><div class="flex justify-between items-center gap-2">' +
-      '<div><div class="font-bold">' + displayName(s) + ' — رقم ' + s.code + '</div>' +
+      '<div><div class="font-bold">' + displayName(s) + '</div>' +
       '<div class="text-sm text-slate-500">' + (s.title||'') + ' · ' + deptName(s.deptId) + '</div></div>' +
       '<div class="flex gap-1 text-sm">' +
         '<button type="button" onclick="loadStaffToForm(\'' + String(s.code).replace(/'/g, "\\'") + '\')" class="bg-teal-800 text-amber-100 px-3 py-1 rounded-lg">تعديل</button>' +
@@ -1077,10 +1112,16 @@ function staffMsg(text, ok) {
   el.className = 'text-sm mt-2 ' + (ok ? 'text-teal-700' : 'text-red-600');
 }
 // ===== الموظفون: إضافة / تعديل بعد الحفظ / إيقاف / حذف =====
-let editingStaffCode = null; // رقم الموظف قيد التعديل (null = إضافة جديدة)
+let editingStaffCode = null; // مفتاح السجل قيد التعديل (null = إضافة جديدة)
+function nextStaffKey() { // معرف داخلي تلقائي — لا حاجة لأرقام دخول
+  let max = 0;
+  Object.keys(staff).forEach(function(k) { const n = Number(k); if (Number.isFinite(n) && n > max) max = n; });
+  let k = String(max + 1);
+  while (staff[k]) k = String(Number(k) + 1);
+  return k;
+}
 function readStaffForm() {
   return {
-    code: document.getElementById('stCode').value.trim(),
     name: document.getElementById('stName').value.trim(),
     lastName: (document.getElementById('stLast') || { value: '' }).value.trim(),
     title: document.getElementById('stTitle').value.trim(),
@@ -1090,7 +1131,6 @@ function readStaffForm() {
   };
 }
 function setStaffForm(d) {
-  document.getElementById('stCode').value = d.code || '';
   document.getElementById('stName').value = d.name || '';
   if (document.getElementById('stLast')) document.getElementById('stLast').value = d.lastName || '';
   document.getElementById('stTitle').value = d.title || '';
@@ -1119,33 +1159,27 @@ function cancelStaffEdit() {
 async function addStaff() {
   try {
     const f = readStaffForm();
-    if (!/^\d+$/.test(f.code)) { staffMsg('رقم الدخول أرقام فقط'); return; }
     if (f.name.length < 2) { staffMsg('أدخل اسم الموظف'); return; }
     if (f.displayMode === 'laqab' && f.lastName.length < 1) { staffMsg('أدخل اللقب أو اختر عرض الاسم كاملاً'); return; }
     if (editingStaffCode) {
-      // تعديل موظف موجود: إن تغيّر الرقم يُنقل السجل للرقم الجديد ويُحذف القديم
-      const oldCode = editingStaffCode;
-      const oldRec = staff[oldCode] || {};
-      const newKey = f.code === oldCode ? oldCode : f.code;
-      if (newKey !== oldCode && staff[f.code]) { staffMsg('هذا الرقم مستخدم لموظف آخر'); return; }
-      const updates = {};
-      updates[path('staff/' + newKey)] = {
+      // تعديل موظف موجود: نفس المفتاح (معرف داخلي ثابت لا يتغير)
+      const key = editingStaffCode;
+      const oldRec = staff[key] || {};
+      const id = Number(oldRec.id) || Number(key) || Date.now();
+      await db.ref(path('staff/' + key)).set({
         name: f.name, lastName: f.lastName, displayMode: f.displayMode,
-        title: f.title, deptId: f.deptId, id: oldRec.id, hex: f.hex,
-        disabled: !!oldRec.disabled, code: newKey
-      };
-      if (newKey !== oldCode) updates[path('staff/' + oldCode)] = null; // حذف السجل القديم
-      await db.ref().update(updates);
+        title: f.title, deptId: f.deptId, id: id, hex: f.hex,
+        disabled: !!oldRec.disabled, code: key
+      });
       staffMsg('✔ تم تحديث بيانات الموظف', true);
       cancelStaffEdit();
       return;
     }
-    if (staff[f.code]) { staffMsg('هذا الرقم مستخدم لموظف آخر'); return; }
-    const ids = staffList().map(function(s) { return Number(s.id)||0; });
-    const id = (ids.length ? Math.max.apply(null, ids) : 0) + 1;
-    await db.ref(path('staff/' + f.code)).set({
+    // إضافة جديدة: مفتاح داخلي تلقائي (لا أرقام دخول)
+    const key = nextStaffKey();
+    await db.ref(path('staff/' + key)).set({
       name: f.name, lastName: f.lastName, displayMode: f.displayMode,
-      title: f.title, deptId: f.deptId, id: id, hex: f.hex, disabled: false, code: f.code
+      title: f.title, deptId: f.deptId, id: Number(key), hex: f.hex, disabled: false, code: key
     });
     staffMsg('✔ تم حفظ الموظف', true);
     cancelStaffEdit();
@@ -1153,6 +1187,7 @@ async function addStaff() {
     staffMsg('تعذر الحفظ: ' + (e.message || e));
   }
 }
+
 async function toggleStaffDisabled(code, disabled) {
   const rec = staff[String(code)];
   if (!rec) return;
@@ -1269,18 +1304,18 @@ document.addEventListener('click', function(e) {
 });
 
 window.addEventListener('load', async function() {
-  // 1) آخر البيانات المعروفة من الجهاز (ورديات/قواعد/أقسام/موظفين) — تعمل فوراً حتى بدون إنترنت
+  // 1) التطبيق يفتح مباشرة في وضع الاطلاع — الجميع يشاهدون الورديات بدون دخول
   restoreOfflineData();
-  renderAll();
-  // 2) الجلسة الدائمة: استعادة من الجهاز فوراً بدون أي انتظار أو فحص كلمة مرور
+  enterApp(); // وضع الاطلاع: التطبيق ظاهر والبيانات تظهر لأي زائر
+  // 2) جلسة الأدمن الدائمة (إن وجدت): استعادة فورية من الجهاز
   const saved = localStorage.getItem('wrdiatUser');
   if (!saved) return;
   let u = null;
   try { u = JSON.parse(saved); } catch (e) {}
   const cu = sessionToCurrentUser(u);
-  if (!cu) return;
+  if (!cu || cu.role !== 'admin') return;
   currentUser = cu;
-  enterApp(); // الدخول مضمون — لا يخرج إلا بزر تسجيل الخروج
+  enterApp(); // دخول الأدمن — لا يخرج إلا بتسجيل الخروج
   validateSessionInBackground(u); // تحقق صامت في الخلفية
 });
 
