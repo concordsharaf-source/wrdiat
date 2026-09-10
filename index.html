@@ -202,26 +202,22 @@ input::placeholder, textarea::placeholder { color: #9a3412 !important; opacity: 
       </div>
       <div id="tab-shifts" class="tab-panel hidden">
         <section class="bg-white rounded-2xl p-4 shadow">
-          <h3 class="font-bold text-lg mb-2">🗓️ توزيع الورديات الأسبوعي</h3>
-          <p class="text-sm text-slate-500 mb-3">لكل يوم: أضف سطراً واختر <b>ثابتاً (يظهر كل أسبوع)</b> أو <b>تناوباً (دور أسبوعي)</b> — واليوم يجمع الكل: الثابتون من كل الأقسام + صاحب الدور كل أسبوع، وقاعدة عامة وقاعدة لكل قسم على حدة.</p>
+          <h3 class="font-bold text-lg mb-2">🗓️ الورديات — التوزيع الأسبوعي</h3>
+          <p class="text-sm text-slate-500 mb-3">اختر طريقة العرض: <b>بالأيام</b> أو <b>بالأقسام</b> — البيانات مطوية وتُفتح عند الضغط. لكل قسم زر حفظ واحد يطبق ما أدخلته على 5 سنوات قادمة.</p>
           <label class="block text-sm font-bold mb-1">تاريخ بداية التناوب (تُحسب منه دورية الترتيب)</label>
           <input id="rulesAnchor" type="date" class="w-full border rounded-xl p-3 mb-1">
           <p class="text-xs text-slate-500 mb-3">غيّر هذا التاريخ لإعادة ضبط تسلسل التناوب من جديد.</p>
           <div id="rulesMsg" class="text-sm hidden mb-2"></div>
+
+          <div class="flex gap-2 mb-3">
+            <button id="viewByDays" onclick="setRulesView('days')" class="flex-1 py-3 rounded-2xl font-extrabold text-lg bg-slate-100">📅 بالأيام</button>
+            <button id="viewByDepts" onclick="setRulesView('depts')" class="flex-1 py-3 rounded-2xl font-extrabold text-lg btn-teal">🏢 بالأقسام</button>
+          </div>
+
           <div id="rulesContainer"></div>
-          <div class="flex gap-2 mt-3">
-          <button type="button" onclick="saveScheduleRules()" class="flex-1 btn-teal py-2 rounded-xl text-sm">💾 حفظ القواعد</button>
-          <button type="button" onclick="generateThisWeek()" class="flex-1 btn-amber py-2 rounded-xl text-sm">✨ توليد هذا الأسبوع</button>
-        </div>
-          <div class="mt-3 bg-slate-50 border border-slate-200 rounded-xl p-3">
-          <div class="font-bold text-sm mb-2">🔄 التطبيق التلقائي — 5 سنوات قادمة</div>
-          <p class="text-xs text-slate-500 mb-2">زر «حفظ التغييرات» تحت كل يوم يطبّق قواعد ذلك اليوم (ثابت أو تناوب) فوراً على هذا اليوم الأسبوعي في كل الأسابيع القادمة حتى <b>5 سنوات</b> — بدون تحديد تواريخ: السبت الثابت يظهر في كل السبتات، والتناوب يتحرك أسبوعاً بأسبوع.</p>
-          <button type="button" onclick="applyScheduleToFuture()" class="w-full btn-dark py-2 rounded-xl text-sm">🔄 إعادة تطبيق كل القواعد على 5 سنوات كاملة</button>
-          <p class="text-xs text-slate-500 mt-1">الأيام الماضية تبقى كما هي؛ والورديات اليدوية ضمن الفترة تُستبدل بالتوزيع التلقائي.</p>
-        </div>
-          <p class="text-xs text-slate-500 mt-3">الورديات المولَّدة تلقائياً تحمل شارة ⚡ ويمكن حذفها كأي وردية.</p>
         </section>
       </div>
+
     </div>
     <button id="logoutBtn" onclick="logout()" class="hidden w-full bg-red-600 text-amber-100 font-bold py-3 rounded-2xl mt-6">تسجيل الخروج</button>
   </div>
@@ -236,6 +232,19 @@ input::placeholder, textarea::placeholder { color: #9a3412 !important; opacity: 
     <p id="swapInfo" class="text-sm text-slate-500 mb-3"></p>
     <div id="swapList" class="space-y-2"></div>
     <button type="button" onclick="closeSwapModal()" class="w-full btn-amber py-2 rounded-xl mt-3">إلغاء</button>
+  </div>
+</div>
+
+<div id="renameDeptModal" class="fixed inset-0 z-50 hidden">
+  <div class="absolute inset-0 bg-black/50" onclick="closeRenameDept()"></div>
+  <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl p-5 w-80">
+    <h3 class="font-bold text-lg mb-3">✏️ تعديل اسم القسم</h3>
+    <label class="text-sm text-slate-500">الاسم الجديد</label>
+    <input id="renameDeptInput" class="w-full border rounded-xl p-3 mb-3">
+    <div class="flex gap-2">
+      <button onclick="saveDeptName()" class="flex-1 btn-teal py-2 rounded-xl">حفظ</button>
+      <button onclick="closeRenameDept()" class="flex-1 btn-amber py-2 rounded-xl">إلغاء</button>
+    </div>
   </div>
 </div>
 
@@ -556,8 +565,8 @@ function ruleRowHtml(scopeIdx, day, row, idx) {
   return '<div id="ruleRow-' + scopeIdx + '-' + day + '-' + idx + '" class="border border-slate-200 rounded-xl p-2 mb-2 bg-white">' +
     '<div class="flex gap-2 mb-1">' +
       '<select id="ruleMode-' + scopeIdx + '-' + day + '-' + idx + '" onchange="ruleModeChanged(' + scopeIdx + ',' + day + ',' + idx + ')" class="flex-1 border rounded-lg p-2 bg-white text-sm">' +
-        '<option value="fixed"' + (row.mode === 'fixed' ? ' selected' : '') + '>ثابت — يظهر كل أسبوع</option>' +
-        '<option value="rotate"' + (row.mode !== 'fixed' ? ' selected' : '') + '>تناوب — دور كل أسبوع</option>' +
+        '<option value="fixed"' + (row.mode === 'fixed' ? ' selected' : '') + '>تلقائي — نفس الموظفين كل أسبوع</option>' +
+        '<option value="rotate"' + (row.mode !== 'fixed' ? ' selected' : '') + '>تناوب — دور أسبوعي</option>' +
       '</select>' +
       '<button type="button" onclick="removeRuleRow(' + scopeIdx + ',' + day + ',' + idx + ')" class="text-red-500 text-sm px-2" title="حذف السطر">✕</button>' +
     '</div>' +
@@ -569,12 +578,23 @@ function ruleRowHtml(scopeIdx, day, row, idx) {
     '</div>' +
     '<div class="text-xs text-slate-500 mb-1">الموظفون' + (scope ? ' (قسم «' + escapeHtml(deptName(scope)) + '» فقط):' : ' (كل الأقسام — بجانب الاسم قسمه):') + '</div>' +
     (row.mode === 'fixed'
-      ? '<p class="text-xs text-teal-700 font-bold mb-1">اختر أكثر من موظف ثابت ليظهروا جميعاً في هذا اليوم كل أسبوع.</p>'
-      : '<p class="text-xs text-slate-500 mb-1">اختر قائمة التناوب بالترتيب — كل أسبوع يظهر الموظف صاحب الدور فوق الثابتين.</p>') +
+      ? '<p class="text-xs text-teal-700 font-bold mb-1">تلقائي: كل الموظفين المختارين يظهرون في هذا اليوم كل أسبوع.</p>'
+      : '<p class="text-xs text-slate-500 mb-1">تناوب: كل أسبوع يظهر الموظف صاحب الدور بالترتيب المحدد.</p>') +
     (chips || '<p class="text-xs text-gray-500 text-center">لا يوجد موظفون' + (scope ? ' في هذا القسم' : '') + ' — أضفهم من قسم «الموظفون»</p>') +
     '<div id="ruleOrder-' + scopeIdx + '-' + day + '-' + idx + '">' + orderList + '</div>' +
   '</div>';
 }
+let rulesView = 'depts'; // 'depts' عرض بالأقسام | 'days' عرض بالأيام
+let rulesOpen = {}; // حالة فتح البطاقات المطوية
+function setRulesView(view) {
+  rulesView = view === 'days' ? 'days' : 'depts';
+  renderScheduleRules();
+}
+function ruleSectionState(el) {
+  if (el && el.dataset && el.dataset.key) rulesOpen[el.dataset.key] = !!el.open;
+}
+function ruleOpenAttr(key) { return rulesOpen[key] ? 'open' : ''; }
+
 function renderScheduleRules() {
   if (!isAdmin()) return;
   const container = document.getElementById('rulesContainer');
@@ -582,32 +602,75 @@ function renderScheduleRules() {
   const anchorEl = document.getElementById('rulesAnchor');
   if (anchorEl) anchorEl.value = anchorInputValue();
   ruleScopeKeys = ruleScopes();
-  const labels = { '': { name: '🌐 كل الأقسام (قاعدة عامة)', note: 'تُطبَّق على جميع الموظفين النشطين في كل الأقسام — وتُدمج مع قواعد الأقسام.' } };
-  Object.keys(departments).forEach(function(id) {
-    labels[String(id)] = { name: '🏢 قسم ' + (departments[id].name || ''), note: 'أيام هذا القسم مستقلة: ثابت أو تناوب بين موظفيه فقط، وتُدمج في اليوم مع البقية.' };
-  });
-  container.innerHTML = ruleScopeKeys.map(function(scope, si) {
-    const lab = labels[scope] || { name: 'قسم', note: '' };
-    const sc = scheduleRules.scopes[scope] || { days: {} };
-    const daysHtml = RULE_DAY_ORDER.map(function(day) {
-      const rule = sc.days[day] || { rows: [] };
-      const rowsHtml = (rule.rows || []).map(function(row, idx) { return ruleRowHtml(si, day, row, idx); }).join('');
-      return '<div class="border border-slate-200 rounded-xl p-2 mb-2 bg-slate-50">' +
-        '<div class="flex justify-between items-center mb-1">' +
-          '<span class="font-bold text-sm">' + RULE_DAY_NAMES[day] + '</span>' +
-          (day === 5 ? '<span class="text-xs font-bold text-orange-700">ترتيب مستقل للجمعة</span>' : '') +
-        '</div>' + rowsHtml +
+  const viewDays = document.getElementById('viewByDays');
+  const viewDepts = document.getElementById('viewByDepts');
+  if (viewDays) { viewDays.classList.toggle('btn-teal', rulesView === 'days'); viewDays.classList.toggle('bg-slate-100', rulesView !== 'days'); }
+  if (viewDepts) { viewDepts.classList.toggle('btn-teal', rulesView === 'depts'); viewDepts.classList.toggle('bg-slate-100', rulesView !== 'depts'); }
+  container.innerHTML = rulesView === 'days' ? rulesByDaysHtml() : rulesByDeptsHtml();
+}
+function scopeLabel(scope) {
+  if (!scope) return { icon: '🌐', name: 'كل الأقسام (قاعدة عامة)', note: 'تُطبَّق على جميع الموظفين النشطين وتُدمج مع قواعد الأقسام.' };
+  if (departments[scope]) return { icon: '🏢', name: 'قسم ' + departments[scope].name, note: 'أيام هذا القسم مستقلة: تلقائي أو تناوب بين موظفيه فقط.' };
+  return { icon: '🗂️', name: 'قسم سابق (محذوف)', note: 'هذا القسم لم يعد موجوداً — قواعده محفوظة.' };
+}
+function scopeSummaryHtml(scope, extra) {
+  const lab = scopeLabel(scope);
+  return '<summary class="flex items-center justify-between gap-2 cursor-pointer font-bold p-3 rounded-xl bg-teal-800 text-amber-100">' +
+    '<span>' + lab.icon + ' ' + lab.name + '</span>' + (extra || '') + '</summary>';
+}
+function dayChip(day) { return '<span class="text-xs bg-white/20 rounded-full px-2 py-0.5">' + RULE_DAY_NAMES[day] + '</span>'; }
+
+// ===== وضع «بالأيام»: 7 بطاقات أيام، داخلها أقسام مطوية =====
+function rulesByDaysHtml() {
+  return RULE_DAY_ORDER.map(function(day) {
+    const key = 'd:' + day;
+    const scopesHtml = ruleScopeKeys.map(function(scope, si) {
+      const sc = scheduleRules.scopes[scope] || { days: {} };
+      const rows = (sc.days[day] || { rows: [] }).rows;
+      const lab = scopeLabel(scope);
+      const rowsHtml = (rows || []).map(function(row, idx) { return ruleRowHtml(si, day, row, idx); }).join('');
+      return '<details class="border border-slate-200 rounded-xl p-2 mb-2 bg-slate-50" data-key="d:' + day + ':' + scope + '" ' + ruleOpenAttr('d:' + day + ':' + scope) + ' ontoggle="ruleSectionState(this)">' +
+        '<summary class="cursor-pointer font-bold text-sm p-1">' + lab.icon + ' ' + lab.name + ' <span class="text-xs text-slate-500">(' + rows.length + ' صف)</span></summary>' +
+        '<div class="mt-2">' + rowsHtml +
         '<button type="button" onclick="addRuleRow(' + si + ',' + day + ')" class="text-sm text-teal-700 font-bold">+ إضافة سطر لهذا اليوم</button>' +
-        '<button type="button" onclick="saveDayRules(' + si + ',' + day + ')" class="w-full mt-2 btn-teal py-2 rounded-xl text-sm">💾 حفظ تغييرات هذا اليوم — وتطبيقها 5 سنوات</button>' +
-      '</div>';
+        '<button type="button" onclick="saveDayRules(' + si + ',' + day + ')" class="w-full mt-2 btn-teal py-2 rounded-xl text-sm">💾 حفظ هذا القسم في هذا اليوم — وتطبيقه 5 سنوات</button>' +
+        '</div></details>';
     }).join('');
     return '<div class="border-2 border-orange-100 rounded-xl p-3 mb-3 bg-orange-50">' +
-      '<div class="font-bold mb-1">' + lab.name + '</div>' +
-      '<p class="text-xs text-slate-500 mb-2">' + lab.note + '</p>' +
-      daysHtml +
-    '</div>';
+      '<details class="day-details" data-key="' + key + '" ' + ruleOpenAttr(key) + ' ontoggle="ruleSectionState(this)">' +
+        '<summary class="flex justify-between items-center gap-2 cursor-pointer font-bold text-lg p-2">📅 ' + RULE_DAY_NAMES[day] +
+          (day === 5 ? ' <span class="text-xs font-bold text-orange-700">— ترتيب مستقل للجمعة</span>' : '') + '</summary>' +
+        '<div class="mt-2">' + scopesHtml + '</div>' +
+      '</details></div>';
   }).join('');
 }
+
+// ===== وضع «بالأقسام»: بطاقة لكل قسم (مطوية) بأيامه السبعة + زر حفظ واحد =====
+function rulesByDeptsHtml() {
+  return ruleScopeKeys.map(function(scope, si) {
+    const sc = scheduleRules.scopes[scope] || { days: {} };
+    const lab = scopeLabel(scope);
+    const daysHtml = RULE_DAY_ORDER.map(function(day) {
+      const rows = (sc.days[day] || { rows: [] }).rows;
+      const rowsHtml = (rows || []).map(function(row, idx) { return ruleRowHtml(si, day, row, idx); }).join('');
+      return '<details class="border border-slate-200 rounded-xl p-2 mb-2 bg-white" data-key="s:' + scope + ':' + day + '" ' + ruleOpenAttr('s:' + scope + ':' + day) + ' ontoggle="ruleSectionState(this)">' +
+        '<summary class="cursor-pointer font-bold text-sm p-1">📅 ' + RULE_DAY_NAMES[day] +
+          (day === 5 ? ' <span class="text-xs font-bold text-orange-700">— ترتيب مستقل</span>' : '') +
+          ' <span class="text-xs text-slate-500">(' + rows.length + ' صف)</span></summary>' +
+        '<div class="mt-2">' + rowsHtml +
+        '<button type="button" onclick="addRuleRow(' + si + ',' + day + ')" class="text-sm text-teal-700 font-bold">+ إضافة سطر لهذا اليوم</button>' +
+        '</div></details>';
+    }).join('');
+    return '<details class="border-2 border-orange-100 rounded-xl p-3 mb-3 bg-orange-50" data-key="a:' + scope + '" ' + ruleOpenAttr('a:' + scope) + ' ontoggle="ruleSectionState(this)">' +
+      scopeSummaryHtml(scope) +
+      '<div class="mt-3">' +
+        '<p class="text-xs text-slate-500 mb-2">' + lab.note + '</p>' +
+        daysHtml +
+        '<button type="button" onclick="saveDeptRules(' + si + ')" class="w-full mt-3 btn-teal py-3 rounded-2xl font-extrabold">💾 حفظ تغييرات هذا القسم — وتطبيقها 5 سنوات</button>' +
+      '</div></details>';
+  }).join('');
+}
+
 function rerenderRuleRow(scopeIdx, day, idx) {
   const el = document.getElementById('ruleRow-' + scopeIdx + '-' + day + '-' + idx);
   if (el) el.outerHTML = ruleRowHtml(scopeIdx, day, getRuleRow(scopeIdx, day, idx), idx);
@@ -666,19 +729,74 @@ function regenerateScopeWeekday(scope, day) {
     const key = formatKey(c);
     const existing = Array.isArray(shifts[key]) ? shifts[key] : [];
     // نحتفظ باليدوية (تبديلات الغياب) وورديات النطاقات الأخرى،
-    // ونزيل كل تلقائيات هذا اليوم (أي صيغة سابقة) ثم نبنيها من القواعد الحالية.
-    const manual = existing.filter(function(s) { return !s.auto || s.id.indexOf('auto-' + key + '-') !== 0; });
+    // ونحتفظ باليدوية وورديات النطاقات الأخرى، ونزيل تلقائيات هذا النطاق فقط (معرّفها يحمل اسم النطاق).
+    const autoPrefix = 'auto-' + key + '-' + (scope || 'all') + '-';
+    const manual = existing.filter(function(s) { return !s.auto || s.id.indexOf(autoPrefix) !== 0; });
     manual.push.apply(manual, scopeAutoSlotsForDate(scope, c));
     manual.sort(function(a, b) { return String(a.start).localeCompare(String(b.start)); });
-    updates[key] = manual;
+    // نكتب فقط ما تغيّر فعلاً لتقليل حجم الحفظ
+    if (JSON.stringify(manual) !== JSON.stringify(existing)) updates[key] = manual;
   }
   Object.keys(updates).forEach(function(k) { shifts[k] = updates[k]; });
   return updates;
 }
 
 // حفظ تغييرات يوم واحد من الواجهة، ثم تطبيقها على كل هذا اليوم الأسبوعي لـ5 سنوات
+// قراءة صفوف يوم واحد أحدثها من الواجهة (النوع/الوقت) مع الإبقاء على قوائم الموظفين
+function readDayRowsFromDom(scopeIdx, day) {
+  const scope = scopeKey(scopeIdx);
+  const sc = scheduleRules.scopes[scope] || (scheduleRules.scopes[scope] = { days: emptyRuleDays() });
+  if (!sc.days[day]) sc.days[day] = { rows: [] };
+  const rows = sc.days[day].rows;
+  rows.forEach(function(row, idx) {
+    const modeEl = document.getElementById('ruleMode-' + scopeIdx + '-' + day + '-' + idx);
+    const startEl = document.getElementById('ruleStart-' + scopeIdx + '-' + day + '-' + idx);
+    const endEl = document.getElementById('ruleEnd-' + scopeIdx + '-' + day + '-' + idx);
+    if (modeEl) row.mode = modeEl.value === 'fixed' ? 'fixed' : 'rotate';
+    if (startEl) row.start = startEl.value;
+    if (endEl) row.end = endEl.value;
+  });
+  return rows;
+}
+// زر واحد تحت كل قسم: يحفظ كل الأيام المدخلة لهذا القسم ويطبقها 5 سنوات
+async function saveDeptRules(scopeIdx) {
+  if (!isAdmin()) return;
+  const anchorEl = document.getElementById('rulesAnchor');
+  const anchorVal = (anchorEl && anchorEl.value) || anchorInputValue();
+  if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(anchorVal)) scheduleRules.anchor = anchorVal;
+  const scope = scopeKey(scopeIdx);
+  if (!scheduleRules.scopes[scope]) scheduleRules.scopes[scope] = { days: emptyRuleDays() };
+  const sc = scheduleRules.scopes[scope];
+  RULE_DAY_ORDER.forEach(function(day) { readDayRowsFromDom(scopeIdx, day); });
+  let fixedEmpty = '';
+  RULE_DAY_ORDER.forEach(function(day) {
+    (sc.days[day] ? sc.days[day].rows : []).forEach(function(row) {
+      if (row.mode === 'fixed' && !row.employeeIds.length && !fixedEmpty) fixedEmpty = RULE_DAY_NAMES[day];
+    });
+  });
+  if (fixedEmpty) { rulesMsg('يوم ' + fixedEmpty + ': في النوع «تلقائي» اختَر موظفاً واحداً على الأقل', false); return; }
+  scheduleRules = normalizeScheduleRules(scheduleRules);
+  saveOfflineRules(scheduleRules);
+  const updates = {};
+  RULE_DAY_ORDER.forEach(function(day) {
+    Object.assign(updates, regenerateScopeWeekday(scope, day));
+  });
+  try {
+    await db.ref(path('scheduleRules')).set(scheduleRules);
+    if (Object.keys(updates).length) await db.ref(path('shifts')).update(updates);
+    rulesMsg('✔ تم حفظ وتطبيق «' + (scope ? (departments[scope] ? departments[scope].name : scope) : 'القاعدة العامة') + '» على ' + Object.keys(updates).length + ' يوماً (5 سنوات)', true);
+  } catch (e) {
+    rulesMsg('تعذر الحفظ على الخادم — القواعد محفوظة على هذا الجهاز', false);
+  }
+  renderAll();
+  renderScheduleRules();
+}
+
 async function saveDayRules(scopeIdx, day) {
   if (!isAdmin()) return;
+  const anchorEl = document.getElementById('rulesAnchor');
+  const anchorVal = (anchorEl && anchorEl.value) || anchorInputValue();
+  if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(anchorVal)) scheduleRules.anchor = anchorVal;
   const scope = scopeKey(scopeIdx);
   if (!scheduleRules.scopes[scope]) scheduleRules.scopes[scope] = { days: emptyRuleDays() };
   const sc = scheduleRules.scopes[scope];
@@ -693,7 +811,7 @@ async function saveDayRules(scopeIdx, day) {
     if (endEl) row.end = endEl.value;
   });
   if (rows.some(function(row) { return row.mode === 'fixed' && !row.employeeIds.length; })) {
-    toast('يوم ' + RULE_DAY_NAMES[day] + ': اختر موظفاً واحداً على الأقل للنوع «موظف ثابت»');
+    toast('يوم ' + RULE_DAY_NAMES[day] + ': في النوع «تلقائي» اختَر موظفاً واحداً على الأقل');
     return;
   }
   scheduleRules = normalizeScheduleRules(scheduleRules);
@@ -1012,11 +1130,7 @@ function renderDay() {
   });
   const box = document.getElementById('slotsList');
   if (!slots.length) {
-    const extra = isAdmin()
-      ? '<div class="text-center mt-4"><button onclick="generateThisWeek()" class="btn-amber px-4 py-2 rounded-xl text-sm">✨ توليد هذا الأسبوع تلقائياً</button>' +
-        '<p class="text-xs text-slate-400 mt-2">حسب قواعد التوزيع في الإعدادات (ثابت/تناوب)</p></div>'
-      : '';
-    box.innerHTML = '<p class="text-center text-slate-400 py-8">لا توجد ورديات في هذا اليوم</p>' + extra;
+    box.innerHTML = '<p class="text-center text-slate-400 py-8">لا توجد ورديات في هذا اليوم</p>';
     return;
   }
   box.innerHTML = slots.map(function(sl) {
@@ -1074,7 +1188,7 @@ function renderSettingsLists() {
   const dl = document.getElementById('deptList');
   if (dl) dl.innerHTML = Object.keys(departments).map(function(id) {
     return '<div class="flex justify-between items-center border rounded-xl p-2"><span>' + departments[id].name + '</span>' +
-      (isAdmin() ? '<button onclick="removeDept(\'' + id + '\')" class="text-red-500 text-sm">حذف</button>' : '') + '</div>';
+      (isAdmin() ? '<span class="flex gap-2"><button onclick="openRenameDept(\'' + id + '\')\" class="text-teal-700 text-sm font-bold">✏️ تعديل الاسم</button><button onclick="removeDept(\'' + id + '\')\" class="text-red-500 text-sm">حذف</button></span>' : '') + '</div>';
   }).join('') || '<p class="text-slate-400 text-sm">لا أقسام بعد</p>';
   const sel = document.getElementById('stDept');
   if (sel) sel.innerHTML = '<option value="">بدون قسم</option>' + Object.keys(departments).map(function(id) {
@@ -1096,6 +1210,27 @@ function renderSettingsLists() {
   renderScheduleRules();
 }
 
+let renameDeptId = null;
+function openRenameDept(id) {
+  renameDeptId = id;
+  const input = document.getElementById('renameDeptInput');
+  if (input) { input.value = (departments[id] && departments[id].name) || ''; input.focus(); }
+  document.getElementById('renameDeptModal').classList.remove('hidden');
+}
+function closeRenameDept() {
+  document.getElementById('renameDeptModal').classList.add('hidden');
+  renameDeptId = null;
+}
+async function saveDeptName() {
+  const name = document.getElementById('renameDeptInput').value.trim();
+  if (!renameDeptId || !name) return;
+  if (departments[renameDeptId]) departments[renameDeptId].name = name;
+  await db.ref(path('departments/' + renameDeptId + '/name')).set(name);
+  closeRenameDept();
+  renderAll();
+  renderScheduleRules();
+  toast('✔ تم تعديل اسم القسم');
+}
 function addDepartment() {
   const name = document.getElementById('newDeptName').value.trim();
   if (!name) return;
