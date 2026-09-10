@@ -1570,6 +1570,15 @@ async function saveStaffPassword() {
   }
   try {
     const hash = await hashPassword(pass);
+    // حماية: لا تُقبل كلمة مرور الموظفين أن تكون نفس كلمة مرور الأدمن (وإلا صار الموظف أدمن)
+    if (currentUser && currentUser.email) {
+      let admRec = null;
+      try { admRec = await fetchOrgRecord(emailKey(currentUser.email)); } catch (e) {}
+      if (admRec && admRec.passwordHash === hash) {
+        staffPassMsg('اختر كلمة مختلفة عن كلمة مرور الأدمن — وإلا دخل الموظف كأدمن', false);
+        return;
+      }
+    }
     await db.ref(path('settings/staffPasswordHash')).set(hash);
     if (el) el.value = '';
     staffPassMsg('✔ تم حفظ كلمة مرور الموظفين — أعطها لموظفيك', true);
