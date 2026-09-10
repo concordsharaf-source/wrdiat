@@ -583,10 +583,13 @@ function getRuleRow(scopeIdx, day, idx) {
 function ruleRowHtml(scopeIdx, day, row, idx) {
   const scope = scopeKey(scopeIdx);
   const selected = (row.employeeIds || []).map(Number);
-  const chips = rowPool(scope).map(function(s) {
-    const dname = (!scope && deptName(s.deptId)) ? ' · ' + deptName(s.deptId) : '';
-    return '<span class="rule-chip' + (selected.indexOf(Number(s.id)) >= 0 ? ' sel' : '') + '" onclick="toggleRuleEmp(' + scopeIdx + ',' + day + ',' + idx + ',' + Number(s.id) + ')">' + escapeHtml(displayName(s) + dname) + '</span>';
-  }).join('');
+  const pool = rowPool(scope);
+  const chips = pool.length
+    ? pool.map(function(s) {
+        const dname = (!scope && deptName(s.deptId)) ? ' · ' + deptName(s.deptId) : '';
+        return '<span class="rule-chip' + (selected.indexOf(Number(s.id)) >= 0 ? ' sel' : '') + '" onclick="toggleRuleEmp(' + scopeIdx + ',' + day + ',' + idx + ',' + Number(s.id) + ')">' + escapeHtml(displayName(s) + dname) + '</span>';
+      }).join('')
+    : '<span class="text-xs font-bold text-red-500">⚠️ لا يوجد موظفون نشطون في هذا النطاق — أضفهم أولاً من تبويب «👥 الموظفون»</span>';
   const selPool = rowCandidates(scope, row);
   const orderList = (row.mode === 'rotate' && selPool.length > 1)
     ? '<div class="text-xs text-slate-500 mb-1 mt-1">ترتيب الدور — التناوب يتبعه بالترتيب:</div><div class="flex flex-wrap gap-1">' +
@@ -649,15 +652,21 @@ function scopeLabel(scope) {
 }
 function scopeSummaryHtml(scope, extra) {
   const lab = scopeLabel(scope);
+  const cnt = (scope ? rowPool(scope) : staffList()).length;
+  const cntHtml = ' <span class="text-xs font-bold bg-white/15 rounded-full px-2 py-0.5" title="عدد الموظفين النشطين">' + cnt + ' موظف</span>';
   return '<summary class="flex items-center justify-between gap-2 cursor-pointer font-bold p-3 rounded-xl bg-teal-800 text-amber-100">' +
-    '<span>' + lab.icon + ' ' + lab.name + '</span>' + (extra || '') + '</summary>';
+    '<span>' + lab.icon + ' ' + lab.name + cntHtml + '</span>' + (extra || '') + '</summary>';
 }
 function dayChip(day) { return '<span class="text-xs bg-white/20 rounded-full px-2 py-0.5">' + RULE_DAY_NAMES[day] + '</span>'; }
 
+function rulesPendingBanner() {
+  if (!(rulesDirty || shiftsDirty)) return '';
+  return '<div class="text-xs font-bold text-amber-800 bg-amber-50 border border-amber-300 rounded-xl p-2 mb-3">⚠️ لديك تعديلات محفوظة على هذا الجهاز لم تُزامَن مع الخادم بعد — ستُرفع تلقائياً عند توفر الاتصال</div>';
+}
 // ===== وضع «بالأيام»: 7 بطاقات أيام، داخلها أقسام مطوية =====
 function rulesByDaysHtml() {
   const hint = '<div class="text-xs text-slate-600 bg-amber-50 border border-amber-200 rounded-xl p-2 mb-3">✏️ عدّل الصفوف كما تريد — ولتطبيق التعديلات على <b>5 سنوات</b> استخدم زر «💾 حفظ» تحت كل قسم في وضع <b>🏢 بالأقسام</b>.</div>';
-  return hint + RULE_DAY_ORDER.map(function(day) {
+  return rulesPendingBanner() + hint + RULE_DAY_ORDER.map(function(day) {
     const key = 'd:' + day;
     const scopesHtml = ruleScopeKeys.map(function(scope, si) {
       const sc = scheduleRules.scopes[scope] || { days: {} };
@@ -666,7 +675,7 @@ function rulesByDaysHtml() {
       const rowsHtml = (rows || []).map(function(row, idx) { return ruleRowHtml(si, day, row, idx); }).join('');
       return '<details class="border border-slate-200 rounded-xl p-2 mb-2 bg-slate-50" data-key="d:' + day + ':' + scope + '" ' + ruleOpenAttr('d:' + day + ':' + scope) + ' ontoggle="ruleSectionState(this)">' +
         '<summary class="cursor-pointer font-bold text-sm p-1">' + lab.icon + ' ' + lab.name + ' <span class="text-xs text-slate-500">(' + rows.length + ' صف)</span></summary>' +
-        '<div class="mt-2">' + rowsHtml +
+        '<div class="mt-2">' + (rows.length ? '' : '<p class="text-xs text-slate-400 mb-1">لا صفوف لهذا اليوم — اضغط «+ إضافة سطر»</p>') + rowsHtml +
         '<button type="button" onclick="addRuleRow(' + si + ',' + day + ')" class="text-sm text-teal-700 font-bold">+ إضافة سطر لهذا اليوم</button>' +
         '</div></details>';
     }).join('');
@@ -681,7 +690,8 @@ function rulesByDaysHtml() {
 
 // ===== وضع «بالأقسام»: بطاقة لكل قسم (مطوية) بأيامه السبعة + زر حفظ واحد =====
 function rulesByDeptsHtml() {
-  return ruleScopeKeys.map(function(scope, si) {
+  const pending = rulesPendingBanner();
+  return pending + ruleScopeKeys.map(function(scope, si) {
     const sc = scheduleRules.scopes[scope] || { days: {} };
     const lab = scopeLabel(scope);
     const daysHtml = RULE_DAY_ORDER.map(function(day) {
@@ -691,7 +701,7 @@ function rulesByDeptsHtml() {
         '<summary class="cursor-pointer font-bold text-sm p-1">📅 ' + RULE_DAY_NAMES[day] +
           (day === 5 ? ' <span class="text-xs font-bold text-orange-700">— ترتيب مستقل</span>' : '') +
           ' <span class="text-xs text-slate-500">(' + rows.length + ' صف)</span></summary>' +
-        '<div class="mt-2">' + rowsHtml +
+        '<div class="mt-2">' + (rows.length ? '' : '<p class="text-xs text-slate-400 mb-1">لا صفوف لهذا اليوم — اضغط «+ إضافة سطر»</p>') + rowsHtml +
         '<button type="button" onclick="addRuleRow(' + si + ',' + day + ')" class="text-sm text-teal-700 font-bold">+ إضافة سطر لهذا اليوم</button>' +
         '</div></details>';
     }).join('');
@@ -845,9 +855,12 @@ async function saveDeptRules(scopeIdx, btn) {
     await db.ref(path('scheduleRules')).set(scheduleRules);
     if (Object.keys(updates).length) await db.ref(path('shifts')).update(updates);
     savedServer = true;
-  } catch (e) {}
+  } catch (e) {
+    const why = (e && (e.code || e.message)) || 'غير معروف';
+    rulesMsg('تعذر الحفظ على الخادم (' + why + ') — القواعد محفوظة على هذا الجهاز وستُزامن تلقائياً عند عودة الاتصال', false);
+    savedServer = false;
+  }
   if (savedServer) { clearRulesDirty(); clearShiftsDirty(); rulesMsg('✔ تم حفظ وتطبيق «' + (scope ? (departments[scope] ? departments[scope].name : scope) : 'القاعدة العامة') + '» على ' + Object.keys(updates).length + ' يوماً (5 سنوات)', true); }
-  else { rulesMsg('تعذر الحفظ على الخادم — البيانات محفوظة على هذا الجهاز وستُزامن تلقائياً عند عودة الاتصال', false); }
   renderAll();
   renderScheduleRules();
   const freshBtn = document.querySelector('#rulesContainer [data-save-idx="' + scopeIdx + '"]');
@@ -887,7 +900,8 @@ async function saveDayRules(scopeIdx, day) {
     clearRulesDirty(); clearShiftsDirty();
     toast('✔ تم حفظ وتطبيق ' + RULE_DAY_NAMES[day] + ' على ' + Object.keys(updates).length + ' يوماً (5 سنوات)');
   } catch (e) {
-    toast('تم الحفظ محلياً — سيُزامن عند عودة الاتصال');
+    const why = (e && (e.code || e.message)) || 'غير معروف';
+    toast('تم الحفظ محلياً — سيُزامن عند عودة الاتصال (' + why + ')');
   }
   renderAll();
 }
@@ -1264,8 +1278,12 @@ function renderStats() {
 function renderSettingsLists() {
   const dl = document.getElementById('deptList');
   if (dl) dl.innerHTML = Object.keys(departments).map(function(id) {
-    return '<div class="flex justify-between items-center border rounded-xl p-2"><span>' + departments[id].name + '</span>' +
-      (isAdmin() ? '<span class="flex gap-2"><button onclick="openRenameDept(\'' + id + '\')\" class="text-teal-700 text-sm font-bold">✏️ تعديل الاسم</button><button onclick="removeDept(\'' + id + '\')\" class="text-red-500 text-sm">حذف</button></span>' : '') + '</div>';
+    const members = staffList().filter(function(s) { return String(s.deptId) === String(id); });
+    const membersHtml = members.length
+      ? '<div class="text-xs text-slate-500 mt-1">' + members.map(function(s) { return '<span class="inline-block bg-slate-100 rounded-full px-2 py-0.5 ml-1 mt-1">' + escapeHtml(displayName(s)) + '</span>'; }).join('') + '</div>'
+      : '<div class="text-xs text-red-500 mt-1">⚠️ لا موظفون في هذا القسم بعد — أضفهم من تبويب «👥 الموظفون»</div>';
+    return '<div class="border rounded-xl p-2"><div class="flex justify-between items-center"><span class="font-bold">' + departments[id].name + '</span>' +
+      (isAdmin() ? '<span class="flex gap-2"><button onclick="openRenameDept(\'' + id + '\')\" class="text-teal-700 text-sm font-bold">✏️ تعديل الاسم</button><button onclick="removeDept(\'' + id + '\')\" class="text-red-500 text-sm">حذف</button></span>' : '') + '</div>' + membersHtml + '</div>';
   }).join('') || '<p class="text-slate-400 text-sm">لا أقسام بعد</p>';
   const sel = document.getElementById('stDept');
   if (sel) sel.innerHTML = '<option value="">بدون قسم</option>' + Object.keys(departments).map(function(id) {
