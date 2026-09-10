@@ -262,6 +262,7 @@ button:focus-visible { outline: 3px solid #0f766e; outline-offset: 2px; }
       <div class="font-bold text-sm" id="welcomeMessage">👀 وضع الاطلاع — يمكن للجميع مشاهدة الورديات</div>
       <div class="flex gap-2">
         <button onclick="showPage('day')" class="p-2" title="اليوم">📅</button>
+        <button onclick="openAboutModal()" class="p-2" title="حول التطبيق">ℹ️</button>
         <button onclick="showPage('stats')" class="p-2" title="الإحصائيات">📊</button>
         <button id="adminBtn" onclick="onAdminClick()" class="p-2" title="الإعدادات / دخول الأدمن">⚙️</button>
       </div>
@@ -311,7 +312,7 @@ button:focus-visible { outline: 3px solid #0f766e; outline-offset: 2px; }
             <div id="deptColorPalette" class="st-palette"></div>
             <input id="deptColor" type="color" value="#0f766e" title="لون مخصص" class="st-color-input">
           </div>
-          <label class="flex items-center gap-2 mb-2 text-xs text-slate-500"><input type="checkbox" id="deptNoColor"> بدون لون موحد — يبقى لون كل موظف كما هو</label>
+          <label class="flex items-center gap-2 mb-2 text-xs text-slate-500"><input type="checkbox" id="deptNoColor"> بدون لون موحد — يظهر موظفو القسم باللون الافتراضي</label>
           <button onclick="addDepartment()" class="w-full btn-teal py-2 rounded-xl">إضافة قسم</button>
           <div id="deptList" class="mt-3 space-y-2"></div>
         </section>
@@ -402,17 +403,7 @@ button:focus-visible { outline: 3px solid #0f766e; outline-offset: 2px; }
             <label class="flex items-center gap-2 mb-3 text-sm"><input type="radio" name="stDisp" value="laqab"> الاسم واللقب</label>
             <input id="stTitle" class="w-full border rounded-xl p-3 mb-2" placeholder="المسمى الوظيفي مثل مصور / طباخ">
             <select id="stDept" class="w-full border rounded-xl p-3 mb-2 bg-white"></select>
-            <div class="text-sm text-slate-600 mb-1">🎨 اللون</div>
-            <div id="stColorPalette" class="st-palette mb-2"></div>
-            <div class="flex items-center gap-2 mb-1">
-              <input id="stColor" type="color" value="#0f766e" title="لون مخصص" class="st-color-input">
-              <span class="text-xs text-slate-500">لون مخصص</span>
-            </div>
-            <p class="text-xs text-slate-400 mb-3">💡 إن كان للموظف قسم له لون موحد، يظهر بلون القسم تلقائياً.</p>
-            <div id="stRecentBox" class="hidden mb-3">
-              <div class="text-xs text-slate-500 mb-1">🕘 الألوان المختارة حديثاً</div>
-              <div id="stRecentColors" class="st-palette"></div>
-            </div>
+            <p class="text-xs text-slate-400 mb-3">💡 لون الموظف يتبع لون قسمه تلقائياً — الموظف بدون قسم يظهر بلون افتراضي.</p>
             <label class="flex items-center gap-2 mb-1 text-sm"><input type="checkbox" id="stPinned"> 📌 تثبيت أعلى القائمة (المدير العام ونحوه)</label>
             <label class="flex items-center gap-2 mb-2 text-sm"><input type="checkbox" id="stMgr"> 👔 مدير قسم</label>
             <div class="flex gap-2">
@@ -508,6 +499,24 @@ button:focus-visible { outline: 3px solid #0f766e; outline-offset: 2px; }
         <button onclick="saveSlot()" class="flex-1 btn-teal py-2 rounded-xl">حفظ</button>
         <button onclick="closeSlotModal()" class="flex-1 btn-amber py-2 rounded-xl">إلغاء</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<div id="aboutModal" class="fixed inset-0 z-50 hidden overflow-y-auto -webkit-overflow-scrolling-touch">
+  <div class="fixed inset-0 bg-black/50" onclick="closeAboutModal()"></div>
+  <div class="relative min-h-full flex p-4 pointer-events-none">
+    <div class="m-auto pointer-events-auto bg-white rounded-2xl p-6 w-80 max-w-full text-center">
+      <div class="text-xl font-extrabold text-teal-800 leading-tight">نظام الورديات</div>
+      <div class="text-xs text-slate-500 mt-1 mb-4">إدارة الأقسام والورديات</div>
+      <div class="border-t border-slate-100 pt-4 mb-4">
+        <div class="text-xs font-bold text-slate-500 mb-1">مطوّر التطبيق</div>
+        <div class="text-lg font-extrabold text-teal-800">شرف غالب قحطان</div>
+      </div>
+      <p class="text-sm text-slate-500 mb-3 leading-relaxed">يسعدنا استقبال اقتراحاتكم وملاحظاتكم على التطبيق:</p>
+      <a href="mailto:concordsharaf@gmail.com" class="block w-full bg-slate-100 text-slate-800 font-bold py-3 rounded-xl mb-2">📧 concordsharaf@gmail.com</a>
+      <a href="https://wa.me/967770388100?text=%D9%85%D8%B1%D8%AD%D8%A8%D8%A7%D9%8B%D8%8C%20%D9%84%D8%AF%D9%8A%20%D8%A7%D9%82%D8%AA%D8%B1%D8%A7%D8%AD%20%D8%A3%D9%88%20%D9%85%D9%84%D8%A7%D8%AD%D8%B8%D8%A9%20%D8%A8%D8%AE%D8%B5%D9%88%D8%B5%20%D8%AA%D8%B7%D8%A8%D9%8A%D9%82%20%D8%A7%D9%84%D9%88%D8%B1%D8%AF%D9%8A%D8%A7%D8%AA%3A" target="_blank" rel="noopener" class="block w-full text-white font-bold py-3 rounded-xl mb-3" style="background:#25D366">💬 تواصل عبر الواتساب</a>
+      <button type="button" onclick="closeAboutModal()" class="w-full btn-amber py-2 rounded-xl font-bold">إغلاق</button>
     </div>
   </div>
 </div>
@@ -627,7 +636,7 @@ function staffColor(s) {
   if (s && s.deptId && departments[s.deptId] && departments[s.deptId].hex) {
     return departments[s.deptId].hex;
   }
-  return (s && s.hex) || '#0f766e';
+  return '#64748b'; // بدون قسم أو قسم بلا لون موحد → اللون الافتراضي (رمادي)
 }
 // ===== ترتيب الأقسام أبجدياً (بالاسم) بدل ترتيب الإضافة/التعديل =====
 function sortedDeptIds() {
@@ -2620,8 +2629,8 @@ function renderSettingsLists() {
       '<div class="text-sm text-slate-500">' + (s.title||'') + ' · ' + deptName(s.deptId) +
         (countsS ? ' · ' + (countsS[s.id] || 0) + ' وردية' : '') + '</div></div>' +
       '<div class="flex gap-1 text-sm">' +
-        '<button type="button" onclick="loadStaffToForm(\'' + String(s.code).replace(/'/g, "\\'") + '\')" title="تعديل" class="bg-teal-800 text-amber-100 px-3 py-1 rounded-lg">✏️</button>' +
-        '<button type="button" title="' + (s.disabled ? '✅ تفعيل الموظف' : '⛔ إيقاف الموظف') + '" onclick="toggleStaffDisabled(\'' + String(s.code).replace(/'/g, "\\'") + '\',' + (s.disabled ? 'false' : 'true') + ')" class="bg-slate-200 text-slate-700 px-3 py-1 rounded-lg">' + (s.disabled ? '✅ تفعيل الموظف' : '⛔ إيقاف الموظف') + '</button>' +
+        '<button type="button" onclick="loadStaffToForm(\'' + String(s.code).replace(/'/g, "\\'") + '\')" title="تعديل" class="bg-teal-800 text-amber-100 px-2 py-1 rounded-lg text-xs leading-none">✏️</button>' +
+        '<button type="button" title="' + (s.disabled ? '✅ تفعيل الموظف' : '⛔ إيقاف الموظف') + '" onclick="toggleStaffDisabled(\'' + String(s.code).replace(/'/g, "\\'") + '\',' + (s.disabled ? 'false' : 'true') + ')" class="bg-slate-200 text-slate-700 px-2 py-1 rounded-lg leading-none">' + (s.disabled ? '✅' : '⛔') + '</button>' +
         '<button type="button" onclick="removeStaff(\'' + String(s.code).replace(/'/g, "\\'") + '\')" title="حذف" class="text-red-500 text-lg px-2 py-1">✕</button>' +
       '</div></div>' +
       (s.disabled ? '<div class="text-xs bg-red-50 text-red-600 font-bold px-2 py-1 rounded-lg mt-1 inline-block">⛔ موقوف — لا يدخل التوزيع ولا يسجّل الدخول</div>' : '') +
@@ -2710,37 +2719,6 @@ const STAFF_COLORS = [
   '#4d7c0f', '#15803d', '#166534', '#0e7490', '#155e75', '#374151', '#334155', '#78350f',
   '#78716c', '#57534e'
 ];
-function staffRecentColors() {
-  try { return JSON.parse(localStorage.getItem('wrdiat_recent_colors_v1') || '[]'); } catch (e) { return []; }
-}
-function pushRecentColor(hex) {
-  hex = String(hex || '').toLowerCase();
-  if (!/^#[0-9a-f]{6}$/.test(hex)) return;
-  let list = staffRecentColors().filter(function(c) { return c !== hex; });
-  list.unshift(hex);
-  try { localStorage.setItem('wrdiat_recent_colors_v1', JSON.stringify(list.slice(0, 8))); } catch (e) {}
-}
-function colorSwatchHtml(hex, selected) {
-  return '<button type="button" class="st-swatch' + (selected ? ' sel' : '') + '" style="background:' + hex + '" title="' + hex + '" onclick="pickStaffColor(' + "'" + hex + "'" + ')"></button>';
-}
-function refreshColorPalette() {
-  const box = document.getElementById('stColorPalette');
-  if (!box) return;
-  const cur = (document.getElementById('stColor') || {}).value || '#0f766e';
-  box.innerHTML = STAFF_COLORS.map(function(c) { return colorSwatchHtml(c, c === cur); }).join('');
-  const rBox = document.getElementById('stRecentBox');
-  const rCol = document.getElementById('stRecentColors');
-  const rec = staffRecentColors();
-  if (rBox && rCol) {
-    rBox.classList.toggle('hidden', !rec.length);
-    rCol.innerHTML = rec.map(function(c) { return colorSwatchHtml(c, c === cur); }).join('');
-  }
-}
-function pickStaffColor(hex) {
-  const el = document.getElementById('stColor');
-  if (el && /^#[0-9a-f]{6}$/i.test(hex)) el.value = hex.toLowerCase();
-  refreshColorPalette();
-}
 // النموذج المطوي: فتح/إغلاق
 function toggleStaffForm(forceClose) {
   const form = document.getElementById('staffForm');
@@ -2749,7 +2727,6 @@ function toggleStaffForm(forceClose) {
   if (closing && editingStaffCode && !forceClose) { cancelStaffEdit(); return; }
   if (closing) { form.classList.add('hidden'); return; }
   form.classList.remove('hidden');
-  refreshColorPalette();
   const nm = document.getElementById('stName');
   if (nm) nm.focus();
 }
@@ -2775,8 +2752,6 @@ function readStaffForm() {
     lastName: (document.getElementById('stLast') || { value: '' }).value.trim(),
     title: document.getElementById('stTitle').value.trim(),
     deptId: document.getElementById('stDept').value,
-    hex: document.getElementById('stColor').value,
-    _hexTouched: (document.getElementById('stColor') || {}).__touched,
     displayMode: (document.querySelector('input[name="stDisp"]:checked') || { value: 'full' }).value,
     pinned: !!(document.getElementById('stPinned') || {}).checked,
     mgr: !!(document.getElementById('stMgr') || {}).checked
@@ -2787,14 +2762,10 @@ function setStaffForm(d) {
   if (document.getElementById('stLast')) document.getElementById('stLast').value = d.lastName || '';
   document.getElementById('stTitle').value = d.title || '';
   document.getElementById('stDept').value = d.deptId || '';
-  document.getElementById('stColor').value = d.hex || '#0f766e';
   const radio = document.querySelector('input[name="stDisp"][value="' + (d.displayMode || 'full') + '"]');
   if (radio) radio.checked = true;
   const pin = document.getElementById('stPinned'); if (pin) pin.checked = !!d.pinned;
   const mg = document.getElementById('stMgr'); if (mg) mg.checked = !!d.mgr;
-  const colorInput = document.getElementById('stColor');
-  if (colorInput) { colorInput.value = d.hex || '#0f766e'; colorInput.__touched = false; }
-  refreshColorPalette();
 }
 function loadStaffToForm(code) {
   const s = staff[String(code)];
@@ -2805,22 +2776,21 @@ function loadStaffToForm(code) {
   document.getElementById('staffCancelEdit').classList.remove('hidden');
   const form = document.getElementById('staffForm');
   if (form) form.classList.remove('hidden'); // فتح النموذج عند التعديل
-  refreshColorPalette();
   staffMsg('جارٍ تعديل: ' + displayName(Object.assign({ code: code }, s)), true);
   document.getElementById('stName').focus();
 }
 function cancelStaffEdit() {
   editingStaffCode = null;
-  setStaffForm({ code: '', name: '', lastName: '', title: '', deptId: '', hex: '#0f766e', displayMode: 'full' });
+  setStaffForm({ code: '', name: '', lastName: '', title: '', deptId: '', displayMode: 'full' });
   document.getElementById('staffBtnLabel').textContent = 'حفظ الموظف';
   document.getElementById('staffCancelEdit').classList.add('hidden');
   document.getElementById('staffMsg').classList.add('hidden');
+  toggleStaffForm(true); // طيّ الخانات بعد إلغاء التعديل
 }
 async function addStaff() {
   if (!can('staff')) { staffMsg('لا تملك صلاحية إدارة الموظفين'); return; }
   try {
     const f = readStaffForm();
-    if (f.hex) pushRecentColor(f.hex); // سجل اللون المختار حديثاً
     if (f.name.length < 2) { staffMsg('أدخل اسم الموظف'); return; }
     if (f.displayMode === 'laqab' && f.lastName.length < 1) { staffMsg('أدخل اللقب أو اختر عرض الاسم كاملاً'); return; }
     if (editingStaffCode) {
@@ -2830,7 +2800,7 @@ async function addStaff() {
       const id = Number(oldRec.id) || Number(key) || Date.now();
       await db.ref(path('staff/' + key)).set({
         name: f.name, lastName: f.lastName, displayMode: f.displayMode,
-        title: f.title, deptId: f.deptId, id: id, hex: f.hex,
+        title: f.title, deptId: f.deptId, id: id,
         pinned: !!f.pinned, mgr: !!f.mgr,
         disabled: !!oldRec.disabled, code: key
       });
@@ -2843,7 +2813,7 @@ async function addStaff() {
     const key = nextStaffKey();
     await db.ref(path('staff/' + key)).set({
       name: f.name, lastName: f.lastName, displayMode: f.displayMode,
-      title: f.title, deptId: f.deptId, id: Number(key), hex: f.hex, disabled: false, code: key,
+      title: f.title, deptId: f.deptId, id: Number(key), disabled: false, code: key,
       pinned: !!f.pinned, mgr: !!f.mgr
     });
     cancelStaffEdit();
@@ -2878,6 +2848,10 @@ function openSlotModal() {
   document.getElementById('slotModal').classList.remove('hidden');
 }
 function closeSlotModal() { document.getElementById('slotModal').classList.add('hidden'); }
+
+// ===== نافذة «حول التطبيق» — المطوّر وطرق التواصل =====
+function openAboutModal() { document.getElementById('aboutModal').classList.remove('hidden'); }
+function closeAboutModal() { document.getElementById('aboutModal').classList.add('hidden'); }
 
 function saveSlot() {
   if (!can('slots')) return;
@@ -3048,7 +3022,6 @@ function closeSwapModal() {
 
 // مستمع نقرة واحد على مستوى الصفحة (اسم الموظف في البطاقة أو خيار التبديل في النافذة)
 document.addEventListener('input', function(e) {
-  if (e.target && e.target.id === 'stColor') { e.target.__touched = true; refreshColorPalette(); }
   if (e.target && e.target.id === 'deptColor') { e.target.__touched = true; refreshDeptColorPalette(); }
 });
 document.addEventListener('click', function(e) {
