@@ -114,7 +114,7 @@ input::placeholder, textarea::placeholder { color: #9a3412 !important; opacity: 
       <div id="loginError" class="text-red-600 text-sm hidden mb-2 text-center"></div>
       <button type="button" onclick="handleLogin()" class="btn-amber w-full py-3 rounded-xl mb-2">دخول</button>
       <div id="sessionNote" class="text-red-500 text-sm hidden mb-2 text-center"></div>
-      <button type="button" onclick="showSignupPanel()" class="text-teal-700 text-sm w-full font-bold">لا يوجد حساب؟ أنشئ حساب أدمن جديد</button>
+      <button type="button" id="signupLink" onclick="showSignupPanel()" class="text-teal-700 text-sm w-full font-bold">لا يوجد حساب؟ أنشئ حساب أدمن جديد</button>
     </div>
 
     <div id="signupPanel" class="hidden">
@@ -1253,6 +1253,7 @@ async function applyScheduleToFuture() {
 
 // ===== نافذة دخول الأدمن (التطبيق يفتح للاطلاع للجميع) =====
 function openLoginModal() {
+  applySignupFlag();
   document.getElementById('loginModal').classList.remove('hidden');
   document.getElementById('loginEmailPanel').classList.remove('hidden');
   document.getElementById('signupPanel').classList.add('hidden');
@@ -1270,9 +1271,21 @@ function showLoginPanel() {
   document.getElementById('signupPanel').classList.add('hidden');
 }
 function showSignupPanel() {
+  if (!signupAllowed()) {
+    errLogin('التسجيل الذاتي مغلق — اطلب من أدمن المؤسسة إنشاء حسابك.');
+    return;
+  }
   logoutNote('');
   document.getElementById('loginEmailPanel').classList.add('hidden');
   document.getElementById('signupPanel').classList.remove('hidden');
+}
+// ===== منع التسجيل الذاتي كأدمن =====
+// في config.js: allowSignup:false يخفي زر إنشاء الحساب ويمنع الفتح حتى بنداء مباشر،
+// والحماية الحقيقية من قواعد Firebase (راجع firebase-migration.md).
+function signupAllowed() { return !(APP_CONFIG && APP_CONFIG.allowSignup === false); }
+function applySignupFlag() {
+  const link = document.getElementById('signupLink');
+  if (link) link.classList.toggle('hidden', !signupAllowed());
 }
 function errLogin(m) {
   const el = document.getElementById('loginError');
@@ -1283,6 +1296,7 @@ function errSignup(m) {
   el.textContent = m; el.classList.remove('hidden');
 }
 async function handleSignup() {
+  if (!signupAllowed()) { errSignup('التسجيل الذاتي مغلق — يُنشئ الأدمن حسابات المؤسسة من إعدادات Firebase.'); return; }
   const name = document.getElementById('suName').value.trim();
   const email = document.getElementById('suEmail').value.trim();
   const pass = document.getElementById('suPass').value;
@@ -1778,6 +1792,7 @@ document.addEventListener('click', function(e) {
 });
 
 window.addEventListener('load', async function() {
+  applySignupFlag();
   // 1) التطبيق يفتح مباشرة في وضع الاطلاع — الجميع يشاهدون الورديات بدون دخول
   restoreOfflineData();
   enterApp(); // وضع الاطلاع: التطبيق ظاهر والبيانات تظهر لأي زائر
