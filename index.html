@@ -99,6 +99,21 @@ body.start-mode { background: linear-gradient(160deg, #0f766e, #115e59, #134e4a)
 #loginModal .w\\[19rem\\] { max-width: 92vw; }
 .sec-card { background: #fff; border-radius: 18px; padding: 16px; box-shadow: 0 1px 3px rgba(15,23,42,.08); }
 .sec-card + .sec-card { margin-top: 14px; }
+/* بطاقات طلبات التسجيل */
+.su-req { background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:12px; }
+.su-req + .su-req { margin-top:10px; }
+.su-head { font-weight:800; font-size:.9rem; margin-bottom:2px; }
+.su-mail { color:#94a3b8; font-size:.7rem; }
+.su-phone { font-size:.75rem; color:#475569; margin-bottom:6px; }
+.su-phone a { color:#0f766e; font-weight:800; text-decoration:none; }
+.su-state-wait { font-size:.72rem; font-weight:800; color:#b45309; margin-bottom:2px; }
+.su-state-ok { font-size:.72rem; font-weight:800; color:#0f766e; margin-bottom:2px; }
+.su-row { display:flex; gap:6px; align-items:center; margin-top:6px; }
+.su-row input { flex:1; border:1px solid #cbd5e1; border-radius:12px; padding:8px; text-align:center; min-width:0; }
+.su-dice { font-size:1.1rem; padding:4px 8px; border:none; background:none; cursor:pointer; }
+.su-del { color:#dc2626; font-size:.72rem; font-weight:800; margin-top:8px; background:none; border:none; cursor:pointer; padding:0; }
+.su-summary { font-size:.8rem; font-weight:800; color:#475569; cursor:pointer; margin-top:14px; }
+.su-done { font-size:.72rem; color:#64748b; margin-top:4px; }
 
 #toast { background: #111827; color: #fde047; padding: 10px 18px; border-radius: 14px; font-weight: 800; box-shadow: 0 10px 25px rgba(0,0,0,.35); max-width: 90%; width: max-content; text-align: center; }
 </style>
@@ -125,6 +140,11 @@ body.start-mode { background: linear-gradient(160deg, #0f766e, #115e59, #134e4a)
       <input id="loginPass" type="password" class="w-full border rounded-xl p-3 mb-2 text-center" placeholder="كلمة المرور" onkeydown="if(event.key==='Enter')handleLogin()">
       <div id="loginError" class="text-red-600 text-sm hidden mb-2 text-center"></div>
       <button type="button" id="loginBtn" onclick="handleLogin()" class="btn-amber w-full py-3 rounded-xl mb-2 font-bold">دخول</button>
+      <div id="loginCodeRow" class="hidden">
+        <div id="loginCodeInfo" class="text-xs text-amber-700 font-bold mb-2 text-center leading-relaxed"></div>
+        <input id="loginCode" class="w-full border rounded-xl p-3 mb-2 text-center" placeholder="رمز التفعيل" inputmode="numeric" onkeydown="if(event.key==='Enter')handleActivateFromLogin()">
+        <button type="button" onclick="handleActivateFromLogin()" class="btn-teal w-full py-3 rounded-xl mb-2 font-bold">✅ تفعيل الحساب والدخول</button>
+      </div>
       <div id="sessionNote" class="text-red-500 text-sm hidden mb-2 text-center"></div>
       <div class="border-t mt-3 pt-3 text-center">
         <button type="button" id="signupLink" onclick="showSignupPanel()" class="text-teal-700 text-sm font-bold">➕ تسجيل جديد (أدمن مؤسسة)</button>
@@ -132,14 +152,24 @@ body.start-mode { background: linear-gradient(160deg, #0f766e, #115e59, #134e4a)
     </div>
 
     <div id="signupPanel" class="hidden">
-      <p class="text-xs text-slate-500 mb-3">أول إيميل يُسجَّل يصبح أدمن المؤسسة.</p>
-      <input id="suName" class="w-full border rounded-xl p-3 mb-2 text-center" placeholder="الاسم">
-      <input id="suEmail" class="w-full border rounded-xl p-3 mb-2 text-center" placeholder="الإيميل">
-      <input id="suPass" type="password" class="w-full border rounded-xl p-3 mb-2 text-center" placeholder="كلمة المرور">
-      <input id="suPass2" type="password" class="w-full border rounded-xl p-3 mb-2 text-center" placeholder="تأكيد كلمة المرور">
+      <div id="suFields">
+        <p class="text-xs text-slate-500 mb-3">أرسل بياناتك — لا يُفعَّل حسابك إلا برمز تفعيل يصلك من إدارة النظام على جوالك.</p>
+        <input id="suName" class="w-full border rounded-xl p-3 mb-2 text-center" placeholder="الاسم">
+        <input id="suEmail" class="w-full border rounded-xl p-3 mb-2 text-center" placeholder="الإيميل">
+        <input id="suPhone" class="w-full border rounded-xl p-3 mb-2 text-center" placeholder="رقم الجوال" inputmode="tel">
+        <input id="suPass" type="password" class="w-full border rounded-xl p-3 mb-2 text-center" placeholder="كلمة المرور">
+        <input id="suPass2" type="password" class="w-full border rounded-xl p-3 mb-2 text-center" placeholder="تأكيد كلمة المرور">
+        <button type="button" onclick="handleSignup()" class="btn-dark w-full py-3 rounded-xl mb-2">إرسال الطلب</button>
+        <button type="button" onclick="showLoginPanel()" class="text-teal-700 text-sm w-full font-bold">→ رجوع لتسجيل الدخول</button>
+      </div>
+      <div id="suCodeBox" class="hidden">
+        <div id="suPendingMsg" class="bg-teal-50 border border-teal-200 text-teal-800 text-xs font-bold rounded-xl p-3 mb-3 text-center leading-relaxed"></div>
+        <input id="suCode" class="w-full border rounded-xl p-3 mb-2 text-center" placeholder="رمز التفعيل" inputmode="numeric" onkeydown="if(event.key==='Enter')verifySignupCode()">
+        <button type="button" onclick="verifySignupCode()" class="btn-teal w-full py-3 rounded-xl mb-2 font-bold">✅ تفعيل الحساب والدخول</button>
+        <button type="button" onclick="resetSignupPanel()" class="text-slate-500 text-xs w-full font-bold mb-1">✏️ تعديل بيانات الطلب</button>
+        <button type="button" onclick="showLoginPanel()" class="text-teal-700 text-sm w-full font-bold">→ رجوع لتسجيل الدخول</button>
+      </div>
       <div id="signupError" class="text-red-600 text-sm hidden mb-2 text-center"></div>
-      <button type="button" onclick="handleSignup()" class="btn-dark w-full py-3 rounded-xl mb-2">إنشاء الحساب</button>
-      <button type="button" onclick="showLoginPanel()" class="text-teal-700 text-sm w-full font-bold">→ رجوع لتسجيل الدخول</button>
     </div>
   </div>
 </div>
@@ -200,6 +230,7 @@ body.start-mode { background: linear-gradient(160deg, #0f766e, #115e59, #134e4a)
         <button id="tabBtn-staff" onclick="showSettingsTab('staff')" class="flex-1 py-2 rounded-xl font-bold text-sm">👥 الموظفون</button>
         <button id="tabBtn-shifts" onclick="showSettingsTab('shifts')" class="flex-1 py-2 rounded-xl font-bold text-sm">🗓️ الورديات</button>
         <button id="tabBtn-security" onclick="showSettingsTab('security')" class="flex-1 py-2 rounded-xl font-bold text-sm">🔐 الأمان</button>
+        <button id="tabBtn-signups" onclick="showSettingsTab('signups')" class="flex-1 py-2 rounded-xl font-bold text-sm hidden">📋 الطلبات</button>
       </div>
 
       <div id="tab-depts" class="tab-panel space-y-6">
@@ -244,6 +275,16 @@ body.start-mode { background: linear-gradient(160deg, #0f766e, #115e59, #134e4a)
           <p class="text-sm text-slate-500 mb-1">إيميل الأدمن (اسم الدخول): <b id="orgEmailLabel">—</b></p>
           <p class="text-sm text-slate-500">مسار بيانات المؤسسة: <b id="orgPathLabel">—</b></p>
           <p class="text-xs text-slate-400 mt-2">كل إيميل أدمن له مسار مستقل ⇒ بيانات كل مؤسسة معزولة عن غيرها.</p>
+        </div>
+      </div>
+
+      <div id="tab-signups" class="tab-panel hidden">
+        <div class="sec-card">
+          <h3 class="font-bold text-lg mb-1">📋 طلبات تسجيل مؤسسات جديدة</h3>
+          <p class="text-sm text-slate-500 mb-2">لا يُفعَّل أي حساب إلا برمز تصدره أنت: انسخ رقم جوال صاحب الطلب وأرسل له الرمز (واتساب/اتصال) — ثم يدخله هو في التطبيق ليُفتح له مشروعه فوراً.</p>
+          <p class="text-xs text-slate-400 mb-3">💡 الرمز يُحفظ مشفراً في القاعدة — لا يستطيع صاحب الطلب معرفته إلا منك، ويُفضل رقماً من 4 خانات أو أكثر.</p>
+          <button type="button" onclick="signupsRefresh()" class="btn-teal text-sm px-3 py-2 rounded-xl font-bold mb-3">🔄 تحديث</button>
+          <div id="signupsList"></div>
         </div>
       </div>
 
@@ -1301,6 +1342,7 @@ function openLoginModal() {
   document.getElementById('loginEmailPanel').classList.remove('hidden');
   document.getElementById('signupPanel').classList.add('hidden');
   document.getElementById('loginError').classList.add('hidden');
+  hideLoginCodeRow();
   logoutNote('');
   const id = document.getElementById('loginId');
   if (id) id.focus();
@@ -1312,15 +1354,17 @@ function closeLoginModal() {
 }
 function showLoginPanel() {
   logoutNote('');
+  hideLoginCodeRow();
   document.getElementById('loginEmailPanel').classList.remove('hidden');
   document.getElementById('signupPanel').classList.add('hidden');
 }
 function showSignupPanel() {
   if (!signupAllowed()) {
-    errLogin('التسجيل الذاتي مغلق — اطلب من أدمن المؤسسة إنشاء حسابك.');
+    errLogin('التسجيل مغلق حالياً — حاول لاحقاً.');
     return;
   }
   logoutNote('');
+  resetSignupPanel();
   document.getElementById('loginEmailPanel').classList.add('hidden');
   document.getElementById('signupPanel').classList.remove('hidden');
 }
@@ -1340,33 +1384,101 @@ function errSignup(m) {
   const el = document.getElementById('signupError');
   el.textContent = m; el.classList.remove('hidden');
 }
+// ===== طلب تسجيل مؤسسة جديدة: لا يُنشأ حساب إلا بعد رمز تفعيل يصدره مالك النظام =====
 async function handleSignup() {
-  if (!signupAllowed()) { errSignup('التسجيل الذاتي مغلق — يُنشئ الأدمن حسابات المؤسسة من إعدادات Firebase.'); return; }
+  if (!signupAllowed()) { errSignup('التسجيل مغلق حالياً — حاول لاحقاً.'); return; }
   const name = document.getElementById('suName').value.trim();
   const email = document.getElementById('suEmail').value.trim();
+  const phone = document.getElementById('suPhone').value.trim();
   const pass = document.getElementById('suPass').value;
   const pass2 = document.getElementById('suPass2').value;
   document.getElementById('signupError').classList.add('hidden');
   if (name.length < 2) { errSignup('أدخل الاسم'); return; }
   if (email.indexOf('@') < 0) { errSignup('أدخل إيميل صحيح'); return; }
+  if (phone.replace(/\D/g, '').length < 8) { errSignup('أدخل رقم جوال صحيح — عليه يصلك رمز التفعيل'); return; }
   if (pass.length < 4) { errSignup('كلمة المرور قصيرة'); return; }
   if (pass !== pass2) { errSignup('كلمتا المرور غير متطابقتين'); return; }
+  const btn = document.querySelector('#suFields button');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ جارٍ الإرسال…'; }
   try {
-    const hash = await hashPassword(pass);
     const key = emailKey(email);
-    const exists = await fetchOrgRecord(key);
-    if (exists) { errSignup('هذا الإيميل مسجّل مسبقاً — استخدم تسجيل الدخول'); return; }
-    // كل أدمن = مؤسسة مستقلة بمسارها الخاص (بيانات معزولة عن بقية المؤسسات)
-    const orgId = key;
-    await db.ref('orgs/' + key).set({ email: email, name: name, passwordHash: hash, role: 'admin', orgId: orgId, createdAt: Date.now() });
-    ORG_ID = orgId;
-    currentUser = { username: name, email: email, role: 'admin' };
-    saveSession({ loginType: 'admin', email: email, name: name, role: 'admin', orgId: orgId, passwordHash: hash });
-    afterLogin();
+    const orgRec = await fetchOrgRecord(key); // أخطاء الشبكة تُرمى وتُلتقط بالأسفل
+    if (orgRec) { errSignup('هذا الإيميل مفعّل مسبقاً — استخدم تسجيل الدخول'); return; }
+    const old = (await db.ref('signups/' + key).once('value')).val();
+    if (old && old.status === 'active') { errSignup('هذا الإيميل مفعّل مسبقاً — استخدم تسجيل الدخول'); return; }
+    const hash = await hashPassword(pass);
+    // طلب معلّق حتى يصدر مالك النظام رمزاً ويُدخله صاحب الطلب — لا حساب قبل ذلك
+    const rec = { email: email, name: name, phone: phone, passwordHash: hash, status: 'pending', createdAt: (old && old.createdAt) || Date.now() };
+    if (old && old.codeHash) rec.codeHash = old.codeHash; // لا يُفقد رمز أصدره المالك سابقاً
+    await db.ref('signups/' + key).set(rec);
+    pendingSignupUi(phone, !!rec.codeHash);
   } catch (e) {
     const msg = String(e.message || e.code || e);
-    if (/PERMISSION|permission/i.test(msg)) errSignup('قاعدة البيانات منعت الحفظ. حدّث الصفحة وجرب مرة أخرى.');
-    else errSignup(msg || 'تعذر إنشاء الحساب');
+    if (/PERMISSION|permission/i.test(msg)) errSignup('قاعدة البيانات منعت الحفظ — تأكد من نشر قواعد عقدة signups (راجع firebase-migration.md).');
+    else errSignup('تعذر إرسال الطلب — تحقق من الإنترنت وحاول مرة أخرى');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'إرسال الطلب'; }
+  }
+}
+// خانة إدخال الرمز بعد إرسال الطلب
+function pendingSignupUi(phone, hasCode) {
+  const fields = document.getElementById('suFields');
+  const box = document.getElementById('suCodeBox');
+  const msg = document.getElementById('suPendingMsg');
+  if (fields) fields.classList.add('hidden');
+  if (box) box.classList.remove('hidden');
+  if (msg) msg.innerHTML = hasCode
+    ? '🔔 وصلك رمز التفعيل؟ أدخله بالأسفل ليُفتح حسابك فوراً.'
+    : '⏳ تم استلام طلبك ✅<br>سيتواصل معك أدمن النظام على جوالك <b dir="ltr">' + escapeHtml(phone) + '</b> لإرسال رمز التفعيل.';
+}
+function resetSignupPanel() {
+  const box = document.getElementById('suCodeBox');
+  const fields = document.getElementById('suFields');
+  if (box) box.classList.add('hidden');
+  if (fields) fields.classList.remove('hidden');
+  document.getElementById('signupError').classList.add('hidden');
+}
+// التحقق من الرمز وتفعيل الحساب — يُنشئ المؤسسة ويدخل مباشرة
+async function activateSignup(email, pass, code) {
+  const key = emailKey(email);
+  let su = null;
+  try { su = (await db.ref('signups/' + key).once('value')).val(); }
+  catch (e) { throw new Error('تعذر الاتصال بالخادم — تحقق من الإنترنت وحاول مرة أخرى'); }
+  if (!su || su.status !== 'pending') throw new Error('لا يوجد طلب تفعيل بهذا الإيميل — اضغط «تسجيل جديد»');
+  if (!su.codeHash) throw new Error('لم يصدر رمز تفعيل بعد — انتظر حتى تتواصل معك الإدارة على جوالك');
+  const codeHash = await hashPassword('code:' + String(code || '').trim());
+  if (su.codeHash !== codeHash) throw new Error('رمز التفعيل غير صحيح — تأكد من الرمز المرسل إليك');
+  const passHash = await hashPassword(pass);
+  if (su.passwordHash !== passHash) throw new Error('كلمة المرور غير صحيحة');
+  const orgRec = await fetchOrgRecord(key); // أخطاء الشبكة تُرمى
+  if (orgRec) throw new Error('هذا الإيميل مفعّل مسبقاً — استخدم تسجيل الدخول');
+  // إنشاء المؤسسة: كل أدمن = مؤسسة مستقلة بمسارها الخاص (بيانات معزولة)
+  await db.ref('orgs/' + key).set({ email: su.email || email, name: su.name || email, phone: su.phone || '', passwordHash: su.passwordHash, role: 'admin', orgId: key, createdAt: Date.now() });
+  await db.ref('signups/' + key).update({ status: 'active', activatedAt: Date.now() });
+  ORG_ID = key;
+  const u = { loginType: 'admin', email: su.email || email, name: su.name || email, role: 'admin', orgId: key, passwordHash: su.passwordHash };
+  saveSession(u);
+  currentUser = { username: u.name, email: u.email, role: 'admin' };
+  return 'admin';
+}
+// زر «تفعيل الحساب والدخول» في لوحة التسجيل
+async function verifySignupCode() {
+  const email = document.getElementById('suEmail').value.trim();
+  const pass = document.getElementById('suPass').value;
+  const code = document.getElementById('suCode').value.trim();
+  document.getElementById('signupError').classList.add('hidden');
+  if (!email || !pass) { resetSignupPanel(); errSignup('أعد إدخال الإيميل وكلمة المرور ثم أعد إرسال الطلب'); return; }
+  if (!code) { errSignup('أدخل رمز التفعيل'); return; }
+  const btn = document.querySelector('#suCodeBox button');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ جارٍ التفعيل…'; }
+  try {
+    await activateSignup(email, pass, code);
+    toast('✅ تم تفعيل حسابك — أهلاً بك');
+    afterLogin();
+  } catch (e) {
+    errSignup(e && e.message ? e.message : 'تعذر التفعيل — تحقق من الإنترنت');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '✅ تفعيل الحساب والدخول'; }
   }
 }
 
@@ -1458,11 +1570,62 @@ async function handleLogin() {
   if (btn) { btn.disabled = true; btn.textContent = '⏳ جارٍ الدخول…'; }
   try {
     await loginWithCredentials(id, pass);
+    hideLoginCodeRow();
     afterLogin();
   } catch (e) {
-    errLogin(e && e.message ? e.message : 'فشل الدخول — تحقق من الإنترنت');
+    const msg = e && e.message ? e.message : 'فشل الدخول — تحقق من الإنترنت';
+    // صاحب طلب تسجيل معلّق: أخبره بحالته واعرض خانة الرمز إن كان الرمز صادراً
+    if (msg.indexOf('لا توجد مؤسسة') >= 0) {
+      const st = await pendingSignupState(id);
+      if (st === 'pending-code') { showLoginCodeRow('🔔 حسابك بانتظار رمز التفعيل — أدخله هنا ليُفتح لك مباشرة'); return; }
+      if (st === 'pending') { errLogin('⏳ حسابك بانتظار التفعيل — سيتواصل معك أدمن النظام على جوالك لإرسال الرمز'); return; }
+    }
+    errLogin(msg);
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = 'دخول'; }
+  }
+}
+// حالة طلب التسجيل لبريد معيّن: null / 'pending' / 'pending-code'
+async function pendingSignupState(id) {
+  try {
+    const su = (await db.ref('signups/' + emailKey(id)).once('value')).val();
+    if (!su || su.status !== 'pending') return null;
+    return su.codeHash ? 'pending-code' : 'pending';
+  } catch (e) { return null; }
+}
+function showLoginCodeRow(msg) {
+  document.getElementById('loginError').classList.add('hidden');
+  const row = document.getElementById('loginCodeRow');
+  const info = document.getElementById('loginCodeInfo');
+  if (info) info.textContent = msg || '';
+  if (row) row.classList.remove('hidden');
+  const c = document.getElementById('loginCode');
+  if (c) c.focus();
+}
+function hideLoginCodeRow() {
+  const row = document.getElementById('loginCodeRow');
+  if (row) row.classList.add('hidden');
+  const c = document.getElementById('loginCode');
+  if (c) c.value = '';
+}
+// زر «تفعيل الحساب والدخول» داخل شاشة الدخول
+async function handleActivateFromLogin() {
+  const id = document.getElementById('loginId').value.trim();
+  const pass = document.getElementById('loginPass').value;
+  const code = document.getElementById('loginCode').value.trim();
+  document.getElementById('loginError').classList.add('hidden');
+  if (!id || !pass || !code) { errLogin('أدخل الإيميل وكلمة المرور ورمز التفعيل'); return; }
+  const btn = document.querySelector('#loginCodeRow button');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ جارٍ التفعيل…'; }
+  try {
+    await activateSignup(id, pass, code);
+    hideLoginCodeRow();
+    toast('✅ تم تفعيل حسابك — أهلاً بك');
+    afterLogin();
+  } catch (e) {
+    errLogin(e && e.message ? e.message : 'تعذر التفعيل — تحقق من الإنترنت');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '✅ تفعيل الحساب والدخول'; }
   }
 }
 // توافق مع الاستدعاءات القديمة
@@ -1527,6 +1690,8 @@ function enterApp() {
   document.getElementById('addSlotBtn').classList.toggle('hidden', !isAdm);
   document.getElementById('adminSettings').classList.toggle('hidden', !isAdm);
   document.getElementById('logoutBtn').classList.toggle('hidden', !isAdm);
+  const sgBtn = document.getElementById('tabBtn-signups');
+  if (sgBtn) sgBtn.classList.toggle('hidden', !isSuperAdmin());
   const adminBtn = document.getElementById('adminBtn');
   if (adminBtn) adminBtn.title = isAdm ? 'الإعدادات' : 'دخول الأدمن';
   renderAll();
@@ -1537,6 +1702,97 @@ function enterApp() {
 function onAdminClick() {
   if (isAdmin()) showPage('settings');
   else openLoginModal();
+}
+// ===== طلبات التسجيل: لمالك النظام فقط (أدمن المؤسسة الأصلية) =====
+function isSuperAdmin() {
+  if (!isAdmin()) return false;
+  try {
+    const u = JSON.parse(localStorage.getItem('wrdiatUser') || 'null');
+    return !!(u && u.loginType === 'admin' && String(u.orgId || DEFAULT_ORG_ID) === DEFAULT_ORG_ID);
+  } catch (e) { return false; }
+}
+async function signupsRefresh() {
+  const box = document.getElementById('signupsList');
+  if (!box) return;
+  if (!isSuperAdmin()) { box.innerHTML = '<p class="text-sm text-slate-500">هذه الصفحة لمالك النظام فقط.</p>'; return; }
+  box.innerHTML = '<p class="text-sm text-slate-500">⏳ جارٍ التحميل…</p>';
+  let all = null;
+  try { all = (await db.ref('signups').once('value')).val() || {}; }
+  catch (e) { box.innerHTML = '<p class="su-state-wait">تعذر تحميل الطلبات — تحقق من الإنترنت</p>'; return; }
+  const pend = [], done = [];
+  Object.keys(all).forEach(function(k) {
+    const rec = Object.assign({ key: k }, all[k] || {});
+    (rec.status === 'active' ? done : pend).push(rec);
+  });
+  pend.sort(function(a, b) { return (b.createdAt || 0) - (a.createdAt || 0); });
+  done.sort(function(a, b) { return (b.activatedAt || b.createdAt || 0) - (a.activatedAt || a.createdAt || 0); });
+  let html = '';
+  if (!pend.length) html += '<p class="text-sm text-slate-500">لا توجد طلبات جديدة الآن.</p>';
+  pend.forEach(function(rec) { html += signupCardHtml(rec); });
+  if (done.length) {
+    html += '<details><summary class="su-summary">✅ مؤسسات مفعّلة (' + done.length + ')</summary>';
+    done.forEach(function(rec) {
+      html += '<p class="su-done">• ' + escapeHtml(rec.name || '') + ' — <span dir="ltr">' + escapeHtml(rec.email || '') + '</span> (' + new Date(rec.activatedAt || rec.createdAt || Date.now()).toLocaleDateString('ar') + ')</p>';
+    });
+    html += '</details>';
+  }
+  box.innerHTML = html;
+}
+function signupCardHtml(rec) {
+  const digits = String(rec.phone || '').replace(/\D/g, '');
+  const waLink = digits ? 'https://wa.me/' + digits.replace(/^0+/, '') : '';
+  const state = rec.codeHash
+    ? '<div class="su-state-ok">✅ رمز صادر — بانتظار أن يدخله صاحب الطلب</div>'
+    : '<div class="su-state-wait">⏳ لم يُصدر رمز بعد — أصدره وأرسله لصاحب الطلب</div>';
+  let phoneLine = '<div class="su-phone" dir="ltr">📱 ' + escapeHtml(rec.phone || '—');
+  if (digits) {
+    phoneLine += ' · <a href="tel:' + escapeHtml(rec.phone) + '">اتصال</a>'
+      + ' · <a href="' + waLink + '" target="_blank" rel="noopener">💬 واتساب</a>'
+      + ' · <a href="javascript:void(0)" onclick="copySignupPhone(\'' + digits + '\')">📋 نسخ الرقم</a>';
+  }
+  phoneLine += '</div>';
+  return '<div class="su-req">'
+    + '<div class="su-head">' + escapeHtml(rec.name || '') + ' <span class="su-mail" dir="ltr">' + escapeHtml(rec.email || '') + '</span></div>'
+    + phoneLine
+    + state
+    + '<div class="su-row">'
+    + '<input id="codeFor-' + rec.key + '" placeholder="رمز التفعيل" inputmode="numeric">'
+    + '<button type="button" class="su-dice" title="توليد رقم عشوائي" onclick="genSignupCode(\'' + rec.key + '\')">🎲</button>'
+    + '<button type="button" class="btn-teal text-sm px-3 py-2 rounded-xl font-bold" onclick="saveSignupCode(\'' + rec.key + '\')">' + (rec.codeHash ? '♻️ تحديث الرمز' : '💾 إصدار الرمز') + '</button>'
+    + '</div>'
+    + '<button type="button" class="su-del" onclick="deleteSignup(\'' + rec.key + '\')">🗑 حذف الطلب (رفض)</button>'
+    + '</div>';
+}
+// المالك يصدر رمز التفعيل — يُحفظ مشفراً ولا يظهر لصاحب الطلب في أي مكان
+async function saveSignupCode(key) {
+  if (!isSuperAdmin()) return;
+  const inp = document.getElementById('codeFor-' + key);
+  const code = inp ? String(inp.value).trim() : '';
+  if (code.length < 4) { toast('اكتب رمزاً من 4 خانات على الأقل — أو اضغط 🎲 للتوليد'); return; }
+  try {
+    const codeHash = await hashPassword('code:' + code);
+    await db.ref('signups/' + key + '/codeHash').set(codeHash);
+    toast('✔ صدر الرمز (' + escapeHtml(code) + ') — أرسله لصاحب الطلب على جواله');
+    signupsRefresh();
+  } catch (e) {
+    toast('تعذر إصدار الرمز — تحقق من الإنترنت والقواعد');
+  }
+}
+function genSignupCode(key) {
+  const inp = document.getElementById('codeFor-' + key);
+  if (inp) inp.value = String(Math.floor(1000 + Math.random() * 9000));
+}
+function copySignupPhone(digits) {
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(digits); toast('📋 تم نسخ الرقم: ' + digits); return; }
+  } catch (e) {}
+  toast('الرقم: ' + digits);
+}
+async function deleteSignup(key) {
+  if (!isSuperAdmin()) return;
+  if (!confirm('حذف الطلب نهائياً؟ لن يستطيع صاحبه التفعيل بعدها.')) return;
+  try { await db.ref('signups/' + key).remove(); toast('تم حذف الطلب'); signupsRefresh(); }
+  catch (e) { toast('تعذر الحذف — تحقق من الإنترنت'); }
 }
 // أزرار تبويب الإعدادات: الأقسام / الموظفين / الورديات
 function securityRefresh() {
@@ -1599,7 +1855,8 @@ async function clearStaffPassword() {
   }
 }
 function showSettingsTab(name) {
-  ['depts', 'staff', 'shifts', 'security'].forEach(function(n) {
+  if (name === 'signups' && !isSuperAdmin()) name = 'depts'; // تبويب الطلبات لمالك النظام فقط
+  ['depts', 'staff', 'shifts', 'security', 'signups'].forEach(function(n) {
     const panel = document.getElementById('tab-' + n);
     const btn = document.getElementById('tabBtn-' + n);
     if (panel) panel.classList.toggle('hidden', n !== name);
@@ -1610,6 +1867,7 @@ function showSettingsTab(name) {
   if (name === 'staff') renderSettingsLists();
   if (name === 'shifts') renderScheduleRules();
   if (name === 'security') securityRefresh();
+  if (name === 'signups') signupsRefresh();
 }
 
 function listenData() {

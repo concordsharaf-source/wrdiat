@@ -13,8 +13,9 @@ const APP_CONFIG = {
     messagingSenderId: "998614011974",
     appId: "1:998614011974:web:50da3d1036d0f1c6d03a47"
   },
-  // allowSignup:false يمنع أي زائر من إنشاء حساب أدمن لنفسه (يُخفي الزر ويرفض الإنشاء)
-  allowSignup: false,
+  // true (الافتراضي): التسجيل مفتوح للطلبات، ولا يُفعَّل أي حساب إلا برمز يصدره مالك النظام
+  // من: الإعدادات ← 📋 الطلبات. وfalse يغلق باب التسجيل نهائياً (يُخفي الزر ويرفض الطلب).
+  allowSignup: true,
   appIconPath: 'images/icon-192x192.png'
 };
 
