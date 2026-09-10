@@ -179,6 +179,21 @@ input::placeholder, textarea::placeholder { color: #9a3412 !important; opacity: 
           <input id="newDeptName" class="w-full border rounded-xl p-3 mb-2" placeholder="اسم القسم">
           <button onclick="addDepartment()" class="w-full btn-teal py-2 rounded-xl">إضافة قسم</button>
           <div id="deptList" class="mt-3 space-y-2"></div>
+          <div id="fbConnectBox" class="mt-4 border-t pt-3 hidden">
+            <h4 class="font-bold text-sm mb-2">🔗 قاعدة Firebase</h4>
+            <button type="button" onclick="pushAllLocalToFirebase(this)" class="w-full btn-teal py-2 rounded-xl text-sm mb-2">☁️ رفع البيانات المحفوظة على هذا الجهاز إلى Firebase</button>
+            <div id="pushAllMsg" class="text-xs hidden mb-2"></div>
+            <details class="border rounded-xl p-2">
+              <summary class="cursor-pointer font-bold text-sm">🔌 إعداد الاتصال بقاعدة جديدة (متقدم)</summary>
+              <p class="text-xs text-slate-500 mt-2 mb-1">المشروع الحالي: <b id="fbCurrentProject">—</b></p>
+              <textarea id="fbConfigInput" rows="6" class="w-full border rounded-xl p-2 text-xs mb-2" placeholder="الصق هنا كائن firebaseConfig من مشروعك الجديد..."></textarea>
+              <div class="flex gap-2 items-center">
+                <button type="button" onclick="saveFirebaseConfigFromInput()" class="flex-1 btn-dark py-2 rounded-xl text-sm">💾 حفظ وربط بالقاعدة</button>
+                <button type="button" onclick="resetFirebaseConfig()" class="text-red-500 text-sm px-2">استعادة الأصلية</button>
+              </div>
+              <p class="text-xs text-slate-500 mt-2">بعد الحفظ يُعاد تحميل التطبيق ويتصل بالقاعدة الجديدة فوراً، ويبدأ برفع بيانات هذا الجهاز إليها تلقائياً.</p>
+            </details>
+          </div>
         </section>
       </div>
 
@@ -271,6 +286,12 @@ input::placeholder, textarea::placeholder { color: #9a3412 !important; opacity: 
 </div>
 
 <script>
+// إعداد اتصال مخصّص محفوظ على هذا الجهاز (يُضبط من: الإعدادات ← الأقسام ← إعداد الاتصال)
+const FIREBASE_CFG_KEY = 'wrdiat_firebase_config_v1';
+try {
+  const customCfg = JSON.parse(localStorage.getItem(FIREBASE_CFG_KEY) || 'null');
+  if (customCfg && customCfg.apiKey && customCfg.databaseURL) APP_CONFIG.firebaseConfig = customCfg;
+} catch (e) {}
 firebase.initializeApp(APP_CONFIG.firebaseConfig);
 // تهيئة آمنة: لو كان databaseURL ناقصاً في config.js لا تنهار الصفحة
 let db = null;
@@ -661,6 +682,116 @@ function scopeSummaryHtml(scope, extra) {
     '<span>' + lab.icon + ' ' + lab.name + cntHtml + '</span>' + (extra || '') + '</summary>';
 }
 function dayChip(day) { return '<span class="text-xs bg-white/20 rounded-full px-2 py-0.5">' + RULE_DAY_NAMES[day] + '</span>'; }
+
+// ===== نقل بيانات هذا الجهاز إلى Firebase (تلقائياً أو بزر) =====
+const MIGRATE_PUSH_KEY = 'wrdiat_migrated_push_v1';
+let migratingLocal = false;
+function localDataSummary() {
+  const n = { depts: Object.keys(departments).length, staff: Object.keys(staff).length, scopes: Object.keys((scheduleRules && scheduleRules.scopes) || {}).length, days: Object.keys(shifts || {}).length };
+  return n;
+}
+function localDataSummaryText(n) {
+  return 'أقسام: ' + n.depts + ' · موظفون: ' + n.staff + ' · نطاقات قواعد: ' + n.scopes + ' · أيام ورديات: ' + n.days;
+}
+function pushAllMsg(text, ok) {
+  const el = document.getElementById('pushAllMsg');
+  if (el) { el.textContent = text; el.classList.remove('hidden'); el.className = 'text-xs mb-2 ' + (ok ? 'text-teal-700' : 'text-red-600'); }
+}
+async function pushAllLocalToFirebase(btn) {
+  if (!isAdmin()) return false;
+  const n = localDataSummary();
+  const total = n.depts + n.staff + n.scopes + n.days;
+  if (!total) { pushAllMsg('لا توجد بيانات محلية على هذا الجهاز لرفعها', false); toast('لا توجد بيانات محلية لرفعها'); return false; }
+  if (!confirm('سيرفع التطبيق بيانات هذا الجهاز إلى قاعدة Firebase الحالية:\n' + localDataSummaryText(n) + '\n\nمتابعة؟')) return false;
+  if (btn) { btn.classList.add('save-flash'); btn.innerHTML = '⏳ جارٍ الرفع…'; }
+  pushAllMsg('⏳ جارٍ رفع البيانات…', true);
+  try {
+    await db.ref(path('departments')).set(departments || {});
+    await db.ref(path('staff')).set(staff || {});
+    await db.ref(path('scheduleRules')).set(normalizeScheduleRules(scheduleRules));
+    if (n.days) await db.ref(path('shifts')).set(shifts || {});
+    clearRulesDirty(); clearShiftsDirty();
+    try { localStorage.setItem(MIGRATE_PUSH_KEY, '1'); } catch (e) {}
+    pushAllMsg('✔ تم رفع كل البيانات إلى Firebase (' + localDataSummaryText(n) + ')', true);
+    toast('☁️ تم رفع بيانات هذا الجهاز إلى Firebase');
+    if (btn) saveBtnFlash(btn, '✔ تم الرفع', true);
+    return true;
+  } catch (e) {
+    const why = (e && (e.code || e.message)) || 'غير معروف';
+    pushAllMsg('تعذر الرفع (' + why + ') — البيانات محفوظة على هذا الجهاز، حاول لاحقاً', false);
+    if (btn) saveBtnFlash(btn, '✖ تعذر الرفع', false);
+    return false;
+  }
+}
+// عند اكتشاف قاعدة فارغة: يرفع بيانات هذا الجهاز إليها مرة واحدة تلقائياً (للأدمن فقط)
+async function autoMigrateLocalToServer() {
+  if (migratingLocal || !isAdmin()) return;
+  try { if (localStorage.getItem(MIGRATE_PUSH_KEY) === '1') return; } catch (e) {}
+  const n = localDataSummary();
+  if (!(n.depts || n.staff || n.scopes || n.days)) return;
+  migratingLocal = true;
+  try {
+    await db.ref(path('departments')).set(departments || {});
+    await db.ref(path('staff')).set(staff || {});
+    await db.ref(path('scheduleRules')).set(normalizeScheduleRules(scheduleRules));
+    if (n.days) await db.ref(path('shifts')).set(shifts || {});
+    clearRulesDirty(); clearShiftsDirty();
+    try { localStorage.setItem(MIGRATE_PUSH_KEY, '1'); } catch (e) {}
+    toast('☁️ القاعدة الجديدة فارغة — تم رفع بيانات هذا الجهاز إليها تلقائياً');
+  } catch (e) {}
+  migratingLocal = false;
+}
+// معالجات وصول بيانات الخادم: لا تمسح نسخة الجهاز حين تكون القاعدة فارغة
+function onDepartmentsValue(val) {
+  val = val || {};
+  if (Object.keys(val).length) { departments = val; saveOfflineDepartments(departments); renderAll(); return; }
+  if (Object.keys(departments).length) { autoMigrateLocalToServer(); return; }
+  departments = {}; saveOfflineDepartments(departments); renderAll();
+}
+function onStaffValue(val) {
+  val = val || {};
+  if (Object.keys(val).length) { staff = val; saveOfflineStaff(staff); renderAll(); return; }
+  if (Object.keys(staff).length) { autoMigrateLocalToServer(); return; }
+  staff = {}; saveOfflineStaff(staff); renderAll();
+}
+// ===== شاشة إعداد الاتصال بقاعدة Firebase =====
+function fbConnectRefresh() {
+  const box = document.getElementById('fbConnectBox');
+  if (box) box.classList.toggle('hidden', !isAdmin());
+  const cur = document.getElementById('fbCurrentProject');
+  if (cur) {
+    const cfg = APP_CONFIG.firebaseConfig || {};
+    cur.textContent = (cfg.projectId || 'غير معروف') + (cfg.databaseURL ? ' (مربوط بقاعدة بيانات)' : ' (بدون databaseURL)');
+  }
+}
+// يقبل صيغة JSON أو صيغة كود فايربيس (مفاتيح بلا علامات اقتباس) وينظّفها
+function parseFirebaseConfigText(raw) {
+  const m = String(raw || '').match(/\{[\s\S]*\}/);
+  if (!m) return null;
+  let txt = m[0];
+  try { return JSON.parse(txt); } catch (e) {}
+  const fixed = txt
+    .replace(/([{,]\s*)([A-Za-z_$][A-Za-z0-9_$]*)\s*:/g, '$1"$2":')
+    .replace(/:\s*'([^']*)'/g, ': "$1"')
+    .replace(/,\s*}/g, '}')
+    .replace(/,\s*]/g, ']');
+  try { return JSON.parse(fixed); } catch (e) { return null; }
+}
+function saveFirebaseConfigFromInput() {
+  const el = document.getElementById('fbConfigInput');
+  if (!el) return;
+  const cfg = parseFirebaseConfigText(el.value);
+  if (!cfg) { alert('الصق كائن firebaseConfig كاملاً كما هو من صفحة فايربيس'); return; }
+  if (!cfg.apiKey || !cfg.databaseURL) { alert('الكائن ناقص: لازم يحتوي apiKey و databaseURL. تأكد أنك أنشأت Realtime Database ثم انسخ كائن firebaseConfig كاملاً.'); return; }
+  try { localStorage.setItem(FIREBASE_CFG_KEY, JSON.stringify(cfg)); } catch (e) {}
+  alert('✔ تم الحفظ — سيُعاد تحميل التطبيق ليتصل بالقاعدة الجديدة ويرفع بيانات هذا الجهاز إليها');
+  try { location.reload(); } catch (e) {}
+}
+function resetFirebaseConfig() {
+  try { localStorage.removeItem(FIREBASE_CFG_KEY); } catch (e) {}
+  alert('تمت استعادة الإعداد الأصلي من config.js — سيُعاد التحميل');
+  try { location.reload(); } catch (e) {}
+}
 
 function rulesPendingBanner() {
   if (!(rulesDirty || shiftsDirty)) return '';
@@ -1167,8 +1298,8 @@ function showSettingsTab(name) {
 }
 
 function listenData() {
-  db.ref(path('departments')).on('value', function(s) { departments = s.val() || {}; saveOfflineDepartments(departments); renderAll(); });
-  db.ref(path('staff')).on('value', function(s) { staff = s.val() || {}; saveOfflineStaff(staff); renderAll(); });
+  db.ref(path('departments')).on('value', function(s) { onDepartmentsValue(s.val()); });
+  db.ref(path('staff')).on('value', function(s) { onStaffValue(s.val()); });
   // الورديات والقواعد: إن كان في الجهاز تعديلات لم تُزامَن بعد (علم «معدَّل»)
   // يبقى المحلي هو المعتمد ويُدفع للخادم تلقائياً — فلا تضيع المدخلات مع تحديث الصفحة.
   db.ref(path('shifts')).on('value', function(s) {
@@ -1305,6 +1436,7 @@ function renderSettingsLists() {
       (s.disabled ? '<div class="text-xs bg-red-50 text-red-600 font-bold px-2 py-1 rounded-lg mt-1 inline-block">⛔ موقوف — لا يدخل التوزيع ولا يسجّل الدخول</div>' : '') +
     '</div>';
   }).join('') || '<p class="text-slate-400 text-sm">لا موظفون بعد</p>';
+  fbConnectRefresh();
   renderScheduleRules();
 }
 
