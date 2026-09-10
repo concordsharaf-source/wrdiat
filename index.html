@@ -443,7 +443,7 @@ select:focus, textarea:focus {
       <p class="text-sm text-slate-600 mb-2">بعد الدخول، اضغط ⚙️ في الأعلى ثم تنقّل بين التبويبات:</p>
       <ul class="text-sm text-slate-600 space-y-2 list-disc pr-5">
         <li><b>🏢 الأقسام:</b> أضف أقساماً بلا حد (صوت، تصوير، مطبخ…)، واختر <b>لوناً لكل قسم</b> فيتلوّن به كل موظفيه تلقائياً. زر ✏️ يعدّل الاسم، و✕ يحذف.</li>
-        <li><b>👥 الموظفون:</b> زر «➕ إضافة موظف» يفتح نموذجاً (اسم، لقب، مسمى، قسم، تثبيت، مدير قسم). بجانب كل موظف: ✏️ تعديل · ⛔ إيقاف · ✅ تفعيل · ✕ حذف.</li>
+        <li><b>👥 الموظفون:</b> زر «➕ إضافة موظف» يفتح نموذجاً (اسم، مسمى، قسم، تثبيت، مدير قسم). بجانب كل موظف: ✏️ تعديل · ⛔ إيقاف · ✅ تفعيل · ✕ حذف.</li>
         <li><b>🗓️ الورديات:</b> التوزيع الأسبوعي التلقائي — ثابت (نفس الموظفين كل أسبوع) أو تناوب (دور أسبوعي). زر الحفظ يطبّق على 5 سنوات قادمة.</li>
         <li><b>🔐 الأمان:</b> كلمة مرور الموظفين، تغيير كلمة مرور الأدمن، وإضافة أدمن مساعد بصلاحيات محددة.</li>
         <li><b>🚫 الغياب:</b> سجل كل الموظفين الذين حُذفت وردياتهم، مع إمكانية حذف السجل.</li>
@@ -568,10 +568,6 @@ select:focus, textarea:focus {
               <button type="button" onclick="toggleStaffForm(true)" title="إغلاق" class="text-slate-400 text-xl leading-none">✕</button>
             </div>
             <input id="stName" class="w-full border rounded-xl p-3 mb-2" placeholder="الاسم">
-            <input id="stLast" class="w-full border rounded-xl p-3 mb-2" placeholder="اللقب (اختياري)">
-            <div class="text-sm text-slate-600 mb-2">طريقة عرض الاسم</div>
-            <label class="flex items-center gap-2 mb-1 text-sm"><input type="radio" name="stDisp" value="full" checked> الاسم كاملاً (حقل الاسم فقط)</label>
-            <label class="flex items-center gap-2 mb-3 text-sm"><input type="radio" name="stDisp" value="laqab"> الاسم واللقب</label>
             <input id="stTitle" class="w-full border rounded-xl p-3 mb-2" placeholder="المسمى الوظيفي مثل مصور / طباخ">
             <select id="stDept" class="w-full border rounded-xl p-3 mb-2 bg-white"></select>
             <p class="text-xs text-slate-400 mb-3">💡 لون الموظف يتبع لون قسمه تلقائياً — الموظف بدون قسم يظهر بلون افتراضي.</p>
@@ -631,10 +627,13 @@ select:focus, textarea:focus {
   <div class="fixed inset-0 bg-black/50" onclick="closeSwapModal()"></div>
   <div class="relative min-h-full flex p-4 pointer-events-none">
     <div class="m-auto pointer-events-auto bg-white rounded-2xl p-5 w-80 max-w-full">
-      <h3 class="font-bold text-lg mb-1">⇄ تبديل وردية</h3>
-      <p id="swapInfo" class="text-sm text-slate-500 mb-3"></p>
-      <div id="swapList" class="space-y-2"></div>
-      <button type="button" onclick="closeSwapModal()" class="w-full btn-amber py-2 rounded-xl mt-3">إلغاء</button>
+      <h3 class="font-bold text-lg mb-3">⇄ تبديل وردية</h3>
+      <label class="text-sm text-slate-500 block mb-1" for="swapEmp">الموظف البديل</label>
+      <select id="swapEmp" class="w-full border rounded-xl p-3 mb-3 bg-white"></select>
+      <div class="flex gap-2">
+        <button type="button" onclick="doSwapFromSelect()" class="flex-1 btn-teal py-2 rounded-xl">تبديل</button>
+        <button type="button" onclick="closeSwapModal()" class="flex-1 btn-amber py-2 rounded-xl">إلغاء</button>
+      </div>
     </div>
   </div>
 </div>
@@ -2921,21 +2920,16 @@ function nextStaffKey() { // معرف داخلي تلقائي — لا حاجة 
 function readStaffForm() {
   return {
     name: document.getElementById('stName').value.trim(),
-    lastName: (document.getElementById('stLast') || { value: '' }).value.trim(),
     title: document.getElementById('stTitle').value.trim(),
     deptId: document.getElementById('stDept').value,
-    displayMode: (document.querySelector('input[name="stDisp"]:checked') || { value: 'full' }).value,
     pinned: !!(document.getElementById('stPinned') || {}).checked,
     mgr: !!(document.getElementById('stMgr') || {}).checked
   };
 }
 function setStaffForm(d) {
   document.getElementById('stName').value = d.name || '';
-  if (document.getElementById('stLast')) document.getElementById('stLast').value = d.lastName || '';
   document.getElementById('stTitle').value = d.title || '';
   document.getElementById('stDept').value = d.deptId || '';
-  const radio = document.querySelector('input[name="stDisp"][value="' + (d.displayMode || 'full') + '"]');
-  if (radio) radio.checked = true;
   const pin = document.getElementById('stPinned'); if (pin) pin.checked = !!d.pinned;
   const mg = document.getElementById('stMgr'); if (mg) mg.checked = !!d.mgr;
 }
@@ -2943,7 +2937,12 @@ function loadStaffToForm(code) {
   const s = staff[String(code)];
   if (!s) return;
   editingStaffCode = String(code);
-  setStaffForm(Object.assign({ code: code }, s));
+  const rec = Object.assign({ code: code }, s);
+  // دمج بيانات قديمة (كانت تعرض الاسم واللقب) في خانة الاسم الواحدة
+  if (s.displayMode === 'laqab' && (s.lastName || s.laqab)) {
+    rec.name = (s.name || '') + ' ' + (s.lastName || s.laqab || '');
+  }
+  setStaffForm(rec);
   document.getElementById('staffBtnLabel').textContent = '💾 حفظ التعديلات';
   document.getElementById('staffCancelEdit').classList.remove('hidden');
   const form = document.getElementById('staffForm');
@@ -2953,7 +2952,7 @@ function loadStaffToForm(code) {
 }
 function cancelStaffEdit() {
   editingStaffCode = null;
-  setStaffForm({ code: '', name: '', lastName: '', title: '', deptId: '', displayMode: 'full' });
+  setStaffForm({ code: '', name: '', title: '', deptId: '' });
   document.getElementById('staffBtnLabel').textContent = 'حفظ الموظف';
   document.getElementById('staffCancelEdit').classList.add('hidden');
   document.getElementById('staffMsg').classList.add('hidden');
@@ -2964,14 +2963,13 @@ async function addStaff() {
   try {
     const f = readStaffForm();
     if (f.name.length < 2) { staffMsg('أدخل اسم الموظف'); return; }
-    if (f.displayMode === 'laqab' && f.lastName.length < 1) { staffMsg('أدخل اللقب أو اختر عرض الاسم كاملاً'); return; }
     if (editingStaffCode) {
       // تعديل موظف موجود: نفس المفتاح (معرف داخلي ثابت لا يتغير)
       const key = editingStaffCode;
       const oldRec = staff[key] || {};
       const id = Number(oldRec.id) || Number(key) || Date.now();
       await db.ref(path('staff/' + key)).set({
-        name: f.name, lastName: f.lastName, displayMode: f.displayMode,
+        name: f.name,
         title: f.title, deptId: f.deptId, id: id,
         pinned: !!f.pinned, mgr: !!f.mgr,
         disabled: !!oldRec.disabled, code: key
@@ -2984,7 +2982,7 @@ async function addStaff() {
     // إضافة جديدة: مفتاح داخلي تلقائي (لا أرقام دخول)
     const key = nextStaffKey();
     await db.ref(path('staff/' + key)).set({
-      name: f.name, lastName: f.lastName, displayMode: f.displayMode,
+      name: f.name,
       title: f.title, deptId: f.deptId, id: Number(key), disabled: false, code: key,
       pinned: !!f.pinned, mgr: !!f.mgr
     });
@@ -3131,33 +3129,31 @@ function openSwapModal(key, slotId) {
   if (!slot) return;
   const emp = staffById(slot.employeeId);
   swapTarget = { key: key, slotId: slotId };
-  const info = document.getElementById('swapInfo');
-  if (info) info.textContent = 'وردية ' + (emp ? displayName(emp) : '؟') + ' (' + (slot.start || '—') + ' إلى ' + (slot.end || '—') + ') — اختر من يغطيها:';
   // التبديل بين موظفي نفس القسم فقط (طباخ ← طباخ، كاشير ← كاشير…)
-  // إن لم يكن للموظف قسم (بدون قسم) يقف التبديل عند كل الموظفين النشطين.
   const sameDept = staffList().filter(function(s) {
     return Number(s.id) !== Number(slot.employeeId) &&
       (!(emp && emp.deptId) || String(s.deptId) === String(emp.deptId));
   });
-  const deptLabel = (emp && emp.deptId)
-    ? 'من قسم «' + deptName(emp.deptId) + '» فقط:'
-    : 'كل الموظفين النشطين (موظف بدون قسم):';
-  let html = '';
-  if (sameDept.length) {
-    html += '<div class="text-xs font-bold text-slate-500 mb-1">' + deptLabel + '</div>' + sameDept.map(swapOptionHtml).join('');
+  const sel = document.getElementById('swapEmp');
+  if (sel) {
+    if (sameDept.length) {
+      sel.disabled = false;
+      sel.innerHTML = sameDept.map(function(s) {
+        return '<option value="' + Number(s.id) + '">' + escapeHtml(displayName(s)) +
+          (s.title ? ' — ' + escapeHtml(s.title) : '') +
+          (deptName(s.deptId) ? ' · ' + escapeHtml(deptName(s.deptId)) : '') + '</option>';
+      }).join('');
+    } else {
+      sel.disabled = true;
+      sel.innerHTML = '<option value="">' + ((emp && emp.deptId) ? 'لا يوجد موظف آخر في هذا القسم' : 'لا يوجد موظف نشط آخر') + '</option>';
+    }
   }
-  const noOneMsg = (emp && emp.deptId)
-    ? 'لا يوجد موظف آخر في قسم «' + deptName(emp.deptId) + '» للتبديل'
-    : 'لا يوجد موظف نشط آخر للتبديل';
-  document.getElementById('swapList').innerHTML = html || '<p class="text-sm text-slate-400 text-center py-4">' + noOneMsg + '</p>';
   document.getElementById('swapModal').classList.remove('hidden');
 }
-function swapOptionHtml(s) {
-  return '<button type="button" data-swap-to="' + Number(s.id) + '" class="swap-option w-full flex items-center gap-2 border rounded-xl p-3 text-right bg-white" style="margin-bottom:6px">' +
-    '<span class="inline-block rounded-full" style="width:14px;height:14px;background:' + staffColor(s) + '"></span>' +
-    '<span class="flex-1"><span class="font-bold block">' + escapeHtml(displayName(s)) + '</span>' +
-    '<span class="text-xs text-slate-500">' + escapeHtml(s.title || '') + (deptName(s.deptId) ? ' · ' + escapeHtml(deptName(s.deptId)) : '') + '</span></span>' +
-    '<span class="text-teal-700 text-sm font-bold">⇄ تبديل</span></button>';
+function doSwapFromSelect() {
+  const sel = document.getElementById('swapEmp');
+  if (!sel || sel.disabled || !sel.value) { toast('اختر موظفاً بديلاً'); return; }
+  doSwap(sel.value);
 }
 async function doSwap(newEmpId) {
   if (!can('slots')) return;
@@ -3192,15 +3188,13 @@ function closeSwapModal() {
   swapTarget = null;
 }
 
-// مستمع نقرة واحد على مستوى الصفحة (اسم الموظف في البطاقة أو خيار التبديل في النافذة)
+// مستمع نقرة واحد على مستوى الصفحة (اسم الموظف في البطاقة)
 document.addEventListener('input', function(e) {
   if (e.target && e.target.id === 'deptColor') { e.target.__touched = true; refreshDeptColorPalette(); }
 });
 document.addEventListener('click', function(e) {
   const t = e.target.closest('.swap-trigger');
   if (t) { openSwapModal(t.getAttribute('data-key'), t.getAttribute('data-slot')); return; }
-  const o = e.target.closest('.swap-option');
-  if (o) doSwap(o.getAttribute('data-swap-to'));
 });
 
 // ===== استجابة حسية: اهتزاز خفيف عند ضغط أي زر (يعمل على أندرويد) =====
