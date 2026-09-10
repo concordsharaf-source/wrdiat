@@ -345,6 +345,11 @@ select:focus, textarea:focus {
 }
 .star-toggle { background: #fef3c7; border: 1px solid #fcd34d; }
 .star-toggle.on { background: linear-gradient(180deg, #fcd34d, #f59e0b); box-shadow: 0 0 8px rgba(245,158,11,.6); }
+/* إطار ذهبي خفيف لبطاقة الموظف المثالي في صفحة اليوم */
+.slot.star-slot {
+  border: 2px solid rgba(245,158,11,.75);
+  box-shadow: 0 0 0 1px rgba(245,158,11,.25), 0 2px 12px rgba(245,158,11,.30);
+}
 </style>
 </head>
 <body class="bg-slate-100 min-h-screen">
@@ -3039,10 +3044,11 @@ function renderDay() {
     const starHtml = isStarEmployee(st, viewDate)
       ? '<span class="star-badge" title="⭐ الموظف المثالي لهذا الشهر">⭐</span>'
       : '';
+    const starSlot = isStarEmployee(st, viewDate) ? ' star-slot' : '';
     const nm = can('slots')
       ? '<button type="button" data-key="' + formatKey(viewDate) + '" data-slot="' + sl.id + '" class="swap-trigger" title="اضغط على الاسم للتبديل في حال الغياب">' + starHtml + (st.mgr ? '👔 ' : '') + displayName(st) + ' ⇄</button>'
       : '<span>' + starHtml + (st.mgr ? '👔 ' : '') + displayName(st) + '</span>';
-    return '<div class="slot shadow" style="background:' + staffColor(st) + '">' + del +
+    return '<div class="slot shadow' + starSlot + '" style="background:' + staffColor(st) + '">' + del +
       '<div class="slot-emp">' + nm + '</div>' +
       (info ? '<div class="slot-info">' + info + '</div>' : '') +
       '<div class="slot-time">⏰ ' + (sl.start || '') + ' — ' + (sl.end || '') + '</div></div>';
