@@ -99,6 +99,11 @@ body.start-mode { background: linear-gradient(160deg, #0f766e, #115e59, #134e4a)
 #loginModal .w\\[19rem\\] { max-width: 92vw; }
 .sec-card { background: #fff; border-radius: 18px; padding: 16px; box-shadow: 0 1px 3px rgba(15,23,42,.08); }
 .sec-card + .sec-card { margin-top: 14px; }
+/* لوحة ألوان الموظف */
+.st-palette { display: flex; flex-wrap: wrap; gap: 6px; }
+.st-swatch { width: 34px; height: 34px; border-radius: 10px; border: 2px solid #fff; box-shadow: 0 0 0 1px #cbd5e1; cursor: pointer; padding: 0; }
+.st-swatch.sel { box-shadow: 0 0 0 3px #0f766e; }
+.st-color-input { width: 46px; height: 38px; border: 1px solid #cbd5e1; border-radius: 10px; padding: 2px; background: #fff; cursor: pointer; }
 /* بطاقات طلبات التسجيل */
 .su-req { background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:12px; }
 .su-req + .su-req { margin-top:10px; }
@@ -320,23 +325,41 @@ body.start-mode { background: linear-gradient(160deg, #0f766e, #115e59, #134e4a)
 
       <div id="tab-staff" class="tab-panel hidden">
         <section class="bg-white rounded-2xl p-4 shadow">
-          <h3 class="font-bold text-lg mb-2">👥 الموظفون — بدون أرقام دخول، يُضافون ويُعدَّلون من هنا</h3>
-          <p class="text-sm text-slate-500 mb-3">لا حاجة لأرقام دخول — الجميع يشاهدون الورديات مباشرة، والأدمن فقط من يُعدّل.</p>
-          <input id="stName" class="w-full border rounded-xl p-3 mb-2" placeholder="الاسم">
-          <input id="stLast" class="w-full border rounded-xl p-3 mb-2" placeholder="اللقب (اختياري)">
-          <div class="text-sm text-slate-600 mb-2">طريقة عرض الاسم</div>
-        <label class="flex items-center gap-2 mb-1 text-sm"><input type="radio" name="stDisp" value="full" checked> الاسم كاملاً (حقل الاسم فقط)</label>
-        <label class="flex items-center gap-2 mb-3 text-sm"><input type="radio" name="stDisp" value="laqab"> الاسم واللقب</label>
-          <input id="stTitle" class="w-full border rounded-xl p-3 mb-2" placeholder="المسمى الوظيفي مثل مصور / طباخ">
-        <select id="stDept" class="w-full border rounded-xl p-3 mb-2 bg-white"></select>
-          <input id="stColor" type="color" value="#0f766e" class="w-full h-12 mb-2 rounded-xl">
-          <label class="flex items-center gap-2 mb-1 text-sm"><input type="checkbox" id="stPinned"> 📌 تثبيت أعلى القائمة (المدير العام ونحوه)</label>
-          <label class="flex items-center gap-2 mb-2 text-sm"><input type="checkbox" id="stMgr"> 👔 مدير قسم</label>
-          <div class="flex gap-2">
-          <button type="button" onclick="addStaff()" id="staffSaveBtn" class="flex-1 btn-teal py-2 rounded-xl"><span id="staffBtnLabel">حفظ الموظف</span></button>
-          <button type="button" onclick="cancelStaffEdit()" id="staffCancelEdit" class="btn-amber px-4 py-2 rounded-xl hidden">إلغاء التعديل</button>
-        </div>
-          <p class="text-xs text-slate-500 mt-2">بعد الحفظ يمكنك تعديل بيانات أي موظف بزر «تعديل» من القائمة، أو إيقافه/تفعيله، أو حذفه.</p>
+          <div class="flex items-center justify-between gap-2 mb-2">
+            <h3 class="font-bold text-lg">👥 الموظفون</h3>
+            <button type="button" id="staffFormToggle" onclick="toggleStaffForm()" class="btn-teal px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap">➕ إضافة موظف</button>
+          </div>
+          <p class="text-sm text-slate-500 mb-3">اضغط ✏️ بجانب أي موظف لتعديله، و⛔ لإيقافه أو ✅ لتفعيله.</p>
+          <div id="staffForm" class="hidden border rounded-2xl p-3 mb-4 bg-slate-50">
+            <div class="flex items-center justify-between mb-2">
+              <span class="font-bold text-sm" id="staffFormTitle">➕ موظف جديد</span>
+              <button type="button" onclick="toggleStaffForm(true)" title="إغلاق" class="text-slate-400 text-xl leading-none">✕</button>
+            </div>
+            <input id="stName" class="w-full border rounded-xl p-3 mb-2" placeholder="الاسم">
+            <input id="stLast" class="w-full border rounded-xl p-3 mb-2" placeholder="اللقب (اختياري)">
+            <div class="text-sm text-slate-600 mb-2">طريقة عرض الاسم</div>
+            <label class="flex items-center gap-2 mb-1 text-sm"><input type="radio" name="stDisp" value="full" checked> الاسم كاملاً (حقل الاسم فقط)</label>
+            <label class="flex items-center gap-2 mb-3 text-sm"><input type="radio" name="stDisp" value="laqab"> الاسم واللقب</label>
+            <input id="stTitle" class="w-full border rounded-xl p-3 mb-2" placeholder="المسمى الوظيفي مثل مصور / طباخ">
+            <select id="stDept" class="w-full border rounded-xl p-3 mb-2 bg-white"></select>
+            <div class="text-sm text-slate-600 mb-1">🎨 اللون</div>
+            <div id="stColorPalette" class="st-palette mb-2"></div>
+            <div class="flex items-center gap-2 mb-3">
+              <input id="stColor" type="color" value="#0f766e" title="لون مخصص" class="st-color-input">
+              <span class="text-xs text-slate-500">لون مخصص</span>
+            </div>
+            <div id="stRecentBox" class="hidden mb-3">
+              <div class="text-xs text-slate-500 mb-1">🕘 الألوان المختارة حديثاً</div>
+              <div id="stRecentColors" class="st-palette"></div>
+            </div>
+            <label class="flex items-center gap-2 mb-1 text-sm"><input type="checkbox" id="stPinned"> 📌 تثبيت أعلى القائمة (المدير العام ونحوه)</label>
+            <label class="flex items-center gap-2 mb-2 text-sm"><input type="checkbox" id="stMgr"> 👔 مدير قسم</label>
+            <div class="flex gap-2">
+              <button type="button" onclick="addStaff()" id="staffSaveBtn" class="flex-1 btn-teal py-2 rounded-xl"><span id="staffBtnLabel">حفظ الموظف</span></button>
+              <button type="button" onclick="cancelStaffEdit()" id="staffCancelEdit" class="btn-amber px-4 py-2 rounded-xl hidden">إلغاء التعديل</button>
+            </div>
+            <p class="text-xs text-slate-500 mt-2">بعد الحفظ يظهر الموظف في القائمة بالأسفل.</p>
+          </div>
           <div id="staffMsg" class="text-sm mt-2 hidden"></div>
           <div class="flex items-center gap-2 mb-2">
             <span class="text-sm font-bold text-slate-600 whitespace-nowrap">🔀 ترتيب القائمة:</span>
@@ -2368,6 +2391,31 @@ function showPage(name) {
 }
 
 function shiftDay(n) { viewDate.setDate(viewDate.getDate() + n); renderDay(); }
+// ===== السحب أفقيّاً في صفحة اليوم يغيّر الأيام (منطق عربي: اسحب لليسار = اليوم التالي) =====
+(function () {
+  let x0 = null, y0 = null, tracking = false;
+  const MIN_DX = 56;   // أقل مسافة أفقية للاعتبار سحباً
+  const RATIO = 1.2;   // الأفقية يجب أن تطغى على العمودية
+  document.addEventListener('touchstart', function(e) {
+    if (e.touches.length !== 1) { tracking = false; return; }
+    const t = e.touches[0];
+    x0 = t.clientX; y0 = t.clientY; tracking = true;
+  }, { passive: true });
+  document.addEventListener('touchend', function(e) {
+    if (!tracking) return;
+    tracking = false;
+    const day = document.getElementById('dayPage');
+    if (!day || day.classList.contains('hidden')) return; // السحب يعمل في صفحة اليوم فقط
+    const t = (e.changedTouches || [])[0];
+    if (!t || x0 == null || y0 == null) return;
+    const dx = t.clientX - x0, dy = t.clientY - y0;
+    x0 = y0 = null;
+    if (Math.abs(dx) < MIN_DX || Math.abs(dx) < Math.abs(dy) * RATIO) return; // تمرير عمودي عادي
+    // سحب لليسار (dx سالب) → اليوم التالي · سحب لليمين (dx موجب) → اليوم السابق
+    shiftDay(dx < 0 ? 1 : -1);
+  }, { passive: true });
+  document.addEventListener('touchcancel', function() { tracking = false; x0 = y0 = null; }, { passive: true });
+})();
 function moveMonth(n) { calDate.setMonth(calDate.getMonth() + n); renderCal(); }
 
 function renderDay() {
@@ -2475,7 +2523,7 @@ function renderSettingsLists() {
         (countsS ? ' · ' + (countsS[s.id] || 0) + ' وردية' : '') + '</div></div>' +
       '<div class="flex gap-1 text-sm">' +
         '<button type="button" onclick="loadStaffToForm(\'' + String(s.code).replace(/'/g, "\\'") + '\')" title="تعديل" class="bg-teal-800 text-amber-100 px-3 py-1 rounded-lg">✏️</button>' +
-        '<button type="button" title="' + (s.disabled ? 'تفعيل' : 'إيقاف') + '" onclick="toggleStaffDisabled(\'' + String(s.code).replace(/'/g, "\\'") + '\',' + (s.disabled ? 'false' : 'true') + ')" class="bg-slate-200 text-slate-700 px-3 py-1 rounded-lg">' + (s.disabled ? 'تفعيل' : 'إيقاف') + '</button>' +
+        '<button type="button" title="' + (s.disabled ? '✅ تفعيل الموظف' : '⛔ إيقاف الموظف') + '" onclick="toggleStaffDisabled(\'' + String(s.code).replace(/'/g, "\\'") + '\',' + (s.disabled ? 'false' : 'true') + ')" class="bg-slate-200 text-slate-700 px-3 py-1 rounded-lg">' + (s.disabled ? '✅ تفعيل الموظف' : '⛔ إيقاف الموظف') + '</button>' +
         '<button type="button" onclick="removeStaff(\'' + String(s.code).replace(/'/g, "\\'") + '\')" title="حذف" class="text-red-500 text-lg px-2 py-1">✕</button>' +
       '</div></div>' +
       (s.disabled ? '<div class="text-xs bg-red-50 text-red-600 font-bold px-2 py-1 rounded-lg mt-1 inline-block">⛔ موقوف — لا يدخل التوزيع ولا يسجّل الدخول</div>' : '') +
@@ -2516,6 +2564,56 @@ function addDepartment() {
 }
 function removeDept(id) { if (!can('depts')) return; if (confirm('حذف القسم؟')) db.ref(path('departments/' + id)).remove(); }
 
+// ===== لوحة ألوان الموظف: مجموعة أوسع + منتقي مخصص + الألوان المختارة حديثاً =====
+const STAFF_COLORS = [
+  '#0f766e', '#0d9488', '#1d4ed8', '#1e40af', '#4338ca', '#6d28d9', '#7e22ce', '#a21caf',
+  '#be185d', '#db2777', '#e11d48', '#b91c1c', '#c2410c', '#ea580c', '#d97706', '#b45309',
+  '#4d7c0f', '#15803d', '#166534', '#0e7490', '#155e75', '#374151', '#334155', '#78350f',
+  '#78716c', '#57534e'
+];
+function staffRecentColors() {
+  try { return JSON.parse(localStorage.getItem('wrdiat_recent_colors_v1') || '[]'); } catch (e) { return []; }
+}
+function pushRecentColor(hex) {
+  hex = String(hex || '').toLowerCase();
+  if (!/^#[0-9a-f]{6}$/.test(hex)) return;
+  let list = staffRecentColors().filter(function(c) { return c !== hex; });
+  list.unshift(hex);
+  try { localStorage.setItem('wrdiat_recent_colors_v1', JSON.stringify(list.slice(0, 8))); } catch (e) {}
+}
+function colorSwatchHtml(hex, selected) {
+  return '<button type="button" class="st-swatch' + (selected ? ' sel' : '') + '" style="background:' + hex + '" title="' + hex + '" onclick="pickStaffColor(' + "'" + hex + "'" + ')"></button>';
+}
+function refreshColorPalette() {
+  const box = document.getElementById('stColorPalette');
+  if (!box) return;
+  const cur = (document.getElementById('stColor') || {}).value || '#0f766e';
+  box.innerHTML = STAFF_COLORS.map(function(c) { return colorSwatchHtml(c, c === cur); }).join('');
+  const rBox = document.getElementById('stRecentBox');
+  const rCol = document.getElementById('stRecentColors');
+  const rec = staffRecentColors();
+  if (rBox && rCol) {
+    rBox.classList.toggle('hidden', !rec.length);
+    rCol.innerHTML = rec.map(function(c) { return colorSwatchHtml(c, c === cur); }).join('');
+  }
+}
+function pickStaffColor(hex) {
+  const el = document.getElementById('stColor');
+  if (el && /^#[0-9a-f]{6}$/i.test(hex)) el.value = hex.toLowerCase();
+  refreshColorPalette();
+}
+// النموذج المطوي: فتح/إغلاق
+function toggleStaffForm(forceClose) {
+  const form = document.getElementById('staffForm');
+  if (!form) return;
+  const closing = forceClose === true || !form.classList.contains('hidden');
+  if (closing && editingStaffCode && !forceClose) { cancelStaffEdit(); return; }
+  if (closing) { form.classList.add('hidden'); return; }
+  form.classList.remove('hidden');
+  refreshColorPalette();
+  const nm = document.getElementById('stName');
+  if (nm) nm.focus();
+}
 function staffMsg(text, ok) {
   const el = document.getElementById('staffMsg');
   if (!el) { alert(text); return; }
@@ -2539,6 +2637,7 @@ function readStaffForm() {
     title: document.getElementById('stTitle').value.trim(),
     deptId: document.getElementById('stDept').value,
     hex: document.getElementById('stColor').value,
+    _hexTouched: (document.getElementById('stColor') || {}).__touched,
     displayMode: (document.querySelector('input[name="stDisp"]:checked') || { value: 'full' }).value,
     pinned: !!(document.getElementById('stPinned') || {}).checked,
     mgr: !!(document.getElementById('stMgr') || {}).checked
@@ -2554,6 +2653,9 @@ function setStaffForm(d) {
   if (radio) radio.checked = true;
   const pin = document.getElementById('stPinned'); if (pin) pin.checked = !!d.pinned;
   const mg = document.getElementById('stMgr'); if (mg) mg.checked = !!d.mgr;
+  const colorInput = document.getElementById('stColor');
+  if (colorInput) { colorInput.value = d.hex || '#0f766e'; colorInput.__touched = false; }
+  refreshColorPalette();
 }
 function loadStaffToForm(code) {
   const s = staff[String(code)];
@@ -2576,6 +2678,7 @@ async function addStaff() {
   if (!can('staff')) { staffMsg('لا تملك صلاحية إدارة الموظفين'); return; }
   try {
     const f = readStaffForm();
+    if (f.hex) pushRecentColor(f.hex); // سجل اللون المختار حديثاً
     if (f.name.length < 2) { staffMsg('أدخل اسم الموظف'); return; }
     if (f.displayMode === 'laqab' && f.lastName.length < 1) { staffMsg('أدخل اللقب أو اختر عرض الاسم كاملاً'); return; }
     if (editingStaffCode) {
@@ -2723,6 +2826,9 @@ function closeSwapModal() {
 }
 
 // مستمع نقرة واحد على مستوى الصفحة (اسم الموظف في البطاقة أو خيار التبديل في النافذة)
+document.addEventListener('input', function(e) {
+  if (e.target && e.target.id === 'stColor') { e.target.__touched = true; refreshColorPalette(); }
+});
 document.addEventListener('click', function(e) {
   const t = e.target.closest('.swap-trigger');
   if (t) { openSwapModal(t.getAttribute('data-key'), t.getAttribute('data-slot')); return; }
