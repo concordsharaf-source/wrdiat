@@ -2,73 +2,2952 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>تحميل الملف المعدَّل</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content, viewport-fit=cover">
+<title>نظام الورديات</title>
+<script src="firebase-app.js"></script>
+<script src="firebase-database.js"></script>
+<link rel="stylesheet" href="tw.css">
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#0f766e">
+<link rel="apple-touch-icon" href="images/icon-192x192.png">
+<script src="config.js"></script>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: system-ui, -apple-system, 'Segoe UI', Tahoma, sans-serif;
-    background: linear-gradient(160deg, #0f766e, #115e59, #134e4a);
-    min-height: 100vh;
-    color: #fff;
-    padding: 20px;
-    display: flex;
-    justify-content: center;
-  }
-  .card {
-    background: #fff;
-    color: #1f2937;
-    border-radius: 20px;
-    max-width: 480px;
-    width: 100%;
-    padding: 24px;
-    margin: auto;
-    box-shadow: 0 20px 50px rgba(0,0,0,.3);
-  }
-  h1 { font-size: 1.35rem; margin-bottom: 8px; }
-  .sub { color: #64748b; font-size: .9rem; margin-bottom: 18px; line-height: 1.6; }
-  .btn {
-    display: block;
-    background: #fbbf24;
-    color: #111827;
-    font-weight: 800;
-    font-size: 1.05rem;
-    text-align: center;
-    text-decoration: none;
-    padding: 16px;
-    border-radius: 14px;
-    margin-bottom: 22px;
-    box-shadow: 0 6px 14px rgba(0,0,0,.15);
-  }
-  .btn:active { transform: scale(.97); }
-  ol { padding-right: 20px; line-height: 1.9; font-size: .95rem; color: #334155; }
-  ol li { margin-bottom: 6px; }
-  .note {
-    background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46;
-    border-radius: 12px; padding: 12px 14px; font-size: .85rem; line-height: 1.7;
-    margin-top: 16px;
-  }
+@import url('fonts.css');
+body { font-family: 'Tajawal', sans-serif; }
+.hidden { display: none !important; }
+.login-wrap { min-height: 100vh; background: linear-gradient(160deg, #0f766e, #115e59, #134e4a); }
+input:not([type=color]):not([type=radio]):not([type=checkbox]):not([type=file]),
+select, textarea {
+  background: #fff7ed !important;
+  color: #1c1917 !important;
+  border: 2px solid #fb923c !important;
+  outline: none;
+}
+input::placeholder, textarea::placeholder { color: #9a3412 !important; opacity: 1; }
+.btn-amber { background: #fbbf24; color: #111827; font-weight: 800; }
+.btn-dark { background: #111827; color: #fde047; font-weight: 800; }
+.save-green { background: #059669 !important; color: #fff !important; }
+.save-red { background: #b91c1c !important; color: #fff !important; }
+@keyframes savePulse { 0% { transform: scale(1); } 35% { transform: scale(1.05); box-shadow: 0 0 0 6px rgba(5,150,105,.35); } 100% { transform: scale(1); } }
+.save-flash { animation: savePulse .45s ease; }
+.btn-teal { background: #115e59; color: #fef3c7; font-weight: 800; }
+.home-card { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25); }
+.slot { border-radius: 14px; color: #fff; padding: 8px 10px; margin-bottom: 0; position: relative; overflow: hidden; }
+.slot::after { content: ''; position: absolute; inset: 0; background: linear-gradient(115deg, rgba(255,255,255,.28), transparent 55%); pointer-events: none; }
+.dept-chip { display: inline-block; background: #ecfeff; color: #0f766e; border-radius: 999px; padding: 2px 10px; font-size: 12px; }
+.cal-cell { min-height: 78px; padding: 6px; background: #fff; }
+.cal-cell.has { color: #fff; }
+
+/* ===== طبقة توافق: أصناف Tailwind المستخدمة في التطبيق وغير الموجودة في tw.css ===== */
+.bg-slate-100 { background: #f1f5f9; }
+.bg-slate-200 { background: #e2e8f0; }
+.bg-slate-50 { background: #f8fafc; }
+.bg-slate-800 { background: #1e293b; }
+.text-slate-400 { color: #94a3b8; }
+.text-slate-500 { color: #64748b; }
+.text-slate-600 { color: #475569; }
+.bg-teal-800 { background: #115e59; }
+.text-teal-700 { color: #0f766e; }
+.text-amber-100 { color: #fef3c7; }
+.text-amber-200 { color: #fde68a; }
+.bg-black\/50 { background: rgba(0,0,0,.5); }
+.bg-white\/10 { background: rgba(255,255,255,.1); }
+.border-white\/20 { border-color: rgba(255,255,255,.2); }
+.backdrop-blur-xl { -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px); }
+.-translate-x-1\/2 { transform: translateX(-50%); }
+.-translate-y-1\/2 { transform: translateY(-50%); }
+.top-3 { top: .75rem; }
+.left-3 { left: .75rem; }
+.min-h-full { min-height: 100%; }
+.overflow-y-auto { overflow-y: auto; }
+.m-auto { margin: auto; }
+.max-w-full { max-width: 100%; }
+.pointer-events-none { pointer-events: none; }
+.pointer-events-auto { pointer-events: auto; }
+.-webkit-overflow-scrolling-touch { -webkit-overflow-scrolling: touch; }
+.h-12 { height: 3rem; }
+.h-20 { height: 5rem; }
+.w-20 { width: 5rem; }
+.mb-1 { margin-bottom: .25rem; }
+.p-5 { padding: 1.25rem; }
+.py-8 { padding-block: 2rem; }
+.max-w-3xl { max-width: 48rem; }
+.opacity-80 { opacity: .8; }
+.opacity-90 { opacity: .9; }
+.space-y-6 > * + * { margin-top: 1.5rem; }
+.shadow { box-shadow: 0 1px 3px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.08); }
+.ring-2 { box-shadow: 0 0 0 2px #0f766e; }
+.border-orange-100 { border-color: #ffedd5; }
+.bg-orange-50 { background: #fff7ed; }
+.text-orange-700 { color: #c2410c; }
+
+/* ===== واجهة قواعد التوزيع الأسبوعي ===== */
+.rule-chip { display: inline-block; padding: 4px 11px; border-radius: 999px; border: 2px solid #d7dee6; background: #fff; color: #334155; font-size: 12px; font-weight: 700; margin: 0 0 6px 6px; cursor: pointer; user-select: none; transition: all .15s; }
+.rule-chip.sel { background: #0f766e; border-color: #0f766e; color: #fff; }
+.order-chip { display: inline-flex; align-items: center; background: #115e59; color: #fef3c7; border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 800; }
+.order-chip button { padding: 0 5px; cursor: pointer; color: inherit; }
+.order-chip button:disabled { opacity: .35; cursor: default; }
+.auto-badge { display: inline-block; background: rgba(255,255,255,.28); border: 1px solid rgba(255,255,255,.45); border-radius: 999px; padding: 0 9px; font-size: 11px; font-weight: 700; margin-inline-start: 7px; vertical-align: middle; }
+/* ===== صفحة اليوم: فلتر منسدل + بطاقتان بجوار بعض (بلا الاعتماد على أصناف غير موجودة في tw.css) ===== */
+.day-filter-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.day-filter-label { font-size: 12px; font-weight: 700; color: #64748b; white-space: nowrap; }
+#deptFilter { flex: 1; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 8px 12px; font-size: 14px; font-weight: 700; color: #0f172a; box-shadow: 0 1px 2px rgba(15,23,42,.06); font-family: inherit; }
+#slotsList { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; align-content: start; }
+#slotsList .slot { margin-bottom: 0; }
+.slot-emp { font-weight: 800; font-size: 16px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-left: 14px; }
+.slot-emp .swap-trigger { font-weight: 800; font-size: 16px; color: #fff; }
+.slot-info { font-size: 11px; opacity: .92; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.slot-time { margin-top: 3px; font-weight: 700; font-size: 13px; white-space: nowrap; }
+.slot-del { position: absolute; left: 5px; top: 4px; color: rgba(255,255,255,.85); line-height: 1; z-index: 2; }
+@media (max-width: 360px) { .slot-emp, .slot-emp .swap-trigger { font-size: 14px; } .slot-time { font-size: 12px; } }
+/* ===== شاشة البداية (تسجيل الدخول) ===== */
+.start-bg { background: linear-gradient(160deg, #0f766e, #115e59, #134e4a); }
+body.start-mode { background: linear-gradient(160deg, #0f766e, #115e59, #134e4a); }
+#loginModal .w\\[19rem\\] { max-width: 92vw; }
+.sec-card { background: #fff; border-radius: 18px; padding: 16px; box-shadow: 0 1px 3px rgba(15,23,42,.08); }
+.sec-card + .sec-card { margin-top: 14px; }
+/* لوحة ألوان الموظف */
+.st-palette { display: flex; flex-wrap: wrap; gap: 6px; }
+.st-swatch { width: 34px; height: 34px; border-radius: 10px; border: 2px solid #fff; box-shadow: 0 0 0 1px #cbd5e1; cursor: pointer; padding: 0; }
+.st-swatch.sel { box-shadow: 0 0 0 3px #0f766e; }
+.st-color-input { width: 46px; height: 38px; border: 1px solid #cbd5e1; border-radius: 10px; padding: 2px; background: #fff; cursor: pointer; }
+/* بطاقات طلبات التسجيل */
+.su-req { background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:12px; }
+.su-req + .su-req { margin-top:10px; }
+.su-head { font-weight:800; font-size:.9rem; margin-bottom:2px; }
+.su-mail { color:#94a3b8; font-size:.7rem; }
+.su-phone { font-size:.75rem; color:#475569; margin-bottom:6px; }
+.su-phone a { color:#0f766e; font-weight:800; text-decoration:none; }
+.su-state-wait { font-size:.72rem; font-weight:800; color:#b45309; margin-bottom:2px; }
+.su-state-ok { font-size:.72rem; font-weight:800; color:#0f766e; margin-bottom:2px; }
+.su-row { display:flex; gap:6px; align-items:center; margin-top:6px; }
+.su-row input { flex:1; border:1px solid #cbd5e1; border-radius:12px; padding:8px; text-align:center; min-width:0; }
+.su-dice { font-size:1.1rem; padding:4px 8px; border:none; background:none; cursor:pointer; }
+.su-del { color:#dc2626; font-size:.72rem; font-weight:800; margin-top:8px; background:none; border:none; cursor:pointer; padding:0; }
+.su-summary { font-size:.8rem; font-weight:800; color:#475569; cursor:pointer; margin-top:14px; }
+.su-done { font-size:.72rem; color:#64748b; margin-top:4px; }
+.su-rst { color:#b45309; font-size:.72rem; font-weight:800; margin-top:8px; background:none; border:none; cursor:pointer; padding:0; text-align:right; }
+.su-temp { margin-top:8px; background:#fffbeb; border:1px solid #fcd34d; border-radius:10px; padding:8px; font-size:.78rem; word-break:break-all; }
+.su-temp a { color:#0f766e; font-weight:800; text-decoration:none; }
+.su-copy { background:none; border:none; cursor:pointer; color:#0f766e; font-size:.75rem; font-weight:800; padding:0; }
+
+/* ===== خط أكبر لكل النصوص الصغيرة (راحة للعيون) ===== */
+.text-xs { font-size: 0.95rem !important; }
+.text-sm { font-size: 1rem !important; }
+.text-\[10px\] { font-size: 0.85rem !important; }
+.text-\[11px\] { font-size: 0.9rem !important; }
+.dept-chip { font-size: 14px; }
+.rule-chip { font-size: 14px; }
+.order-chip { font-size: 14px; }
+.day-filter-label { font-size: 15px; }
+#deptFilter { font-size: 16px; }
+.slot-emp, .slot-emp .swap-trigger { font-size: 18px; }
+.slot-info { font-size: 14px; }
+.slot-time { font-size: 15px; }
+@media (max-width: 360px) { .slot-emp, .slot-emp .swap-trigger { font-size: 16px; } .slot-time { font-size: 14px; } .slot-info { font-size: 13px; } }
+.su-head { font-size: 1rem; }
+.su-mail { font-size: .85rem; }
+.su-phone { font-size: .9rem; }
+.su-state-wait, .su-state-ok { font-size: .85rem; }
+.su-del { font-size: .85rem; }
+.su-summary { font-size: .95rem; }
+.su-done { font-size: .85rem; }
+.su-rst { font-size: .85rem; }
+.su-temp { font-size: .95rem; }
+.su-copy { font-size: .9rem; }
+
+#toast { position: fixed; bottom: 1rem; left: 50%; transform: translateX(-50%); background: #111827; color: #fde047; padding: 10px 18px; border-radius: 14px; font-weight: 800; box-shadow: 0 10px 25px rgba(0,0,0,.35); max-width: calc(100vw - 1.5rem); width: max-content; min-width: 0; text-align: center; word-break: break-word; box-sizing: border-box; z-index: 60; }
+
+/* ===== تأثير استجابة الأزرار (بصري + حسي) ===== */
+button, .rule-chip, .st-swatch, .su-copy, .su-dice, .su-del, .su-rst, .su-summary, .swap-option {
+  -webkit-tap-highlight-color: rgba(15, 118, 110, .3);
+  transition: transform .08s ease, filter .08s ease;
+}
+button:active:not(:disabled),
+.rule-chip:active, .st-swatch:active, .su-copy:active, .su-dice:active,
+.su-del:active, .su-rst:active, .su-summary:active, .swap-option:active {
+  transform: scale(.94);
+  filter: brightness(.9);
+}
+button:focus-visible { outline: 3px solid #0f766e; outline-offset: 2px; }
 </style>
 </head>
-<body>
-  <div class="card">
-    <h1>📥 تحميل ملف index.html المُصلَح</h1>
-    <p class="sub">هذا الملف يحتوي على إصلاح مشكلة النوافذ المرتفعة (صفحة «تسجيل جديد» والنوافذ المنبثقة) في الجوال. اضغط الزر لتحميله — سيُنزَّل باسم <b>index.html</b>.</p>
+<body class="bg-slate-100 min-h-screen">
 
-    <a class="btn" href="wrdiat-index.html" download="index.html">⬇️ تحميل index.html</a>
+<!-- ===== نافذة دخول الأدمن فقط (الموظفون والزوّار يشاهدون الجدول مباشرة) ===== -->
+<!-- ===== شاشة البداية: تسجيل الدخول (أدمن أو موظف) ===== -->
+<div id="loginModal" class="fixed inset-0 z-50 hidden overflow-y-auto -webkit-overflow-scrolling-touch">
+  <div class="fixed inset-0 start-bg" onclick="closeLoginModal()"></div>
+  <div class="relative min-h-full flex p-4 pointer-events-none">
+    <div class="m-auto pointer-events-auto w-80 max-w-full bg-white rounded-2xl p-6 shadow-2xl">
+    <div class="text-center mb-4">
+      <div class="text-xl font-extrabold text-teal-800 leading-tight" id="loginOrgName">نظام الورديات</div>
+      <div class="text-xs text-slate-500 mt-1" id="loginOrgSubtitle">إدارة الأقسام والورديات</div>
+    </div>
+    <div class="flex items-center justify-between mb-3">
+      <h3 class="font-bold text-lg" id="loginModalTitle">تسجيل الدخول</h3>
+      <button type="button" id="loginCloseBtn" onclick="closeLoginModal()" class="text-slate-400 text-xl leading-none hidden">×</button>
+    </div>
 
-    <h2 style="font-size:1.05rem;margin-bottom:8px;">🚀 خطوات الرفع من متصفح الجوال</h2>
-    <ol>
-      <li>افتح <b>github.com</b> في المتصفح وسجّل الدخول.</li>
-      <li>ادخل إلى مستودعك <b>concordsharaf-source/wrdiat</b>.</li>
-      <li>اضغط زر <b>➕ Add file</b> ثم اختر <b>Upload files</b>.</li>
-      <li>اضغط <b>choose your files</b> واختر ملف <b>index.html</b> الذي حمّلته الآن.</li>
-      <li>تأكد أن الملف في <b>الرئيسية (الجذر)</b> وليس داخل مجلد فرعي.</li>
-      <li>مرّر للأسفل واضغط <b>Commit changes</b> (ثم Commit changes مرة أخرى).</li>
-      <li>انتظر دقيقة ثم حدّث صفحة موقعك — سيظهر الإصلاح.</li>
-    </ol>
+    <div id="loginEmailPanel">
+      <p class="text-[11px] text-slate-500 mb-3 text-center leading-relaxed">الأدمن: إيميلك وكلمة مرورك<br>الموظف: إيميل الأدمن وكلمة مرور الموظفين</p>
+      <input id="loginId" class="w-full border rounded-xl p-3 mb-2 text-center" placeholder="الإيميل">
+      <input id="loginPass" type="password" class="w-full border rounded-xl p-3 mb-2 text-center" placeholder="كلمة المرور" onkeydown="if(event.key==='Enter')handleLogin()">
+      <div id="loginError" class="text-red-600 text-sm hidden mb-2 text-center"></div>
+      <button type="button" id="loginBtn" onclick="handleLogin()" class="btn-amber w-full py-3 rounded-xl mb-2 font-bold">دخول</button>
+      <div id="loginCodeRow" class="hidden">
+        <div id="loginCodeInfo" class="text-xs text-amber-700 font-bold mb-2 text-center leading-relaxed"></div>
+        <input id="loginCode" class="w-full border rounded-xl p-3 mb-2 text-center" placeholder="رمز التفعيل" inputmode="numeric" onkeydown="if(event.key==='Enter')handleActivateFromLogin()">
+        <button type="button" onclick="handleActivateFromLogin()" class="btn-teal w-full py-3 rounded-xl mb-2 font-bold">✅ تفعيل الحساب والدخول</button>
+      </div>
+      <div id="sessionNote" class="text-red-500 text-sm hidden mb-2 text-center"></div>
+      <div class="border-t mt-3 pt-3 text-center">
+        <button type="button" id="signupLink" onclick="showSignupPanel()" class="text-teal-700 text-sm font-bold">➕ تسجيل جديد (أدمن مؤسسة)</button>
+      </div>
+      <div class="text-center mt-2">
+        <button type="button" onclick="showForgotPanel()" class="text-slate-500 text-xs font-bold">❓ نسيت كلمة المرور؟</button>
+      </div>
+    </div>
 
-    <div class="note">✅ ملاحظة: الملفات الأخرى (tw.css والخطوط وملفات firebase وغيرها) لم تتغير — تحتاج فقط استبدال ملف <b>index.html</b> هذا.</div>
+    <div id="signupPanel" class="hidden">
+      <div id="suFields">
+        <p class="text-xs text-slate-500 mb-3">أرسل بياناتك — لا يُفعَّل حسابك إلا برمز تفعيل يصلك من إدارة النظام على جوالك.</p>
+        <input id="suName" class="w-full border rounded-xl p-3 mb-2 text-center" placeholder="الاسم">
+        <input id="suEmail" class="w-full border rounded-xl p-3 mb-2 text-center" placeholder="الإيميل">
+        <input id="suPhone" class="w-full border rounded-xl p-3 mb-2 text-center" placeholder="رقم الجوال" inputmode="tel">
+        <input id="suPass" type="password" class="w-full border rounded-xl p-3 mb-2 text-center" placeholder="كلمة المرور">
+        <input id="suPass2" type="password" class="w-full border rounded-xl p-3 mb-2 text-center" placeholder="تأكيد كلمة المرور">
+        <button type="button" onclick="handleSignup()" class="btn-dark w-full py-3 rounded-xl mb-2">إرسال الطلب</button>
+        <button type="button" onclick="showLoginPanel()" class="text-teal-700 text-sm w-full font-bold">→ رجوع لتسجيل الدخول</button>
+      </div>
+      <div id="suCodeBox" class="hidden">
+        <div id="suPendingMsg" class="bg-teal-50 border border-teal-200 text-teal-800 text-xs font-bold rounded-xl p-3 mb-3 text-center leading-relaxed"></div>
+        <input id="suCode" class="w-full border rounded-xl p-3 mb-2 text-center" placeholder="رمز التفعيل" inputmode="numeric" onkeydown="if(event.key==='Enter')verifySignupCode()">
+        <button type="button" onclick="verifySignupCode()" class="btn-teal w-full py-3 rounded-xl mb-2 font-bold">✅ تفعيل الحساب والدخول</button>
+        <button type="button" onclick="resetSignupPanel()" class="text-slate-500 text-xs w-full font-bold mb-1">✏️ تعديل بيانات الطلب</button>
+        <button type="button" onclick="showLoginPanel()" class="text-teal-700 text-sm w-full font-bold">→ رجوع لتسجيل الدخول</button>
+      </div>
+      <div id="signupError" class="text-red-600 text-sm hidden mb-2 text-center"></div>
+    </div>
+
+    <div id="forgotPanel" class="hidden">
+      <h3 class="font-bold text-lg mb-2">🔑 استعادة كلمة المرور</h3>
+      <p class="text-xs text-slate-500 mb-3">اكتب إيميلك — كلمة المرور يعيد تعيينها <b>مالك النظام</b> فقط ثم يرسلها إلى بريدك.</p>
+      <input id="fpEmail" class="w-full border rounded-xl p-3 mb-2 text-center" placeholder="الإيميل">
+      <div id="fpError" class="text-red-600 text-sm hidden mb-2 text-center"></div>
+      <div id="fpResult" class="hidden mb-2"></div>
+      <button type="button" id="fpBtn" onclick="forgotPasswordSubmit()" class="btn-amber w-full py-3 rounded-xl mb-2 font-bold">إرسال الطلب</button>
+      <button type="button" onclick="showLoginPanel()" class="text-teal-700 text-sm w-full font-bold">→ رجوع لتسجيل الدخول</button>
+    </div>
   </div>
+  </div>
+</div>
+
+<div id="mainApp">
+  <nav class="bg-teal-800 text-white sticky top-0 z-40 shadow">
+    <div class="max-w-3xl mx-auto px-3 py-2 flex justify-between items-center">
+      <div class="font-bold text-sm" id="welcomeMessage">👀 وضع الاطلاع — يمكن للجميع مشاهدة الورديات</div>
+      <div class="flex gap-2">
+        <button onclick="showPage('day')" class="p-2" title="اليوم">📅</button>
+        <button onclick="showPage('cal')" class="p-2" title="التقويم">🗓️</button>
+        <button onclick="showPage('stats')" class="p-2" title="الإحصائيات">📊</button>
+        <button id="adminBtn" onclick="onAdminClick()" class="p-2" title="الإعدادات / دخول الأدمن">⚙️</button>
+      </div>
+    </div>
+  </nav>
+
+  <div id="dayPage" class="page max-w-3xl mx-auto p-4">
+    <div class="flex justify-between items-center mb-4">
+      <button onclick="shiftDay(-1)" class="bg-white px-3 py-2 rounded-xl shadow">◀</button>
+      <div class="text-center">
+        <div class="text-4xl font-extrabold" id="dayNum"></div>
+        <div class="font-bold text-slate-600" id="dayLabel"></div>
+      </div>
+      <button onclick="shiftDay(1)" class="bg-white px-3 py-2 rounded-xl shadow">▶</button>
+    </div>
+    <div class="day-filter-row">
+      <span class="day-filter-label">🏢 القسم</span>
+      <select id="deptFilter" onchange="filterDept=this.value;renderDay()"></select>
+    </div>
+    <div id="slotsList" class="slots-2col"></div>
+    <button id="addSlotBtn" onclick="openSlotModal()" class="hidden w-full mt-4 btn-amber py-3 rounded-2xl">➕ إضافة وردية في هذا اليوم</button>
+  </div>
+
+  <div id="calPage" class="page hidden max-w-3xl mx-auto p-4">
+    <div class="flex justify-between bg-white rounded-xl p-3 mb-4 shadow">
+      <button onclick="moveMonth(-1)" class="btn-teal px-3 py-1 rounded-lg">السابق</button>
+      <h2 id="calTitle" class="font-bold"></h2>
+      <button onclick="moveMonth(1)" class="btn-teal px-3 py-1 rounded-lg">التالي</button>
+    </div>
+    <div class="bg-white rounded-xl overflow-hidden shadow">
+      <div class="grid grid-cols-7 bg-slate-800 text-white text-center text-sm font-bold">
+        <div class="p-2">سبت</div><div class="p-2">أحد</div><div class="p-2">إثن</div><div class="p-2">ثلا</div><div class="p-2">أرب</div><div class="p-2">خمي</div><div class="p-2">جمع</div>
+      </div>
+      <div id="calGrid" class="grid grid-cols-7 gap-px bg-slate-200"></div>
+    </div>
+  </div>
+
+  <div id="statsPage" class="page hidden max-w-3xl mx-auto p-4">
+    <h2 class="text-xl font-bold mb-3">إحصائيات الشهر</h2>
+    <div id="statsBox" class="space-y-3"></div>
+  </div>
+
+  <div id="settingsPage" class="page hidden max-w-3xl mx-auto p-4">
+    <div id="adminSettings" class="hidden">
+      <div class="flex gap-2 mb-4 bg-white rounded-2xl p-2 shadow">
+        <button id="tabBtn-depts" onclick="showSettingsTab('depts')" class="flex-1 py-2 rounded-xl font-bold text-sm">🏢 الأقسام</button>
+        <button id="tabBtn-staff" onclick="showSettingsTab('staff')" class="flex-1 py-2 rounded-xl font-bold text-sm">👥 الموظفون</button>
+        <button id="tabBtn-shifts" onclick="showSettingsTab('shifts')" class="flex-1 py-2 rounded-xl font-bold text-sm">🗓️ الورديات</button>
+        <button id="tabBtn-security" onclick="showSettingsTab('security')" class="flex-1 py-2 rounded-xl font-bold text-sm">🔐 الأمان</button>
+        <button id="tabBtn-signups" onclick="showSettingsTab('signups')" class="flex-1 py-2 rounded-xl font-bold text-sm hidden">📋 الطلبات</button>
+      </div>
+
+      <div id="tab-depts" class="tab-panel space-y-6">
+        <section class="bg-white rounded-2xl p-4 shadow">
+          <h3 class="font-bold text-lg mb-2">🏢 الأقسام — أضف بلا حد</h3>
+          <p class="text-sm text-slate-500 mb-3">صوت، تصوير، إخراج، مطبخ، كاشير… أي قسم تريده.</p>
+          <input id="newDeptName" class="w-full border rounded-xl p-3 mb-2" placeholder="اسم القسم">
+          <button onclick="addDepartment()" class="w-full btn-teal py-2 rounded-xl">إضافة قسم</button>
+          <div id="deptList" class="mt-3 space-y-2"></div>
+        </section>
+      </div>
+
+      <div id="tab-security" class="tab-panel hidden">
+        <div class="sec-card">
+          <h3 class="font-bold text-lg mb-1">🔑 كلمة مرور الموظفين</h3>
+          <p class="text-sm text-slate-500 mb-3">الموظف يفتح التطبيق بـ<b>إيميلك (إيميل الأدمن)</b> + هذه الكلمة — ويدخل <b>للعرض فقط</b> على ورديات مؤسسته. كل ما تحتاجه من إدارة يبقى لك وحدك.</p>
+          <div id="staffPassStatus" class="text-sm font-bold mb-2">—</div>
+          <div id="staffPassCurBox" class="mb-3 bg-teal-50 border border-teal-200 rounded-xl p-3 hidden">
+            <div class="text-xs text-slate-500 mb-1">🔑 كلمة المرور الحالية (حتى لا تنساها):</div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <b id="staffPassCur" dir="ltr" class="text-lg tracking-wider text-teal-800"></b>
+              <button type="button" onclick="copyText(document.getElementById('staffPassCur').textContent)" class="su-copy">📋 نسخ</button>
+            </div>
+          </div>
+          <input id="staffPassInput" type="password" class="w-full border rounded-xl p-3 mb-2" placeholder="كلمة مرور الموظفين">
+          <div class="flex gap-2 items-center">
+            <button type="button" onclick="saveStaffPassword()" class="flex-1 btn-teal py-2 rounded-xl">💾 حفظ الكلمة</button>
+            <button type="button" onclick="clearStaffPassword()" class="text-red-600 text-sm px-2">إزالة</button>
+          </div>
+          <div id="staffPassMsg" class="text-xs mt-2"></div>
+        </div>
+        <div class="sec-card">
+          <h3 class="font-bold text-lg mb-1">👤 كلمة مرور الأدمن</h3>
+          <p class="text-sm text-slate-500 mb-3">غيّر كلمة مرورك من هنا — بعد التغيير استخدم الكلمة الجديدة في الدخول القادم (جلستك الحالية تبقى مفتوحة).</p>
+          <input id="admOldPass" type="password" class="w-full border rounded-xl p-3 mb-2" placeholder="كلمة المرور الحالية">
+          <input id="admNewPass" type="password" class="w-full border rounded-xl p-3 mb-2" placeholder="كلمة المرور الجديدة">
+          <input id="admNewPass2" type="password" class="w-full border rounded-xl p-3 mb-2" placeholder="تأكيد كلمة المرور الجديدة">
+          <button type="button" onclick="changeAdminPassword()" class="btn-dark w-full py-2 rounded-xl">💾 تغيير كلمة المرور</button>
+          <div id="admPassMsg" class="text-xs mt-2"></div>
+        </div>
+        <div class="sec-card">
+          <h3 class="font-bold text-lg mb-1">🤝 أدمن مساعد</h3>
+          <p class="text-sm text-slate-500 mb-3">أضف مساعداً يدير ما تسمح له به فقط — الصلاحيات تتحكم بها أنت من هنا، وتغييرها يسري عليه فوراً (حتى وهو داخل).</p>
+          <div id="assistantsList" class="mb-3"></div>
+          <input id="asName" class="w-full border rounded-xl p-3 mb-2" placeholder="اسم المساعد">
+          <input id="asEmail" class="w-full border rounded-xl p-3 mb-2 text-center" placeholder="إيميل المساعد (يدخل به)" dir="ltr">
+          <input id="asPass" type="password" class="w-full border rounded-xl p-3 mb-2" placeholder="كلمة مرور المساعد (فارغة = توليد تلقائي)">
+          <div class="text-xs font-bold text-slate-600 mb-1">صلاحيات المساعد:</div>
+          <label class="flex items-center gap-2 mb-1 text-sm"><input type="checkbox" id="asPermDepts" checked> 🏢 إدارة الأقسام</label>
+          <label class="flex items-center gap-2 mb-1 text-sm"><input type="checkbox" id="asPermStaff" checked> 👥 إدارة الموظفين</label>
+          <label class="flex items-center gap-2 mb-1 text-sm"><input type="checkbox" id="asPermRules"> 🗓️ الورديات والقواعد</label>
+          <label class="flex items-center gap-2 mb-3 text-sm"><input type="checkbox" id="asPermSlots"> ➕ ورديات اليوم (إضافة/حذف/تبديل)</label>
+          <div class="flex gap-2">
+            <button type="button" onclick="addAssistant()" id="asSaveBtn" class="flex-1 btn-teal py-2 rounded-xl">➕ إضافة مساعد</button>
+            <button type="button" onclick="cancelAssistantEdit()" id="asCancelEdit" class="btn-amber px-4 py-2 rounded-xl hidden">إلغاء</button>
+          </div>
+          <div id="asMsg" class="text-xs mt-2"></div>
+        </div>
+      </div>
+
+      <div id="tab-signups" class="tab-panel hidden">
+        <div class="sec-card">
+          <h3 class="font-bold text-lg mb-1">📋 طلبات تسجيل مؤسسات جديدة</h3>
+          <p class="text-sm text-slate-500 mb-2">لا يُفعَّل أي حساب إلا برمز تصدره أنت: انسخ رقم جوال صاحب الطلب وأرسل له الرمز (واتساب/اتصال) — ثم يدخله هو في التطبيق ليُفتح له مشروعه فوراً.</p>
+          <p class="text-xs text-slate-400 mb-3">💡 الرمز يُحفظ مشفراً في القاعدة — لا يستطيع صاحب الطلب معرفته إلا منك، ويُفضل رقماً من 4 خانات أو أكثر.</p>
+          <button type="button" onclick="signupsRefresh()" class="btn-teal text-sm px-3 py-2 rounded-xl font-bold mb-3">🔄 تحديث</button>
+          <div id="signupsList"></div>
+        </div>
+      </div>
+
+      <div id="tab-staff" class="tab-panel hidden">
+        <section class="bg-white rounded-2xl p-4 shadow">
+          <div class="flex items-center justify-between gap-2 mb-2">
+            <h3 class="font-bold text-lg">👥 الموظفون</h3>
+            <button type="button" id="staffFormToggle" onclick="toggleStaffForm()" class="btn-teal px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap">➕ إضافة موظف</button>
+          </div>
+          <p class="text-sm text-slate-500 mb-3">اضغط ✏️ بجانب أي موظف لتعديله، و⛔ لإيقافه أو ✅ لتفعيله.</p>
+          <div id="staffForm" class="hidden border rounded-2xl p-3 mb-4 bg-slate-50">
+            <div class="flex items-center justify-between mb-2">
+              <span class="font-bold text-sm" id="staffFormTitle">➕ موظف جديد</span>
+              <button type="button" onclick="toggleStaffForm(true)" title="إغلاق" class="text-slate-400 text-xl leading-none">✕</button>
+            </div>
+            <input id="stName" class="w-full border rounded-xl p-3 mb-2" placeholder="الاسم">
+            <input id="stLast" class="w-full border rounded-xl p-3 mb-2" placeholder="اللقب (اختياري)">
+            <div class="text-sm text-slate-600 mb-2">طريقة عرض الاسم</div>
+            <label class="flex items-center gap-2 mb-1 text-sm"><input type="radio" name="stDisp" value="full" checked> الاسم كاملاً (حقل الاسم فقط)</label>
+            <label class="flex items-center gap-2 mb-3 text-sm"><input type="radio" name="stDisp" value="laqab"> الاسم واللقب</label>
+            <input id="stTitle" class="w-full border rounded-xl p-3 mb-2" placeholder="المسمى الوظيفي مثل مصور / طباخ">
+            <select id="stDept" class="w-full border rounded-xl p-3 mb-2 bg-white"></select>
+            <div class="text-sm text-slate-600 mb-1">🎨 اللون</div>
+            <div id="stColorPalette" class="st-palette mb-2"></div>
+            <div class="flex items-center gap-2 mb-3">
+              <input id="stColor" type="color" value="#0f766e" title="لون مخصص" class="st-color-input">
+              <span class="text-xs text-slate-500">لون مخصص</span>
+            </div>
+            <div id="stRecentBox" class="hidden mb-3">
+              <div class="text-xs text-slate-500 mb-1">🕘 الألوان المختارة حديثاً</div>
+              <div id="stRecentColors" class="st-palette"></div>
+            </div>
+            <label class="flex items-center gap-2 mb-1 text-sm"><input type="checkbox" id="stPinned"> 📌 تثبيت أعلى القائمة (المدير العام ونحوه)</label>
+            <label class="flex items-center gap-2 mb-2 text-sm"><input type="checkbox" id="stMgr"> 👔 مدير قسم</label>
+            <div class="flex gap-2">
+              <button type="button" onclick="addStaff()" id="staffSaveBtn" class="flex-1 btn-teal py-2 rounded-xl"><span id="staffBtnLabel">حفظ الموظف</span></button>
+              <button type="button" onclick="cancelStaffEdit()" id="staffCancelEdit" class="btn-amber px-4 py-2 rounded-xl hidden">إلغاء التعديل</button>
+            </div>
+            <p class="text-xs text-slate-500 mt-2">بعد الحفظ يظهر الموظف في القائمة بالأسفل.</p>
+          </div>
+          <div id="staffMsg" class="text-sm mt-2 hidden"></div>
+          <div class="flex items-center gap-2 mb-2">
+            <span class="text-sm font-bold text-slate-600 whitespace-nowrap">🔀 ترتيب القائمة:</span>
+            <select id="staffSort" onchange="setStaffSortPref(this.value)" class="flex-1 border rounded-xl p-2 bg-white text-sm">
+              <option value="name">أبجدياً بالاسم</option>
+              <option value="dept">بالقسم (الفئة)</option>
+              <option value="shifts">بعدد الورديات (الأكثر أولاً)</option>
+            </select>
+          </div>
+          <div id="staffList" class="mt-3 space-y-2"></div>
+        </section>
+
+      </div>
+      <div id="tab-shifts" class="tab-panel hidden">
+        <section class="bg-white rounded-2xl p-4 shadow">
+          <h3 class="font-bold text-lg mb-2">🗓️ الورديات — التوزيع الأسبوعي</h3>
+          <p class="text-sm text-slate-500 mb-3">اختر طريقة العرض: <b>بالأيام</b> أو <b>بالأقسام</b> — البيانات مطوية وتُفتح عند الضغط. لكل قسم زر حفظ واحد يطبق ما أدخلته على 5 سنوات قادمة.</p>
+          <label class="block text-sm font-bold mb-1">تاريخ بداية التناوب (تُحسب منه دورية الترتيب)</label>
+          <input id="rulesAnchor" type="date" onchange="ruleAnchorChanged(this.value)" class="w-full border rounded-xl p-3 mb-1">
+          <p class="text-xs text-slate-500 mb-3">غيّر هذا التاريخ لإعادة ضبط تسلسل التناوب من جديد.</p>
+          <div id="rulesMsg" class="text-sm hidden mb-2"></div>
+
+          <div class="flex gap-2 mb-3">
+            <button id="viewByDays" onclick="setRulesView('days')" class="flex-1 py-3 rounded-2xl font-extrabold text-lg bg-slate-100">📅 بالأيام</button>
+            <button id="viewByDepts" onclick="setRulesView('depts')" class="flex-1 py-3 rounded-2xl font-extrabold text-lg btn-teal">🏢 بالأقسام</button>
+          </div>
+
+          <div id="rulesContainer"></div>
+        </section>
+        <div class="sec-card">
+          <h3 class="font-bold text-lg mb-1">🗑 حذف جميع الورديات</h3>
+          <p class="text-sm text-slate-500 mb-3">يمسح <b>كل الورديات في كل الأيام</b> (صفحة اليوم والتقويم والإحصائيات تفرغ) — الأقسام والموظفون والقواعد الأسبوعية تبقى كما هي، وتستطيع إعادة توليد الورديات من القواعد في أي وقت.</p>
+          <button type="button" onclick="deleteAllShifts()" class="w-full bg-red-600 text-white font-bold py-3 rounded-xl">🗑 حذف جميع الورديات نهائياً</button>
+          <p class="text-xs text-red-500 mt-2 text-center font-bold">⚠️ تأكيد مزدوج قبل التنفيذ — لا يمكن التراجع</p>
+        </div>
+      </div>
+
+    </div>
+    <button id="logoutBtn" onclick="logout()" class="hidden w-full bg-red-600 text-amber-100 font-bold py-3 rounded-2xl mt-6">تسجيل الخروج</button>
+  </div>
+</div>
+
+<div id="toast" class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 hidden"></div>
+
+<div id="swapModal" class="fixed inset-0 z-50 hidden overflow-y-auto -webkit-overflow-scrolling-touch">
+  <div class="fixed inset-0 bg-black/50" onclick="closeSwapModal()"></div>
+  <div class="relative min-h-full flex p-4 pointer-events-none">
+    <div class="m-auto pointer-events-auto bg-white rounded-2xl p-5 w-80 max-w-full">
+      <h3 class="font-bold text-lg mb-1">⇄ تبديل وردية</h3>
+      <p id="swapInfo" class="text-sm text-slate-500 mb-3"></p>
+      <div id="swapList" class="space-y-2"></div>
+      <button type="button" onclick="closeSwapModal()" class="w-full btn-amber py-2 rounded-xl mt-3">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<div id="renameDeptModal" class="fixed inset-0 z-50 hidden overflow-y-auto -webkit-overflow-scrolling-touch">
+  <div class="fixed inset-0 bg-black/50" onclick="closeRenameDept()"></div>
+  <div class="relative min-h-full flex p-4 pointer-events-none">
+    <div class="m-auto pointer-events-auto bg-white rounded-2xl p-5 w-80 max-w-full">
+      <h3 class="font-bold text-lg mb-3">✏️ تعديل اسم القسم</h3>
+      <label class="text-sm text-slate-500">الاسم الجديد</label>
+      <input id="renameDeptInput" class="w-full border rounded-xl p-3 mb-3">
+      <div class="flex gap-2">
+        <button onclick="saveDeptName()" class="flex-1 btn-teal py-2 rounded-xl">حفظ</button>
+        <button onclick="closeRenameDept()" class="flex-1 btn-amber py-2 rounded-xl">إلغاء</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="slotModal" class="fixed inset-0 z-50 hidden overflow-y-auto -webkit-overflow-scrolling-touch">
+  <div class="fixed inset-0 bg-black/50" onclick="closeSlotModal()"></div>
+  <div class="relative min-h-full flex p-4 pointer-events-none">
+    <div class="m-auto pointer-events-auto bg-white rounded-2xl p-5 w-80 max-w-full">
+      <h3 class="font-bold text-lg mb-3">وردية في هذا اليوم</h3>
+      <label class="text-sm text-slate-500">الموظف</label>
+      <select id="slotEmp" class="w-full border rounded-xl p-3 mb-2 bg-white"></select>
+      <label class="text-sm text-slate-500">من</label>
+      <input id="slotStart" type="time" value="08:00" class="w-full border rounded-xl p-3 mb-2">
+      <label class="text-sm text-slate-500">إلى</label>
+      <input id="slotEnd" type="time" value="14:00" class="w-full border rounded-xl p-3 mb-2">
+      <div id="slotErr" class="text-red-500 text-sm hidden mb-2"></div>
+      <div class="flex gap-2">
+        <button onclick="saveSlot()" class="flex-1 btn-teal py-2 rounded-xl">حفظ</button>
+        <button onclick="closeSlotModal()" class="flex-1 btn-amber py-2 rounded-xl">إلغاء</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// إعداد اتصال مخصّص محفوظ على هذا الجهاز (يُضبط من: الإعدادات ← الأقسام ← إعداد الاتصال)
+const FIREBASE_CFG_KEY = 'wrdiat_firebase_config_v1';
+try {
+  const customCfg = JSON.parse(localStorage.getItem(FIREBASE_CFG_KEY) || 'null');
+  if (customCfg && customCfg.apiKey && customCfg.databaseURL) APP_CONFIG.firebaseConfig = customCfg;
+} catch (e) {}
+firebase.initializeApp(APP_CONFIG.firebaseConfig);
+// تهيئة آمنة: لو كان databaseURL ناقصاً في config.js لا تنهار الصفحة
+let db = null;
+try { db = firebase.database(); } catch (e) { db = null; }
+function firebaseConfigBroken() { return !db; }
+const DEFAULT_ORG_ID = (APP_CONFIG.org && APP_CONFIG.org.id) || 'wrdiat';
+// كل أدمن يسجّل = مؤسسة مستقلة: بياناتها في مسار خاص بها (يُحدَّد عند تسجيل الدخول)
+let ORG_ID = DEFAULT_ORG_ID;
+function orgPathFor(id) { return 'sessions/_' + String(id) + '_org/'; }
+function path(k) { return orgPathFor(ORG_ID) + k; }
+// مفاتيح التخزين المحلي: مساحة لكل مؤسسة (المؤسسة الأصلية تحتفظ بمفاتيحها القديمة بلا تغيير)
+function lk(base) { return (ORG_ID && ORG_ID !== DEFAULT_ORG_ID) ? (base + '_' + ORG_ID) : base; }
+function emailKey(e) { return String(e || '').trim().toLowerCase().replace(/[.#$\[\]]/g, '_'); }
+
+const arabicMonths = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+const arabicDays = ['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+let currentUser = null;
+let viewDate = new Date();
+let calDate = new Date();
+let departments = {};
+let staff = {};
+let shifts = {};
+let filterDept = '';
+let scheduleRules = null; // قواعد التوزيع الأسبوعي (ثابت/تناوب) — تُهيأ بعد تعريف ثوابت الأيام
+
+(function brand() {
+  const o = APP_CONFIG.org || {};
+  if (document.getElementById('orgTitle')) document.getElementById('orgTitle').textContent = o.name || 'نظام الورديات';
+  if (document.getElementById('orgSubtitle')) document.getElementById('orgSubtitle').textContent = o.subtitle || '';
+  document.title = o.name || 'نظام الورديات';
+})();
+
+function isAdmin() { return currentUser && currentUser.role === 'admin'; }
+function isAssistant() { return !!(currentUser && currentUser.role === 'assistant'); }
+// الصلاحيات: الأدمن الرئيسي يملك كل شيء، والأدمن المساعد حسب ما يسمح له به (depts/staff/rules/slots)
+function can(perm) {
+  if (isAdmin()) return true;
+  if (!isAssistant()) return false;
+  if (!perm) return true;
+  const p = (currentUser && currentUser.perms) || {};
+  return !!p[perm];
+}
+function staffList() {
+  return Object.keys(staff).map(function(c) { return Object.assign({ code: c }, staff[c]); }).filter(function(s) { return !s.disabled; });
+}
+function allStaffList() { // يشمل الموقوفين — لعرضهم وإعادة تفعيلهم من الإعدادات
+  return Object.keys(staff).map(function(c) { return Object.assign({ code: c }, staff[c]); });
+}
+// ===== ترتيب قائمة الموظفين: أبجدي / بالقسم / بعدد الورديات + المثبّتون دائماً في الأعلى =====
+function staffSortPref() {
+  try { return localStorage.getItem(lk('wrdiat_staff_sort_v1')) || 'name'; } catch (e) { return 'name'; }
+}
+function setStaffSortPref(v) {
+  try { localStorage.setItem(lk('wrdiat_staff_sort_v1'), v || 'name'); } catch (e) {}
+  renderSettingsLists();
+}
+function staffShiftCounts() { // عدد الورديات الظاهرة لكل موظف (بلا تكرار داخل اليوم)
+  const counts = {};
+  Object.keys(shifts).forEach(function(k) {
+    dedupeSlots(Array.isArray(shifts[k]) ? shifts[k] : []).forEach(function(sl) {
+      const id = String(sl.employeeId == null ? '' : sl.employeeId);
+      if (id) counts[id] = (counts[id] || 0) + 1;
+    });
+  });
+  return counts;
+}
+function sortedStaffForList(list) {
+  const pref = staffSortPref();
+  const counts = pref === 'shifts' ? staffShiftCounts() : null;
+  return list.slice().sort(function(a, b) {
+    const pa = a.pinned ? 0 : 1, pb = b.pinned ? 0 : 1;
+    if (pa !== pb) return pa - pb; // المثبّتون (المدير العام ونحوه) دائماً في الأعلى
+    if (pref === 'dept') {
+      const c = deptName(a.deptId).localeCompare(deptName(b.deptId), 'ar');
+      if (c !== 0) return c;
+      return displayName(a).localeCompare(displayName(b), 'ar');
+    }
+    if (pref === 'shifts') {
+      const ca = counts[a.id] || 0, cb = counts[b.id] || 0;
+      if (ca !== cb) return cb - ca;
+      return displayName(a).localeCompare(displayName(b), 'ar');
+    }
+    return displayName(a).localeCompare(displayName(b), 'ar');
+  });
+}
+function displayName(s) {
+  if (!s) return '';
+  if (s.displayMode === 'laqab' && (s.lastName || s.laqab)) {
+    return String(s.name || '') + ' ' + String(s.lastName || s.laqab || '');
+  }
+  return String(s.name || s.fullName || '');
+}
+function namesMatch(s, typed) {
+  const t = String(typed || '').replace(/\s+/g, ' ').trim();
+  if (!t) return false;
+  const full = displayName(s).replace(/\s+/g, ' ').trim();
+  const first = String(s.name || '').replace(/\s+/g, ' ').trim();
+  return t === full || t === first;
+}
+function staffById(id) {
+  return staffList().find(function(s) { return Number(s.id) === Number(id); });
+}
+function deptName(id) { return (departments[id] && departments[id].name) || ''; }
+function formatKey(d) { return d.getFullYear() + '-' + (d.getMonth()+1) + '-' + d.getDate(); }
+// منع تكرار الموظف في اليوم الواحد مهما أُضيف من عدة أماكن (يدوي/عام/قسم) — يُعتمد واحد فقط
+// الأولوية: الوردية اليدوية (إضافة/تبديل) ثم الأبكر وقتاً.
+function dedupeSlots(list) {
+  const seen = {};
+  const ordered = list.slice().sort(function(a, b) {
+    const aa = a.auto ? 1 : 0, bb = b.auto ? 1 : 0;
+    if (aa !== bb) return aa - bb;
+    return String(a.start || '').localeCompare(String(b.start || ''));
+  });
+  return ordered.filter(function(sl) {
+    const k = String(sl.employeeId == null ? '' : sl.employeeId);
+    if (k === '') return true;
+    if (seen[k]) return false;
+    seen[k] = true;
+    return true;
+  });
+}
+function daySlots(d) {
+  const v = shifts[formatKey(d)];
+  const arr = Array.isArray(v) ? v : [];
+  return dedupeSlots(arr).sort(function(a,b) { return String(a.start).localeCompare(String(b.start)); });
+}
+
+// =====================================================================
+// ===== التوزيع التلقائي للورديات — موظف ثابت / تناوب =====
+// النموذج: «نطاقات» scopes — نطاق عام '' (كل الأقسام) + نطاق مستقل لكل قسم.
+// كل نطاق له أيام 0..6، وكل يوم يقبل شفتاً أو أكثر:
+//   mode        : 'fixed' موظف ثابت | 'rotate' تناوب بترتيب القائمة
+//   employeeIds : الموظفون بالترتيب الذي يُحدد تسلسل الدور
+//   start / end : فترة الوردية (اختياري)
+// اليوم الواحد يدمج نطاقاته كلها: شفت عام + شفت لكل قسم يخصّ حالة ذلك اليوم.
+// anchor: تاريخ بداية التناوب الذي تُحسب منه دورية الترتيب (مثل yt تماماً).
+// =====================================================================
+const RULE_DAY_ORDER = [6, 0, 1, 2, 3, 4, 5]; // السبت → الجمعة (مثل التقويم)
+const RULE_DAY_NAMES = { 6: 'السبت', 0: 'الأحد', 1: 'الإثنين', 2: 'الثلاثاء', 3: 'الأربعاء', 4: 'الخميس', 5: 'الجمعة' };
+const OFFLINE_RULES_KEY = 'wrdiat_schedule_rules_v1';
+const OFFLINE_SHIFTS_KEY = 'wrdiat_offline_shifts_v1';
+const OFFLINE_DEPARTMENTS_KEY = 'wrdiat_offline_departments_v1';
+const OFFLINE_STAFF_KEY = 'wrdiat_offline_staff_v1';
+
+scheduleRules = normalizeScheduleRules(null); // التهيئة هنا بعد تعريف الثوابت أعلاه
+
+function emptyRuleDays() {
+  const days = {};
+  RULE_DAY_ORDER.forEach(function(day) {
+    days[day] = { rows: [ { mode: 'rotate', employeeIds: [], start: '', end: '' } ] };
+  });
+  return days;
+}
+function defaultScheduleRulesData() {
+  return { anchor: '2026-8-1', scopes: { '': { days: emptyRuleDays() } } };
+}
+function sanitizeRuleRow(r) {
+  if (!r || typeof r !== 'object') return null;
+  return {
+    mode: r.mode === 'fixed' ? 'fixed' : 'rotate',
+    employeeIds: Array.isArray(r.employeeIds) ? r.employeeIds.map(Number).filter(Number.isFinite) : [],
+    start: String(r.start || ''),
+    end: String(r.end || '')
+  };
+}
+// فايربيس لا يسمح بمفتاح فارغ ولا برموز . # $ / [ ] — النطاق العام '' يُخزَّن باسم _all
+const RULES_GLOBAL_SCOPE_KEY = '_all';
+function firebaseSafeScopeKey(k) {
+  const v = String(k == null ? '' : k);
+  if (!v) return RULES_GLOBAL_SCOPE_KEY;
+  return v.replace(/[.#$/\[\]]/g, '_');
+}
+// يحوّل صيغة الذاكرة (مفتاح عام '') إلى صيغة صالحة لـ Firebase
+function rulesForFirebase(rules) {
+  const n = normalizeScheduleRules(rules);
+  const scopes = {};
+  Object.keys(n.scopes).forEach(function(k) { scopes[firebaseSafeScopeKey(k)] = n.scopes[k]; });
+  return { anchor: n.anchor, scopes: scopes };
+}
+// يهيّئ القواعد من أي صيغة: الجديدة {scopes} أو القديمة {days} ويُرحِّل القديم تلقائياً
+function normalizeScheduleRules(value) {
+  const def = defaultScheduleRulesData();
+  if (!value || typeof value !== 'object') return def;
+  const out = { anchor: def.anchor, scopes: {} };
+  if (typeof value.anchor === 'string' && /^\d{4}-\d{1,2}-\d{1,2}$/.test(value.anchor)) out.anchor = value.anchor;
+  const scopeSource = {};
+  if (value.scopes && typeof value.scopes === 'object') {
+    Object.keys(value.scopes).forEach(function(scope) {
+      const key = (String(scope) === RULES_GLOBAL_SCOPE_KEY) ? '' : String(scope);
+      scopeSource[key] = value.scopes[scope];
+    });
+  } else if (value.days && typeof value.days === 'object' && !Array.isArray(value.days)) {
+    // ترحيل من الصيغة القديمة {days:{weekday:{rows:[{deptId,...}]}}} — deptId يحدد النطاق
+    const byScope = {};
+    RULE_DAY_ORDER.forEach(function(day) {
+      const src = value.days[day];
+      if (!src || !Array.isArray(src.rows)) return;
+      src.rows.forEach(function(r) {
+        const scope = r && r.deptId ? String(r.deptId) : '';
+        if (!byScope[scope]) byScope[scope] = {};
+        if (!byScope[scope][day]) byScope[scope][day] = [];
+        byScope[scope][day].push(sanitizeRuleRow(r));
+      });
+    });
+    Object.keys(byScope).forEach(function(scope) {
+      const days = emptyRuleDays();
+      RULE_DAY_ORDER.forEach(function(day) {
+        if (byScope[scope][day] && byScope[scope][day].length) days[day] = { rows: byScope[scope][day] };
+      });
+      scopeSource[scope] = { days: days };
+    });
+  }
+  Object.keys(scopeSource).forEach(function(scope) {
+    const src = scopeSource[scope] || {};
+    const days = emptyRuleDays();
+    RULE_DAY_ORDER.forEach(function(day) {
+      const s = (src.days && typeof src.days === 'object') ? src.days[day] : null;
+      let rows = [];
+      if (s && Array.isArray(s.rows)) rows = s.rows.map(sanitizeRuleRow).filter(Boolean);
+      if (!rows.length && scope === '') rows = JSON.parse(JSON.stringify(days[day].rows)); // القسم: لا صفوف بلا إعداد صريح
+      days[day] = { rows: rows };
+    });
+    out.scopes[scope] = { days: days };
+  });
+  if (!Object.keys(out.scopes).length) out.scopes = def.scopes;
+  return out;
+}
+
+function saveOfflineRules(value) { try { localStorage.setItem(lk(OFFLINE_RULES_KEY), JSON.stringify(value)); } catch (e) {} }
+function saveOfflineShifts(value) { try { localStorage.setItem(lk(OFFLINE_SHIFTS_KEY), JSON.stringify(value || {})); } catch (e) {} }
+function saveOfflineDepartments(value) { try { localStorage.setItem(lk(OFFLINE_DEPARTMENTS_KEY), JSON.stringify(value || {})); } catch (e) {} }
+function saveOfflineStaff(value) { try { localStorage.setItem(lk(OFFLINE_STAFF_KEY), JSON.stringify(value || {})); } catch (e) {} }
+
+// ===== الحفظ المحلي الفوري + المزامنة التلقائية مع Firebase =====
+// كل تعديل يُحفظ محلياً فوراً (لا يضيع مع تحديث الصفحة)، وعند فتح الصفحة لاحقاً
+// يدفع المحلي للخادم تلقائياً إن كانت فيه تغييرات لم تُزامَن بعد.
+const DIRTY_RULES_KEY = 'wrdiat_dirty_rules';
+const DIRTY_SHIFTS_KEY = 'wrdiat_dirty_shifts';
+let rulesDirty = false, shiftsDirty = false, rulesPushing = false, shiftsPushing = false;
+function markRulesDirty() { rulesDirty = true; try { localStorage.setItem(lk(DIRTY_RULES_KEY), '1'); } catch (e) {} saveOfflineRules(scheduleRules); }
+function markShiftsDirty() { shiftsDirty = true; try { localStorage.setItem(lk(DIRTY_SHIFTS_KEY), '1'); } catch (e) {} saveOfflineShifts(shifts); }
+function clearRulesDirty() { rulesDirty = false; try { localStorage.removeItem(lk(DIRTY_RULES_KEY)); } catch (e) {} }
+function clearShiftsDirty() { shiftsDirty = false; try { localStorage.removeItem(lk(DIRTY_SHIFTS_KEY)); } catch (e) {} }
+async function pushRulesLocal() {
+  if (rulesPushing || !rulesDirty) return;
+  rulesPushing = true;
+  try { await db.ref(path('scheduleRules')).set(rulesForFirebase(scheduleRules)); clearRulesDirty(); } catch (e) {}
+  rulesPushing = false;
+}
+async function pushShiftsLocal() {
+  if (shiftsPushing || !shiftsDirty) return;
+  shiftsPushing = true;
+  try { await db.ref(path('shifts')).set(shifts); clearShiftsDirty(); } catch (e) {}
+  shiftsPushing = false;
+}
+async function syncDirtyAll() {
+  if (!isAdmin() && !isAssistant()) return;
+  if (rulesDirty) await pushRulesLocal();
+  if (shiftsDirty) await pushShiftsLocal();
+}
+function restoreOfflineData() {
+  try {
+    const d = JSON.parse(localStorage.getItem(lk(OFFLINE_DEPARTMENTS_KEY)) || 'null');
+    if (d && typeof d === 'object' && !Array.isArray(d)) departments = d;
+  } catch (e) {}
+  try {
+    const st = JSON.parse(localStorage.getItem(lk(OFFLINE_STAFF_KEY)) || 'null');
+    if (st && typeof st === 'object' && !Array.isArray(st)) staff = st;
+  } catch (e) {}
+  try {
+    const r = JSON.parse(localStorage.getItem(lk(OFFLINE_RULES_KEY)) || 'null');
+    if (r && typeof r === 'object') scheduleRules = normalizeScheduleRules(r);
+  } catch (e) {}
+  try {
+    const s = JSON.parse(localStorage.getItem(lk(OFFLINE_SHIFTS_KEY)) || 'null');
+    if (s && typeof s === 'object' && !Array.isArray(s)) shifts = s;
+  } catch (e) {}
+  try { rulesDirty = localStorage.getItem(lk(DIRTY_RULES_KEY)) === '1'; } catch (e) {}
+  try { shiftsDirty = localStorage.getItem(lk(DIRTY_SHIFTS_KEY)) === '1'; } catch (e) {}
+}
+
+function pad2(n) { return String(n).padStart(2, '0'); }
+function getAnchorParts() {
+  const p = String((scheduleRules && scheduleRules.anchor) || defAnchor()).split('-').map(Number);
+  if (p.length === 3 && p.every(Number.isFinite)) return { y: p[0], m: p[1], d: p[2] };
+  return { y: 2026, m: 8, d: 1 };
+}
+function defAnchor() { return '2026-8-1'; }
+function getAnchorDate() { const p = getAnchorParts(); return new Date(p.y, p.m - 1, p.d); }
+function anchorInputValue() { const p = getAnchorParts(); return pad2(p.y) + '-' + pad2(p.m) + '-' + pad2(p.d); }
+
+// عدد مرات تكرار نفس اليوم الأسبوعي منذ تاريخ البداية حتى التاريخ المطلوب
+// (هذا هو أساس منطق التناوب في yt: كل تكرار يدفع الدور للموظف التالي).
+function weekdayOccurrenceCount(date) {
+  const dayOfWeek = date.getDay();
+  let occ = 0;
+  const cursor = getAnchorDate(); cursor.setHours(0, 0, 0, 0);
+  const target = new Date(date); target.setHours(0, 0, 0, 0);
+  while (cursor <= target) {
+    if (cursor.getDay() === dayOfWeek) occ++;
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return occ;
+}
+
+// النطاقات المعروضة في الواجهة: '' (عام/كل الأقسام) ثم كل الأقسام الحالية
+function ruleScopes() {
+  const keys = [''];
+  Object.keys(departments).forEach(function(id) { keys.push(String(id)); });
+  return keys;
+}
+// موظفو نطاق: عام = كل النشطين، قسم = موظفو ذلك القسم فقط
+function rowPool(scope) {
+  if (!scope) return staffList();
+  return staffList().filter(function(s) { return String(s.deptId) === String(scope); });
+}
+function rowCandidates(scope, row) {
+  const pool = rowPool(scope);
+  const ids = (row.employeeIds || []).map(Number);
+  if (!ids.length) return pool.slice(); // فارغ = كل موظفي النطاق
+  const out = [];
+  ids.forEach(function(id) {
+    const s = pool.find(function(e) { return Number(e.id) === Number(id); });
+    if (s && out.indexOf(s) < 0) out.push(s);
+  });
+  return out;
+}
+
+function makeAutoSlot(date, scope, row, rowIndex, employee, k) {
+  return { id: 'auto-' + formatKey(date) + '-' + (scope || 'all') + '-' + rowIndex + '-' + employee.id + '-' + k,
+           employeeId: employee.id, start: row.start || '', end: row.end || '', auto: true };
+}
+// ورديات شفت واحد في تاريخ محدد:
+// - ثابت: كل الموظفين المختارين يظهرون كل أسبوع (لا موظف واحد فقط).
+// - تناوب: يظهر الموظف صاحب الدور لهذا الأسبوع فقط.
+function rowSlotsForDate(date, scope, row, rowIndex) {
+  const candidates = rowCandidates(scope, row);
+  if (!candidates.length) return [];
+  const out = [];
+  if (row.mode === 'fixed') {
+    candidates.forEach(function(emp, k) { out.push(makeAutoSlot(date, scope, row, rowIndex, emp, k)); });
+  } else {
+    const occ = Math.max(weekdayOccurrenceCount(date), 1);
+    const emp = candidates[(occ - 1) % candidates.length];
+    if (emp) out.push(makeAutoSlot(date, scope, row, rowIndex, emp, 0));
+  }
+  return out;
+}
+function scopeAutoSlotsForDate(scope, date) {
+  const sc = scheduleRules.scopes[scope];
+  if (!sc || !sc.days) return [];
+  const rule = sc.days[date.getDay()] || { rows: [] };
+  const out = [];
+  (rule.rows || []).forEach(function(row, i) {
+    out.push.apply(out, rowSlotsForDate(date, scope, row, i));
+  });
+  return out;
+}
+function autoSlotsForDate(date) {
+  const scopes = ruleScopes();
+  const out = [];
+  scopes.forEach(function(scope) { out.push.apply(out, scopeAutoSlotsForDate(scope, date)); });
+  return dedupeSlots(out); // نفس الموظف في قاعدة عامة + قاعدة قسم → وردية واحدة فقط
+}
+function autoSlotForDate(date, scope, row, rowIndex) { // توافق قديم: أول وردية للشفت
+  return rowSlotsForDate(date, scope, row, rowIndex)[0] || null;
+}
+
+// ===== واجهة الإعدادات: تحرير القواعد =====
+function escapeHtml(value) {
+  return String(value == null ? '' : value).replace(/[&<>\"']/g, function(ch) {
+    return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[ch];
+  });
+}
+function rulesMsg(text, ok) {
+  const el = document.getElementById('rulesMsg');
+  if (!el) return;
+  el.textContent = text;
+  el.classList.remove('hidden');
+  el.className = 'text-sm mt-2 mb-2 ' + (ok ? 'text-teal-700' : 'text-red-600');
+}
+let toastTimer = null;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.remove('hidden');
+  // استجابة حسية: نقرة قصيرة للنجاح ونمط إنذار للخطأ
+  if (/✖|⚠|تعذر|فشل/.test(String(msg))) buzz([40, 50, 40]);
+  else buzz(15);
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function() { el.classList.add('hidden'); }, 2800);
+}
+// scopeIdx يقصد به ترتيب النطاق في ruleScopeKeys (تجنب مشاكل الاقتباس في معرفات الأقسام)
+let ruleScopeKeys = [''];
+function scopeKey(scopeIdx) { return ruleScopeKeys[Number(scopeIdx)] === undefined ? '' : ruleScopeKeys[Number(scopeIdx)]; }
+// يضمن وجود النطاق في القواعد فعلياً (كان يُنشَأ كائن مؤقت فيُفقد — فلا تظهر أسماء الموظفين ولا يمكن إضافة وردية)
+function ensureRulesScope(scope) {
+  if (!scheduleRules.scopes) scheduleRules.scopes = {};
+  let sc = scheduleRules.scopes[scope];
+  if (!sc || typeof sc !== 'object') sc = scheduleRules.scopes[scope] = { days: {} };
+  // الأيام قد تصل من فايربيس كمصفوفة (المفاتيح 0..6) → نحوّلها كائناً بمفاتيح أيام الأسبوع
+  if (Array.isArray(sc.days)) {
+    const arr = sc.days, obj = {};
+    RULE_DAY_ORDER.forEach(function(day, i) {
+      obj[day] = (arr[day] !== undefined && arr[day] !== null) ? arr[day] : ((arr[i] !== undefined && arr[i] !== null) ? arr[i] : { rows: [] });
+    });
+    sc.days = obj;
+  }
+  if (!sc.days || typeof sc.days !== 'object') sc.days = {};
+  RULE_DAY_ORDER.forEach(function(day) {
+    const d = sc.days[day];
+    if (!d || typeof d !== 'object' || !Array.isArray(d.rows)) {
+      // يوم غير مضبوط: بلا شفتات (كي لا تُولَّد ورديات لم يطلبها المدير) — الواجهة تعرض موظفي القسم لإضافتهم بضغطة
+      sc.days[day] = { rows: [] };
+    }
+  });
+  return sc;
+}
+function getRuleRow(scopeIdx, day, idx) {
+  const sc = ensureRulesScope(scopeKey(scopeIdx));
+  return (sc.days[day] && sc.days[day].rows[idx]) || { employeeIds: [] };
+}
+function ruleRowHtml(scopeIdx, day, row, idx) {
+  const scope = scopeKey(scopeIdx);
+  const selected = (row.employeeIds || []).map(Number);
+  const pool = rowPool(scope);
+  const chips = pool.length
+    ? pool.map(function(s) {
+        const dname = (!scope && deptName(s.deptId)) ? ' · ' + deptName(s.deptId) : '';
+        return '<span class="rule-chip' + (selected.indexOf(Number(s.id)) >= 0 ? ' sel' : '') + '" onclick="toggleRuleEmp(' + scopeIdx + ',' + day + ',' + idx + ',' + Number(s.id) + ')">' + escapeHtml(displayName(s) + dname) + '</span>';
+      }).join('')
+    : '<span class="text-xs font-bold text-red-500">⚠️ لا يوجد موظفون نشطون في هذا النطاق — أضفهم أولاً من تبويب «👥 الموظفون»</span>';
+  const selPool = rowCandidates(scope, row);
+  const orderList = (row.mode === 'rotate' && selPool.length > 1)
+    ? '<div class="text-xs text-slate-500 mb-1 mt-1">ترتيب الدور — التناوب يتبعه بالترتيب:</div><div class="flex flex-wrap gap-1">' +
+      selPool.map(function(s, i) {
+        return '<span class="order-chip"><button type="button" onclick="moveRuleEmp(' + scopeIdx + ',' + day + ',' + idx + ',' + Number(s.id) + ',-1)"' + (i === 0 ? ' disabled' : '') + '>▲</button>' +
+          escapeHtml(displayName(s)) +
+          '<button type="button" onclick="moveRuleEmp(' + scopeIdx + ',' + day + ',' + idx + ',' + Number(s.id) + ',1)"' + (i === selPool.length - 1 ? ' disabled' : '') + '>▼</button></span>';
+      }).join('') + '</div>'
+    : '';
+  return '<div id="ruleRow-' + scopeIdx + '-' + day + '-' + idx + '" class="border border-slate-200 rounded-xl p-2 mb-2 bg-white">' +
+    '<div class="flex gap-2 mb-1">' +
+      '<select id="ruleMode-' + scopeIdx + '-' + day + '-' + idx + '" onchange="ruleModeChanged(' + scopeIdx + ',' + day + ',' + idx + ')" class="flex-1 border rounded-lg p-2 bg-white text-sm">' +
+        '<option value="fixed"' + (row.mode === 'fixed' ? ' selected' : '') + '>تلقائي — نفس الموظفين كل أسبوع</option>' +
+        '<option value="rotate"' + (row.mode !== 'fixed' ? ' selected' : '') + '>تناوب — دور أسبوعي</option>' +
+      '</select>' +
+      '<button type="button" onclick="removeRuleRow(' + scopeIdx + ',' + day + ',' + idx + ')" class="text-red-500 text-sm px-2" title="حذف الشفت">✕</button>' +
+    '</div>' +
+    '<div class="flex items-center gap-2 mb-1">' +
+      '<span class="text-xs text-slate-500 whitespace-nowrap">الوقت</span>' +
+      '<input type="time" id="ruleStart-' + scopeIdx + '-' + day + '-' + idx + '" value="' + escapeHtml(row.start) + '" onchange="updateRuleTime(' + scopeIdx + ',' + day + ',' + idx + ',\'start\',this.value)" class="flex-1 border rounded-lg p-2 bg-white text-sm">' +
+      '<span class="text-xs text-slate-500">إلى</span>' +
+      '<input type="time" id="ruleEnd-' + scopeIdx + '-' + day + '-' + idx + '" value="' + escapeHtml(row.end) + '" onchange="updateRuleTime(' + scopeIdx + ',' + day + ',' + idx + ',\'end\',this.value)" class="flex-1 border rounded-lg p-2 bg-white text-sm">' +
+    '</div>' +
+    '<div class="text-xs text-slate-500 mb-1">الموظفون' + (scope ? ' (قسم «' + escapeHtml(deptName(scope)) + '» فقط):' : ' (كل الأقسام — بجانب الاسم قسمه):') + '</div>' +
+    (row.mode === 'fixed'
+      ? '<p class="text-xs text-teal-700 font-bold mb-1">تلقائي: كل الموظفين المختارين يظهرون في هذا اليوم كل أسبوع.</p>'
+      : '<p class="text-xs text-slate-500 mb-1">تناوب: كل أسبوع يظهر الموظف صاحب الدور بالترتيب المحدد.</p>') +
+    (chips || '<p class="text-xs text-gray-500 text-center">لا يوجد موظفون' + (scope ? ' في هذا القسم' : '') + ' — أضفهم من قسم «الموظفون»</p>') +
+    '<div id="ruleOrder-' + scopeIdx + '-' + day + '-' + idx + '">' + orderList + '</div>' +
+  '</div>';
+}
+let rulesView = 'depts'; // 'depts' عرض بالأقسام | 'days' عرض بالأيام
+let rulesOpen = {}; // حالة فتح البطاقات المطوية
+function setRulesView(view) {
+  rulesView = view === 'days' ? 'days' : 'depts';
+  renderScheduleRules();
+}
+function ruleSectionState(el) {
+  if (el && el.dataset && el.dataset.key) rulesOpen[el.dataset.key] = !!el.open;
+}
+function ruleOpenAttr(key) { return rulesOpen[key] ? 'open' : ''; }
+
+function renderScheduleRules() {
+  if (!can('rules')) return;
+  const container = document.getElementById('rulesContainer');
+  if (!container) return;
+  const anchorEl = document.getElementById('rulesAnchor');
+  if (anchorEl) anchorEl.value = anchorInputValue();
+  ruleScopeKeys = ruleScopes();
+  const viewDays = document.getElementById('viewByDays');
+  const viewDepts = document.getElementById('viewByDepts');
+  if (viewDays) { viewDays.classList.toggle('btn-teal', rulesView === 'days'); viewDays.classList.toggle('bg-slate-100', rulesView !== 'days'); }
+  if (viewDepts) { viewDepts.classList.toggle('btn-teal', rulesView === 'depts'); viewDepts.classList.toggle('bg-slate-100', rulesView !== 'depts'); }
+  container.innerHTML = rulesView === 'days' ? rulesByDaysHtml() : rulesByDeptsHtml();
+}
+function scopeLabel(scope) {
+  if (!scope) return { icon: '🌐', name: 'كل الأقسام (قاعدة عامة)', note: 'تُطبَّق على جميع الموظفين النشطين وتُدمج مع قواعد الأقسام.' };
+  if (departments[scope]) return { icon: '🏢', name: 'قسم ' + departments[scope].name, note: 'أيام هذا القسم مستقلة: تلقائي أو تناوب بين موظفيه فقط.' };
+  return { icon: '🗂️', name: 'قسم سابق (محذوف)', note: 'هذا القسم لم يعد موجوداً — قواعده محفوظة.' };
+}
+function scopeSummaryHtml(scope, extra) {
+  const lab = scopeLabel(scope);
+  const cnt = (scope ? rowPool(scope) : staffList()).length;
+  const cntHtml = ' <span class="text-xs font-bold bg-white/15 rounded-full px-2 py-0.5" title="عدد الموظفين النشطين">' + cnt + ' موظف</span>';
+  return '<summary class="flex items-center justify-between gap-2 cursor-pointer font-bold p-3 rounded-xl bg-teal-800 text-amber-100">' +
+    '<span>' + lab.icon + ' ' + lab.name + cntHtml + '</span>' + (extra || '') + '</summary>';
+}
+function dayChip(day) { return '<span class="text-xs bg-white/20 rounded-full px-2 py-0.5">' + RULE_DAY_NAMES[day] + '</span>'; }
+
+// ===== نقل بيانات هذا الجهاز إلى Firebase (تلقائياً أو بزر) =====
+const MIGRATE_PUSH_KEY = 'wrdiat_migrated_push_v1';
+let migratingLocal = false;
+function localDataSummary() {
+  const n = { depts: Object.keys(departments).length, staff: Object.keys(staff).length, scopes: Object.keys((scheduleRules && scheduleRules.scopes) || {}).length, days: Object.keys(shifts || {}).length };
+  return n;
+}
+function localDataSummaryText(n) {
+  return 'أقسام: ' + n.depts + ' · موظفون: ' + n.staff + ' · نطاقات قواعد: ' + n.scopes + ' · أيام ورديات: ' + n.days;
+}
+function pushAllMsg(text, ok) {
+  const el = document.getElementById('pushAllMsg');
+  if (el) { el.textContent = text; el.classList.remove('hidden'); el.className = 'text-xs mb-2 ' + (ok ? 'text-teal-700' : 'text-red-600'); }
+}
+async function pushAllLocalToFirebase(btn) {
+  if (!isAdmin()) return false;
+  const n = localDataSummary();
+  const total = n.depts + n.staff + n.scopes + n.days;
+  if (!total) { pushAllMsg('لا توجد بيانات محلية على هذا الجهاز لرفعها', false); toast('لا توجد بيانات محلية لرفعها'); return false; }
+  if (!confirm('سيرفع التطبيق بيانات هذا الجهاز إلى قاعدة Firebase الحالية:\n' + localDataSummaryText(n) + '\n\nمتابعة؟')) return false;
+  if (btn) { btn.classList.add('save-flash'); btn.innerHTML = '⏳ جارٍ الرفع…'; }
+  pushAllMsg('⏳ جارٍ رفع البيانات…', true);
+  try {
+    await db.ref(path('departments')).set(departments || {});
+    await db.ref(path('staff')).set(staff || {});
+    await db.ref(path('scheduleRules')).set(rulesForFirebase(scheduleRules));
+    if (n.days) await db.ref(path('shifts')).set(shifts || {});
+    clearRulesDirty(); clearShiftsDirty();
+    try { localStorage.setItem(lk(MIGRATE_PUSH_KEY), '1'); } catch (e) {}
+    pushAllMsg('✔ تم رفع كل البيانات إلى Firebase (' + localDataSummaryText(n) + ')', true);
+    toast('☁️ تم رفع بيانات هذا الجهاز إلى Firebase');
+    if (btn) saveBtnFlash(btn, '✔ تم الرفع', true);
+    return true;
+  } catch (e) {
+    const why = (e && (e.code || e.message)) || 'غير معروف';
+    pushAllMsg('تعذر الرفع (' + why + ') — البيانات محفوظة على هذا الجهاز، حاول لاحقاً', false);
+    if (btn) saveBtnFlash(btn, '✖ تعذر الرفع', false);
+    return false;
+  }
+}
+// عند اكتشاف قاعدة فارغة: يرفع بيانات هذا الجهاز إليها مرة واحدة تلقائياً (للأدمن فقط)
+async function autoMigrateLocalToServer() {
+  if (migratingLocal || !isAdmin()) return;
+  try { if (localStorage.getItem(lk(MIGRATE_PUSH_KEY)) === '1') return; } catch (e) {}
+  const n = localDataSummary();
+  if (!(n.depts || n.staff || n.scopes || n.days)) return;
+  migratingLocal = true;
+  try {
+    await db.ref(path('departments')).set(departments || {});
+    await db.ref(path('staff')).set(staff || {});
+    await db.ref(path('scheduleRules')).set(rulesForFirebase(scheduleRules));
+    if (n.days) await db.ref(path('shifts')).set(shifts || {});
+    clearRulesDirty(); clearShiftsDirty();
+    try { localStorage.setItem(lk(MIGRATE_PUSH_KEY), '1'); } catch (e) {}
+    toast('☁️ القاعدة الجديدة فارغة — تم رفع بيانات هذا الجهاز إليها تلقائياً');
+  } catch (e) {}
+  migratingLocal = false;
+}
+// معالجات وصول بيانات الخادم: لا تمسح نسخة الجهاز حين تكون القاعدة فارغة
+function onDepartmentsValue(val) {
+  val = val || {};
+  if (Object.keys(val).length) { departments = val; saveOfflineDepartments(departments); renderAll(); return; }
+  if (Object.keys(departments).length) { autoMigrateLocalToServer(); return; }
+  departments = {}; saveOfflineDepartments(departments); renderAll();
+}
+// هل في جهاز المستخدم قواعد فعلية (غير الفارغة الافتراضية)؟ — للحماية من المسح عند قاعدة فارغة
+function localRulesHaveContent(rules) {
+  const n = rules || scheduleRules;
+  if (!n || !n.scopes) return false;
+  // المحتوى الحقيقي = شفت فيه موظفون مُختارون أو وقت محدَّد (الشفتات الافتراضية الفارغة ليست محتوى)
+  return Object.keys(n.scopes).some(function(scope) {
+    const days = (n.scopes[scope] && n.scopes[scope].days) || {};
+    return Object.keys(days).some(function(d) {
+      return ((days[d] && days[d].rows) || []).some(function(row) {
+        return (row.employeeIds || []).length > 0 || (!!row.start && !!row.end);
+      });
+    });
+  });
+}
+function onRulesValue(val) {
+  if (rulesDirty) {
+    const ls = normalizeScheduleRules(scheduleRules);
+    const vs = normalizeScheduleRules(val || {});
+    if (JSON.stringify(ls) !== JSON.stringify(vs)) pushRulesLocal();
+    return;
+  }
+  const serverHas = val && (val.scopes || val.days);
+  if (serverHas) {
+    scheduleRules = normalizeScheduleRules(val);
+    saveOfflineRules(scheduleRules);
+    if (document.getElementById('rulesAnchor')) document.getElementById('rulesAnchor').value = anchorInputValue();
+    if (document.getElementById('rulesContainer')) renderScheduleRules();
+    return;
+  }
+  // الخادم فارغ: لا نمحو قواعد هذا الجهاز — نرفعها
+  if (localRulesHaveContent()) { autoMigrateLocalToServer(); return; }
+  scheduleRules = normalizeScheduleRules(val || {});
+  saveOfflineRules(scheduleRules);
+  if (document.getElementById('rulesAnchor')) document.getElementById('rulesAnchor').value = anchorInputValue();
+  if (document.getElementById('rulesContainer')) renderScheduleRules();
+}
+function onShiftsValue(val) {
+  val = val || {};
+  if (shiftsDirty) { if (JSON.stringify(val) !== JSON.stringify(shifts || {})) pushShiftsLocal(); return; }
+  const serverHas = Object.keys(val).some(function(k) { return (val[k] || []).length || (val[k] && typeof val[k] === 'object'); });
+  if (!serverHas && Object.keys(shifts || {}).length) { autoMigrateLocalToServer(); return; }
+  shifts = val; saveOfflineShifts(shifts); renderAll();
+}
+function onStaffValue(val) {
+  val = val || {};
+  if (Object.keys(val).length) { staff = val; saveOfflineStaff(staff); renderAll(); return; }
+  if (Object.keys(staff).length) { autoMigrateLocalToServer(); return; }
+  staff = {}; saveOfflineStaff(staff); renderAll();
+}
+// ===== شاشة إعداد الاتصال بقاعدة Firebase =====
+function fbConnectRefresh() {
+  const box = document.getElementById('fbConnectBox');
+  if (box) box.classList.toggle('hidden', !isAdmin());
+  const cur = document.getElementById('fbCurrentProject');
+  if (cur) {
+    const cfg = APP_CONFIG.firebaseConfig || {};
+    cur.textContent = (cfg.projectId || 'غير معروف') + (cfg.databaseURL ? ' (مربوط بقاعدة بيانات)' : ' (بدون databaseURL)');
+  }
+}
+// يقبل صيغة JSON أو صيغة كود فايربيس (مفاتيح بلا علامات اقتباس) وينظّفها
+function parseFirebaseConfigText(raw) {
+  const m = String(raw || '').match(/\{[\s\S]*\}/);
+  if (!m) return null;
+  let txt = m[0];
+  try { return JSON.parse(txt); } catch (e) {}
+  const fixed = txt
+    .replace(/([{,]\s*)([A-Za-z_$][A-Za-z0-9_$]*)\s*:/g, '$1"$2":')
+    .replace(/:\s*'([^']*)'/g, ': "$1"')
+    .replace(/,\s*}/g, '}')
+    .replace(/,\s*]/g, ']');
+  try { return JSON.parse(fixed); } catch (e) { return null; }
+}
+function saveFirebaseConfigFromInput() {
+  const el = document.getElementById('fbConfigInput');
+  if (!el) return;
+  const cfg = parseFirebaseConfigText(el.value);
+  if (!cfg) { alert('الصق كائن firebaseConfig كاملاً كما هو من صفحة فايربيس'); return; }
+  if (!cfg.apiKey || !cfg.databaseURL) { alert('الكائن ناقص: لازم يحتوي apiKey و databaseURL. تأكد أنك أنشأت Realtime Database ثم انسخ كائن firebaseConfig كاملاً.'); return; }
+  try { localStorage.setItem(FIREBASE_CFG_KEY, JSON.stringify(cfg)); } catch (e) {}
+  alert('✔ تم الحفظ — سيُعاد تحميل التطبيق ليتصل بالقاعدة الجديدة ويرفع بيانات هذا الجهاز إليها');
+  try { location.reload(); } catch (e) {}
+}
+function resetFirebaseConfig() {
+  try { localStorage.removeItem(FIREBASE_CFG_KEY); } catch (e) {}
+  alert('تمت استعادة الإعداد الأصلي من config.js — سيُعاد التحميل');
+  try { location.reload(); } catch (e) {}
+}
+
+function rulesPendingBanner() {
+  if (!(rulesDirty || shiftsDirty)) return '';
+  return '<div class="text-xs font-bold text-amber-800 bg-amber-50 border border-amber-300 rounded-xl p-2 mb-3">⚠️ لديك تعديلات محفوظة على هذا الجهاز لم تُزامَن مع الخادم بعد — ستُرفع تلقائياً عند توفر الاتصال</div>';
+}
+// ===== وضع «بالأيام»: 7 بطاقات أيام، داخلها أقسام مطوية =====
+function rulesByDaysHtml() {
+  const hint = '<div class="text-xs text-slate-600 bg-amber-50 border border-amber-200 rounded-xl p-2 mb-3">✏️ عدّل الشفتات كما تريد — ولتطبيق التعديلات على <b>5 سنوات</b> استخدم زر «💾 حفظ» تحت كل قسم في وضع <b>🏢 بالأقسام</b>.</div>';
+  return rulesPendingBanner() + hint + RULE_DAY_ORDER.map(function(day) {
+    const key = 'd:' + day;
+    const scopesHtml = ruleScopeKeys.map(function(scope, si) {
+      const sc = ensureRulesScope(scope);
+      const rows = (sc.days[day] || { rows: [] }).rows;
+      const lab = scopeLabel(scope);
+      const rowsHtml = (rows || []).map(function(row, idx) { return ruleRowHtml(si, day, row, idx); }).join('');
+      return '<details class="border border-slate-200 rounded-xl p-2 mb-2 bg-slate-50" data-key="d:' + day + ':' + scope + '" ' + ruleOpenAttr('d:' + day + ':' + scope) + ' ontoggle="ruleSectionState(this)">' +
+        '<summary class="cursor-pointer font-bold text-sm p-1">' + lab.icon + ' ' + lab.name + ' <span class="text-xs text-slate-500">(' + rows.length + ' شفت)</span></summary>' +
+        '<div class="mt-2">' + (rows.length ? '' : emptyDayStateHtml(si, day, scope)) + rowsHtml +
+        '<button type="button" onclick="addRuleRow(' + si + ',' + day + ')" class="text-sm text-teal-700 font-bold">+ إضافة شفت لهذا اليوم</button>' +
+        '</div></details>';
+    }).join('');
+    return '<div class="border-2 border-orange-100 rounded-xl p-3 mb-3 bg-orange-50">' +
+      '<details class="day-details" data-key="' + key + '" ' + ruleOpenAttr(key) + ' ontoggle="ruleSectionState(this)">' +
+        '<summary class="flex justify-between items-center gap-2 cursor-pointer font-bold text-lg p-2">📅 ' + RULE_DAY_NAMES[day] +
+          (day === 5 ? ' <span class="text-xs font-bold text-orange-700">— ترتيب مستقل للجمعة</span>' : '') + '</summary>' +
+        '<div class="mt-2">' + scopesHtml + '</div>' +
+      '</details></div>';
+  }).join('');
+}
+
+// ===== وضع «بالأقسام»: بطاقة لكل قسم (مطوية) بأيامه السبعة + زر حفظ واحد =====
+function rulesByDeptsHtml() {
+  const pending = rulesPendingBanner();
+  return pending + ruleScopeKeys.map(function(scope, si) {
+    const sc = ensureRulesScope(scope);
+    const lab = scopeLabel(scope);
+    const daysHtml = RULE_DAY_ORDER.map(function(day) {
+      const rows = (sc.days[day] || { rows: [] }).rows;
+      const rowsHtml = (rows || []).map(function(row, idx) { return ruleRowHtml(si, day, row, idx); }).join('');
+      return '<details class="border border-slate-200 rounded-xl p-2 mb-2 bg-white" data-key="s:' + scope + ':' + day + '" ' + ruleOpenAttr('s:' + scope + ':' + day) + ' ontoggle="ruleSectionState(this)">' +
+        '<summary class="cursor-pointer font-bold text-sm p-1">📅 ' + RULE_DAY_NAMES[day] +
+          (day === 5 ? ' <span class="text-xs font-bold text-orange-700">— ترتيب مستقل</span>' : '') +
+          ' <span class="text-xs text-slate-500">(' + rows.length + ' شفت)</span></summary>' +
+        '<div class="mt-2">' + (rows.length ? '' : emptyDayStateHtml(si, day, scope)) + rowsHtml +
+        '<button type="button" onclick="addRuleRow(' + si + ',' + day + ')" class="text-sm text-teal-700 font-bold">+ إضافة شفت لهذا اليوم</button>' +
+        '</div></details>';
+    }).join('');
+    return '<details class="border-2 border-orange-100 rounded-xl p-3 mb-3 bg-orange-50" data-key="a:' + scope + '" ' + ruleOpenAttr('a:' + scope) + ' ontoggle="ruleSectionState(this)">' +
+      scopeSummaryHtml(scope) +
+      '<div class="mt-3">' +
+        '<p class="text-xs text-slate-500 mb-2">' + lab.note + '</p>' +
+        daysHtml +
+        '<button type="button" data-save-idx="' + si + '" onclick="saveDeptRules(' + si + ', this)" class="w-full mt-3 btn-teal py-3 rounded-2xl font-extrabold">💾 حفظ تغييرات هذا القسم — وتطبيقها 5 سنوات</button>' +
+      '</div></details>';
+  }).join('');
+}
+
+function rerenderRuleRow(scopeIdx, day, idx) {
+  const el = document.getElementById('ruleRow-' + scopeIdx + '-' + day + '-' + idx);
+  if (el) el.outerHTML = ruleRowHtml(scopeIdx, day, getRuleRow(scopeIdx, day, idx), idx);
+}
+function updateRuleTime(scopeIdx, day, idx, field, value) { getRuleRow(scopeIdx, day, idx)[field] = String(value || ''); markRulesDirty(); }
+function ruleAnchorChanged(value) {
+  if (!/^\d{4}-\d{1,2}-\d{1,2}$/.test(value)) return;
+  scheduleRules.anchor = value;
+  markRulesDirty();
+  toast('✔ ضُبط تاريخ بداية التناوب — يُحفظ محلياً الآن');
+}
+function ruleModeChanged(scopeIdx, day, idx) {
+  const row = getRuleRow(scopeIdx, day, idx);
+  const el = document.getElementById('ruleMode-' + scopeIdx + '-' + day + '-' + idx);
+  if (el) row.mode = el.value === 'fixed' ? 'fixed' : 'rotate';
+  // الثابت يقبل أكثر من موظف: كل المختارين يظهرون في هذا اليوم كل أسبوع
+  markRulesDirty();
+  rerenderRuleRow(scopeIdx, day, idx);
+}
+function toggleRuleEmp(scopeIdx, day, idx, empId) {
+  const row = getRuleRow(scopeIdx, day, idx);
+  const ids = (row.employeeIds || []).map(Number);
+  const pos = ids.indexOf(Number(empId));
+  if (pos >= 0) ids.splice(pos, 1); else ids.push(Number(empId));
+  row.employeeIds = ids;
+  markRulesDirty();
+  rerenderRuleRow(scopeIdx, day, idx);
+}
+function moveRuleEmp(scopeIdx, day, idx, empId, dir) {
+  const row = getRuleRow(scopeIdx, day, idx);
+  const ids = (row.employeeIds || []).map(Number);
+  const i = ids.indexOf(Number(empId));
+  const j = i + Number(dir);
+  if (i < 0 || j < 0 || j >= ids.length) return;
+  const t = ids[i]; ids[i] = ids[j]; ids[j] = t;
+  row.employeeIds = ids;
+  markRulesDirty();
+  rerenderRuleRow(scopeIdx, day, idx);
+}
+// يوم بلا شفتات (خصوصاً نطاقات الأقسام): نعرض أسماء موظفي النطاق فوراً — ضغطة على الاسم = وردية له
+function emptyDayStateHtml(scopeIdx, day, scope) {
+  const pool = rowPool(scope);
+  const chips = pool.length
+    ? '<p class="text-xs text-slate-500 mb-1">لا ورديات لهذا اليوم — اضغط على موظف لإضافة وردية له:</p><div class="flex flex-wrap gap-1 mb-1">' +
+      pool.map(function(st) { return '<span class="rule-chip" onclick="addRuleEmpRow(' + scopeIdx + ',' + day + ',' + Number(st.id) + ')">' + escapeHtml(displayName(st)) + '</span>'; }).join('') + '</div>'
+    : '<p class="text-xs font-bold text-red-500 mb-1">⚠️ لا يوجد موظفون نشطون في هذا النطاق — أضفهم أولاً من تبويب «👥 الموظفون»</p>';
+  return chips;
+}
+// إضافة وردية لموظف محدد في يوم محدد بضغطة واحدة (النوع: تلقائي = يظهر كل أسبوع، ويمكن تغييره)
+function addRuleEmpRow(scopeIdx, day, empId) {
+  const sc = ensureRulesScope(scopeKey(scopeIdx));
+  if (!sc.days[day] || !Array.isArray(sc.days[day].rows)) sc.days[day] = { rows: [] };
+  sc.days[day].rows.push({ mode: 'fixed', employeeIds: [Number(empId)], start: '', end: '' });
+  markRulesDirty();
+  renderScheduleRules();
+}
+function addRuleRow(scopeIdx, day) {
+  const sc = ensureRulesScope(scopeKey(scopeIdx));
+  if (!sc.days[day]) sc.days[day] = { rows: [] };
+  sc.days[day].rows.push({ mode: 'rotate', employeeIds: [], start: '', end: '' });
+  markRulesDirty();
+  renderScheduleRules();
+}
+function removeRuleRow(scopeIdx, day, idx) {
+  const sc = ensureRulesScope(scopeKey(scopeIdx));
+  const rows = sc.days[day] ? sc.days[day].rows : [];
+  if (rows.length <= 1) { toast('لا يمكن حذف آخر شفت — عدِّله أو اتركه'); return; }
+  rows.splice(idx, 1);
+  markRulesDirty();
+  renderScheduleRules();
+}
+
+// ===== التطبيق التلقائي: 5 سنوات قادمة (بدون تحديد تواريخ) =====
+const REGEN_YEARS = 5;
+
+// يعيد بناء ورديات يوم أسبوعي واحد (مثلاً السبت) لنطاق واحد لخمس سنوات قادمة:
+// يبقي اليدوية + تلقائيات النطاقات الأخرى، ويستبدل تلقائيات هذا النطاق فقط.
+function regenerateScopeWeekday(scope, day) {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const end = new Date(today); end.setFullYear(end.getFullYear() + REGEN_YEARS);
+  const updates = {};
+  for (let c = new Date(today); c < end; c.setDate(c.getDate() + 1)) {
+    if (c.getDay() !== Number(day)) continue;
+    const key = formatKey(c);
+    const existing = Array.isArray(shifts[key]) ? shifts[key] : [];
+    // نحتفظ باليدوية (تبديلات الغياب) وورديات النطاقات الأخرى،
+    // ونحتفظ باليدوية وورديات النطاقات الأخرى، ونزيل تلقائيات هذا النطاق فقط (معرّفها يحمل اسم النطاق).
+    const autoPrefix = 'auto-' + key + '-' + (scope || 'all') + '-';
+    const manual = existing.filter(function(s) { return !s.auto || s.id.indexOf(autoPrefix) !== 0; });
+    manual.push.apply(manual, scopeAutoSlotsForDate(scope, c));
+    manual.sort(function(a, b) { return String(a.start).localeCompare(String(b.start)); });
+    // نكتب فقط ما تغيّر فعلاً لتقليل حجم الحفظ
+    if (JSON.stringify(manual) !== JSON.stringify(existing)) updates[key] = manual;
+  }
+  Object.keys(updates).forEach(function(k) { shifts[k] = updates[k]; });
+  return updates;
+}
+
+// حفظ تغييرات يوم واحد من الواجهة، ثم تطبيقها على كل هذا اليوم الأسبوعي لـ5 سنوات
+// قراءة شفتات يوم واحد أحدثها من الواجهة (النوع/الوقت) مع الإبقاء على قوائم الموظفين
+function readDayRowsFromDom(scopeIdx, day) {
+  const scope = scopeKey(scopeIdx);
+  const sc = ensureRulesScope(scope);
+  if (!sc.days[day]) sc.days[day] = { rows: [] };
+  const rows = sc.days[day].rows;
+  rows.forEach(function(row, idx) {
+    const modeEl = document.getElementById('ruleMode-' + scopeIdx + '-' + day + '-' + idx);
+    const startEl = document.getElementById('ruleStart-' + scopeIdx + '-' + day + '-' + idx);
+    const endEl = document.getElementById('ruleEnd-' + scopeIdx + '-' + day + '-' + idx);
+    if (modeEl) row.mode = modeEl.value === 'fixed' ? 'fixed' : 'rotate';
+    if (startEl) row.start = startEl.value;
+    if (endEl) row.end = endEl.value;
+  });
+  return rows;
+}
+function saveBtnFlash(btn, text, ok) {
+  if (!btn) return;
+  if (!btn.getAttribute('data-orig')) btn.setAttribute('data-orig', btn.innerHTML);
+  btn.innerHTML = text;
+  btn.classList.remove('save-green', 'save-red');
+  btn.classList.add(ok ? 'save-green' : 'save-red');
+  if (btn.__flashTo) clearTimeout(btn.__flashTo);
+  btn.__flashTo = setTimeout(function() {
+    btn.innerHTML = btn.getAttribute('data-orig') || '';
+    btn.classList.remove('save-green', 'save-red');
+  }, 1500);
+}
+// زر واحد تحت كل قسم: يحفظ كل الأيام المدخلة لهذا القسم ويطبقها 5 سنوات
+async function saveDeptRules(scopeIdx, btn) {
+  if (!can('rules')) return;
+  if (btn) { btn.classList.add('save-flash'); btn.innerHTML = '⏳ جارٍ الحفظ…'; }
+  const anchorEl = document.getElementById('rulesAnchor');
+  const anchorVal = (anchorEl && anchorEl.value) || anchorInputValue();
+  if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(anchorVal)) scheduleRules.anchor = anchorVal;
+  const scope = scopeKey(scopeIdx);
+  if (!scheduleRules.scopes[scope]) scheduleRules.scopes[scope] = { days: emptyRuleDays() };
+  const sc = scheduleRules.scopes[scope];
+  RULE_DAY_ORDER.forEach(function(day) { readDayRowsFromDom(scopeIdx, day); });
+  let fixedEmpty = '';
+  RULE_DAY_ORDER.forEach(function(day) {
+    (sc.days[day] ? sc.days[day].rows : []).forEach(function(row) {
+      if (row.mode === 'fixed' && !row.employeeIds.length && !fixedEmpty) fixedEmpty = RULE_DAY_NAMES[day];
+    });
+  });
+  if (fixedEmpty) { saveBtnFlash(btn, '✖ يوم ' + fixedEmpty + ': اختر موظفاً للتلقائي', false); return; }
+  scheduleRules = normalizeScheduleRules(scheduleRules);
+  markRulesDirty();
+  const updates = {};
+  RULE_DAY_ORDER.forEach(function(day) {
+    Object.assign(updates, regenerateScopeWeekday(scope, day));
+  });
+  markShiftsDirty();
+  let savedServer = false;
+  try {
+    await db.ref(path('scheduleRules')).set(rulesForFirebase(scheduleRules));
+    if (Object.keys(updates).length) await db.ref(path('shifts')).update(updates);
+    savedServer = true;
+  } catch (e) {
+    const why = (e && (e.code || e.message)) || 'غير معروف';
+    rulesMsg('تعذر الحفظ على الخادم (' + why + ') — القواعد محفوظة على هذا الجهاز وستُزامن تلقائياً عند عودة الاتصال', false);
+    savedServer = false;
+  }
+  if (savedServer) { clearRulesDirty(); clearShiftsDirty(); rulesMsg('✔ تم حفظ وتطبيق «' + (scope ? (departments[scope] ? departments[scope].name : scope) : 'القاعدة العامة') + '» على ' + Object.keys(updates).length + ' يوماً (5 سنوات)', true); }
+  renderAll();
+  renderScheduleRules();
+  const freshBtn = document.querySelector('#rulesContainer [data-save-idx="' + scopeIdx + '"]');
+  if (savedServer) saveBtnFlash(freshBtn || btn, '✔ تم الحفظ — طُبّق على 5 سنوات', true);
+  else saveBtnFlash(freshBtn || btn, '✖ محفوظ محلياً — سيُزامن لاحقاً', false);
+}
+
+async function saveDayRules(scopeIdx, day) {
+  if (!can('rules')) return;
+  const anchorEl = document.getElementById('rulesAnchor');
+  const anchorVal = (anchorEl && anchorEl.value) || anchorInputValue();
+  if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(anchorVal)) scheduleRules.anchor = anchorVal;
+  const scope = scopeKey(scopeIdx);
+  if (!scheduleRules.scopes[scope]) scheduleRules.scopes[scope] = { days: emptyRuleDays() };
+  const sc = scheduleRules.scopes[scope];
+  if (!sc.days[day]) sc.days[day] = { rows: [] };
+  const rows = sc.days[day].rows;
+  rows.forEach(function(row, idx) {
+    const modeEl = document.getElementById('ruleMode-' + scopeIdx + '-' + day + '-' + idx);
+    const startEl = document.getElementById('ruleStart-' + scopeIdx + '-' + day + '-' + idx);
+    const endEl = document.getElementById('ruleEnd-' + scopeIdx + '-' + day + '-' + idx);
+    if (modeEl) row.mode = modeEl.value === 'fixed' ? 'fixed' : 'rotate';
+    if (startEl) row.start = startEl.value;
+    if (endEl) row.end = endEl.value;
+  });
+  if (rows.some(function(row) { return row.mode === 'fixed' && !row.employeeIds.length; })) {
+    toast('يوم ' + RULE_DAY_NAMES[day] + ': في النوع «تلقائي» اختَر موظفاً واحداً على الأقل');
+    return;
+  }
+  scheduleRules = normalizeScheduleRules(scheduleRules);
+  markRulesDirty();
+  const updates = regenerateScopeWeekday(scope, day);
+  markShiftsDirty();
+  try {
+    await db.ref(path('scheduleRules')).set(rulesForFirebase(scheduleRules));
+    if (Object.keys(updates).length) await db.ref(path('shifts')).update(updates);
+    clearRulesDirty(); clearShiftsDirty();
+    toast('✔ تم حفظ وتطبيق ' + RULE_DAY_NAMES[day] + ' على ' + Object.keys(updates).length + ' يوماً (5 سنوات)');
+  } catch (e) {
+    const why = (e && (e.code || e.message)) || 'غير معروف';
+    toast('تم الحفظ محلياً — سيُزامن عند عودة الاتصال (' + why + ')');
+  }
+  renderAll();
+}
+// حفظ القواعد: يقرأ النوع/الوقت من كل نطاق ويحدّثها ثم يُرسل لقاعدة البيانات
+async function saveScheduleRules() {
+  if (!can('rules')) return;
+  const anchorEl = document.getElementById('rulesAnchor');
+  const anchorVal = (anchorEl && anchorEl.value) || anchorInputValue();
+  if (!/^\d{4}-\d{1,2}-\d{1,2}$/.test(anchorVal)) { rulesMsg('تاريخ بداية التناوب غير صحيح', false); return; }
+  ruleScopeKeys = ruleScopes();
+  const next = { anchor: anchorVal, scopes: JSON.parse(JSON.stringify(scheduleRules.scopes || {})) };
+  ruleScopeKeys.forEach(function(scope, si) {
+    const sc = next.scopes[scope] || { days: {} };
+    RULE_DAY_ORDER.forEach(function(day) {
+      const rows = sc.days[day] ? sc.days[day].rows : [];
+      rows.forEach(function(row, idx) {
+        const modeEl = document.getElementById('ruleMode-' + si + '-' + day + '-' + idx);
+        const startEl = document.getElementById('ruleStart-' + si + '-' + day + '-' + idx);
+        const endEl = document.getElementById('ruleEnd-' + si + '-' + day + '-' + idx);
+        if (modeEl) row.mode = modeEl.value === 'fixed' ? 'fixed' : 'rotate';
+        if (startEl) row.start = startEl.value;
+        if (endEl) row.end = endEl.value;
+      });
+    });
+  });
+  let fixedEmpty = '';
+  RULE_DAY_ORDER.forEach(function(day) {
+    Object.keys(next.scopes).forEach(function(scope) {
+      (next.scopes[scope].days[day] ? next.scopes[scope].days[day].rows : []).forEach(function(row) {
+        if (row.mode === 'fixed' && !row.employeeIds.length && !fixedEmpty) fixedEmpty = RULE_DAY_NAMES[day];
+      });
+    });
+  });
+  if (fixedEmpty) { rulesMsg('ليوم ' + fixedEmpty + ': اختر موظفاً واحداً على الأقل للنوع «موظف ثابت»', false); return; }
+  scheduleRules = normalizeScheduleRules(next);
+  saveOfflineRules(scheduleRules);
+  try {
+    await db.ref(path('scheduleRules')).set(rulesForFirebase(scheduleRules));
+    rulesMsg('✔ تم حفظ قواعد توزيع الورديات', true);
+    renderAll();
+  } catch (e) {
+    rulesMsg('تعذر الحفظ على الخادم — القواعد محفوظة على هذا الجهاز', false);
+  }
+}
+
+// توليد أيام هذا الأسبوع الفارغة فقط (من السبت إلى الجمعة)
+async function generateThisWeek() {
+  if (!can('rules')) return;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const start = new Date(today);
+  start.setDate(start.getDate() - ((today.getDay() - 6 + 7) % 7)); // سبت هذا الأسبوع
+  const end = new Date(start); end.setDate(end.getDate() + 6);
+  const updates = {};
+  for (let c = new Date(start); c <= end; c.setDate(c.getDate() + 1)) {
+    const key = formatKey(c);
+    const existing = Array.isArray(shifts[key]) ? shifts[key] : [];
+    // دمج: اليدوية (تبديلات الغياب) تبقى، والتلقائيات تُبنى من القواعد الحالية
+    // (الثابتون يظهرون كل أسبوع + المتناوبون يُضافون فوقهم — تراكمياً).
+    const manual = existing.filter(function(s) { return !s.auto || s.id.indexOf('auto-' + key + '-') !== 0; });
+    manual.push.apply(manual, autoSlotsForDate(c));
+    manual.sort(function(a, b) { return String(a.start).localeCompare(String(b.start)); });
+    const normalized = JSON.stringify(manual) !== JSON.stringify(existing) || !manual.length ? manual : existing;
+    if (manual.length || existing.length) updates[key] = normalized;
+  }
+  const keys = Object.keys(updates);
+  if (!keys.length) { toast('لا قواعد قابلة للتطبيق هذا الأسبوع'); return; }
+  keys.forEach(function(k) { shifts[k] = updates[k]; });
+  markShiftsDirty();
+  try { await db.ref(path('shifts')).update(updates); clearShiftsDirty(); } catch (e) {}
+  renderAll();
+  toast('✔ تم توليد ' + keys.length + ' يوم تلقائياً حسب القواعد');
+}
+
+// إعادة تطبيق كل القواعد (كل النطاقات وكل الأيام) على 5 سنوات قادمة
+async function applyScheduleToFuture() {
+  if (!can('rules')) return;
+  if (!confirm('سيتم إعادة بناء الورديات من اليوم وحتى ' + REGEN_YEARS + ' سنوات قادمة حسب كل القواعد الحالية (ثابت/تناوب لكل قسم). ما قبل اليوم يبقى كما هو، والورديات اليدوية ضمن الفترة تُستبدل بالتوزيع التلقائي. متابعة؟')) return;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const end = new Date(today); end.setFullYear(end.getFullYear() + REGEN_YEARS);
+  const preserved = {};
+  Object.keys(shifts).forEach(function(key) {
+    const kp = key.split('-').map(Number);
+    const d = new Date(kp[0], kp[1] - 1, kp[2]);
+    if (!isNaN(d.getTime()) && d < today) preserved[key] = shifts[key];
+  });
+  const generated = {};
+  for (let c = new Date(today); c < end; c.setDate(c.getDate() + 1)) {
+    const key = formatKey(c);
+    const generatedSlots = autoSlotsForDate(c);
+    const existing = Array.isArray(shifts[key]) ? shifts[key] : [];
+    // الأيام التي لا تغطيها أي قاعدة (لا موظفين) تُبقي وردياتها اليدوية كما هي.
+    generated[key] = generatedSlots.length ? generatedSlots : existing.slice();
+  }
+  shifts = Object.assign({}, preserved, generated);
+  markShiftsDirty();
+  try { await db.ref(path('shifts')).set(shifts); clearShiftsDirty(); } catch (e) {}
+  renderAll();
+  toast('✔ تم تطبيق القواعد على ' + Object.keys(generated).length + ' يوماً (' + REGEN_YEARS + ' سنوات)');
+}
+
+// ===== نافذة دخول الأدمن (التطبيق يفتح للاطلاع للجميع) =====
+function openLoginModal() {
+  applySignupFlag();
+  fillLoginOrgLabel();
+  const cb = document.getElementById('loginCloseBtn');
+  if (cb) cb.classList.toggle('hidden', !currentUser);
+  document.getElementById('loginModal').classList.remove('hidden');
+  document.getElementById('loginEmailPanel').classList.remove('hidden');
+  document.getElementById('signupPanel').classList.add('hidden');
+  document.getElementById('loginError').classList.add('hidden');
+  hideLoginCodeRow();
+  const fp0 = document.getElementById('forgotPanel');
+  if (fp0) fp0.classList.add('hidden');
+  logoutNote('');
+  const id = document.getElementById('loginId');
+  if (id) id.focus();
+}
+function closeLoginModal() {
+  // في شاشة البداية (بلا جلسة) لا يُغلق — لا شيء خلفه
+  if (!currentUser) return;
+  document.getElementById('loginModal').classList.add('hidden');
+}
+function showLoginPanel() {
+  logoutNote('');
+  hideLoginCodeRow();
+  document.getElementById('loginEmailPanel').classList.remove('hidden');
+  document.getElementById('signupPanel').classList.add('hidden');
+  const fp = document.getElementById('forgotPanel');
+  if (fp) fp.classList.add('hidden');
+}
+function showSignupPanel() {
+  if (!signupAllowed()) {
+    errLogin('التسجيل مغلق حالياً — حاول لاحقاً.');
+    return;
+  }
+  logoutNote('');
+  resetSignupPanel();
+  document.getElementById('loginEmailPanel').classList.add('hidden');
+  document.getElementById('signupPanel').classList.remove('hidden');
+}
+// ===== منع التسجيل الذاتي كأدمن =====
+// في config.js: allowSignup:false يخفي زر إنشاء الحساب ويمنع الفتح حتى بنداء مباشر،
+// والحماية الحقيقية من قواعد Firebase (راجع firebase-migration.md).
+function signupAllowed() { return !(APP_CONFIG && APP_CONFIG.allowSignup === false); }
+function applySignupFlag() {
+  const link = document.getElementById('signupLink');
+  if (link) link.classList.toggle('hidden', !signupAllowed());
+}
+function errLogin(m) {
+  const el = document.getElementById('loginError');
+  el.textContent = m; el.classList.remove('hidden');
+}
+function errSignup(m) {
+  const el = document.getElementById('signupError');
+  el.textContent = m; el.classList.remove('hidden');
+}
+// ===== طلب تسجيل مؤسسة جديدة: لا يُنشأ حساب إلا بعد رمز تفعيل يصدره مالك النظام =====
+async function handleSignup() {
+  if (!signupAllowed()) { errSignup('التسجيل مغلق حالياً — حاول لاحقاً.'); return; }
+  const name = document.getElementById('suName').value.trim();
+  const email = document.getElementById('suEmail').value.trim();
+  const phone = document.getElementById('suPhone').value.trim();
+  const pass = document.getElementById('suPass').value;
+  const pass2 = document.getElementById('suPass2').value;
+  document.getElementById('signupError').classList.add('hidden');
+  if (name.length < 2) { errSignup('أدخل الاسم'); return; }
+  if (email.indexOf('@') < 0) { errSignup('أدخل إيميل صحيح'); return; }
+  if (phone.replace(/\D/g, '').length < 8) { errSignup('أدخل رقم جوال صحيح — عليه يصلك رمز التفعيل'); return; }
+  if (pass.length < 4) { errSignup('كلمة المرور قصيرة'); return; }
+  if (pass !== pass2) { errSignup('كلمتا المرور غير متطابقتين'); return; }
+  const btn = document.querySelector('#suFields button');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ جارٍ الإرسال…'; }
+  try {
+    const key = emailKey(email);
+    const orgRec = await fetchOrgRecord(key); // أخطاء الشبكة تُرمى وتُلتقط بالأسفل
+    if (orgRec) { errSignup('هذا الإيميل مفعّل مسبقاً — استخدم تسجيل الدخول'); return; }
+    const old = (await db.ref('signups/' + key).once('value')).val();
+    if (old && old.status === 'active') { errSignup('هذا الإيميل مفعّل مسبقاً — استخدم تسجيل الدخول'); return; }
+    const hash = await hashPassword(pass);
+    // طلب معلّق حتى يصدر مالك النظام رمزاً ويُدخله صاحب الطلب — لا حساب قبل ذلك
+    const rec = { email: email, name: name, phone: phone, passwordHash: hash, status: 'pending', createdAt: (old && old.createdAt) || Date.now() };
+    if (old && old.codeHash) rec.codeHash = old.codeHash; // لا يُفقد رمز أصدره المالك سابقاً
+    await db.ref('signups/' + key).set(rec);
+    pendingSignupUi(phone, !!rec.codeHash);
+  } catch (e) {
+    const msg = String(e.message || e.code || e);
+    if (/PERMISSION|permission/i.test(msg)) errSignup('قاعدة البيانات منعت الحفظ — تأكد من نشر قواعد عقدة signups (راجع firebase-migration.md).');
+    else errSignup('تعذر إرسال الطلب — تحقق من الإنترنت وحاول مرة أخرى');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'إرسال الطلب'; }
+  }
+}
+// خانة إدخال الرمز بعد إرسال الطلب
+function pendingSignupUi(phone, hasCode) {
+  const fields = document.getElementById('suFields');
+  const box = document.getElementById('suCodeBox');
+  const msg = document.getElementById('suPendingMsg');
+  if (fields) fields.classList.add('hidden');
+  if (box) box.classList.remove('hidden');
+  if (msg) msg.innerHTML = hasCode
+    ? '🔔 وصلك رمز التفعيل؟ أدخله بالأسفل ليُفتح حسابك فوراً.'
+    : '⏳ تم استلام طلبك ✅<br>سيتواصل معك أدمن النظام على جوالك <b dir="ltr">' + escapeHtml(phone) + '</b> لإرسال رمز التفعيل.';
+}
+function resetSignupPanel() {
+  const box = document.getElementById('suCodeBox');
+  const fields = document.getElementById('suFields');
+  if (box) box.classList.add('hidden');
+  if (fields) fields.classList.remove('hidden');
+  document.getElementById('signupError').classList.add('hidden');
+}
+// التحقق من الرمز وتفعيل الحساب — يُنشئ المؤسسة ويدخل مباشرة
+async function activateSignup(email, pass, code) {
+  const key = emailKey(email);
+  let su = null;
+  try { su = (await db.ref('signups/' + key).once('value')).val(); }
+  catch (e) { throw new Error('تعذر الاتصال بالخادم — تحقق من الإنترنت وحاول مرة أخرى'); }
+  if (!su || su.status !== 'pending') throw new Error('لا يوجد طلب تفعيل بهذا الإيميل — اضغط «تسجيل جديد»');
+  if (!su.codeHash) throw new Error('لم يصدر رمز تفعيل بعد — انتظر حتى تتواصل معك الإدارة على جوالك');
+  const codeHash = await hashPassword('code:' + String(code || '').trim());
+  if (su.codeHash !== codeHash) throw new Error('رمز التفعيل غير صحيح — تأكد من الرمز المرسل إليك');
+  const passHash = await hashPassword(pass);
+  if (su.passwordHash !== passHash) throw new Error('كلمة المرور غير صحيحة');
+  const orgRec = await fetchOrgRecord(key); // أخطاء الشبكة تُرمى
+  if (orgRec) throw new Error('هذا الإيميل مفعّل مسبقاً — استخدم تسجيل الدخول');
+  // إنشاء المؤسسة: كل أدمن = مؤسسة مستقلة بمسارها الخاص (بيانات معزولة)
+  await db.ref('orgs/' + key).set({ email: su.email || email, name: su.name || email, phone: su.phone || '', passwordHash: su.passwordHash, role: 'admin', orgId: key, createdAt: Date.now() });
+  await db.ref('signups/' + key).update({ status: 'active', activatedAt: Date.now() });
+  ORG_ID = key;
+  const u = { loginType: 'admin', email: su.email || email, name: su.name || email, role: 'admin', orgId: key, passwordHash: su.passwordHash };
+  saveSession(u);
+  currentUser = { username: u.name, email: u.email, role: 'admin' };
+  return 'admin';
+}
+// زر «تفعيل الحساب والدخول» في لوحة التسجيل
+async function verifySignupCode() {
+  const email = document.getElementById('suEmail').value.trim();
+  const pass = document.getElementById('suPass').value;
+  const code = document.getElementById('suCode').value.trim();
+  document.getElementById('signupError').classList.add('hidden');
+  if (!email || !pass) { resetSignupPanel(); errSignup('أعد إدخال الإيميل وكلمة المرور ثم أعد إرسال الطلب'); return; }
+  if (!code) { errSignup('أدخل رمز التفعيل'); return; }
+  const btn = document.querySelector('#suCodeBox button');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ جارٍ التفعيل…'; }
+  try {
+    await activateSignup(email, pass, code);
+    toast('✅ تم تفعيل حسابك — أهلاً بك');
+    afterLogin();
+  } catch (e) {
+    errSignup(e && e.message ? e.message : 'تعذر التفعيل — تحقق من الإنترنت');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '✅ تفعيل الحساب والدخول'; }
+  }
+}
+
+// ===== شاشة البداية (تسجيل الدخول) =====
+function fillLoginOrgLabel() {
+  const o = (APP_CONFIG && APP_CONFIG.org) || {};
+  const n = document.getElementById('loginOrgName');
+  if (n) n.textContent = o.name || 'نظام الورديات';
+  const sub = document.getElementById('loginOrgSubtitle');
+  if (sub) sub.textContent = o.subtitle || '';
+}
+function showStartScreen() {
+  const main = document.getElementById('mainApp');
+  if (main) main.classList.add('hidden');
+  document.body.classList.add('start-mode');
+  closeAllPages();
+  fillLoginOrgLabel();
+  const cb = document.getElementById('loginCloseBtn');
+  if (cb) cb.classList.add('hidden');
+  const t = document.getElementById('loginModalTitle');
+  if (t) t.textContent = 'تسجيل الدخول';
+  const modal = document.getElementById('loginModal');
+  modal.classList.remove('hidden');
+  showLoginPanel();
+  applySignupFlag();
+  const id = document.getElementById('loginId');
+  if (id) id.focus();
+}
+function closeAllPages() {
+  ['day', 'cal', 'stats', 'settings'].forEach(function(n) {
+    const el = document.getElementById(n + 'Page');
+    if (el) el.classList.add('hidden');
+  });
+}
+function saveSession(u) { try { localStorage.setItem('wrdiatUser', JSON.stringify(u)); } catch (e) {} }
+// يستعيد جلسة الجهاز: يضبط مسار المؤسسة والمستخدم الحالي
+function applySession(u) {
+  const cu = sessionToCurrentUser(u);
+  if (!cu) return null;
+  ORG_ID = String(u.orgId || DEFAULT_ORG_ID);
+  currentUser = cu;
+  return cu;
+}
+// ملاحظة: أخطاء الشبكة تُرمى (لتُعامل كـ«لا إنترنت»)، وnull تعني «لا يوجد سجل فعلاً»
+async function fetchOrgRecord(key) {
+  const snap = await db.ref('orgs/' + key).once('value');
+  return snap.val();
+}
+// يحدّد نوع الدخول: أدمن (إيميله + كلمة مروره) أو موظف (إيميل الأدمن + كلمة مرور الموظفين)
+async function loginWithCredentials(id, pass) {
+  const key = emailKey(id);
+  let rec = null;
+  try { rec = await fetchOrgRecord(key); }
+  catch (e) { throw new Error('تعذر الاتصال بالخادم — تحقق من الإنترنت وحاول مرة أخرى'); }
+  if (!rec) {
+    // أدمن مساعد؟ يُبحث في فهرس المساعدين ثم في سجل مؤسسته
+    let orgKey = null;
+    try { orgKey = (await db.ref('assistantIndex/' + key).once('value')).val(); }
+    catch (e) { throw new Error('تعذر الاتصال بالخادم — تحقق من الإنترنت وحاول مرة أخرى'); }
+    if (orgKey) {
+      let oRec = null;
+      try { oRec = await fetchOrgRecord(orgKey); }
+      catch (e) { throw new Error('تعذر الاتصال بالخادم — تحقق من الإنترنت وحاول مرة أخرى'); }
+      const a = oRec && oRec.assistants && oRec.assistants[key];
+      if (a) {
+        const aHash = await hashPassword(pass);
+        if (a.passwordHash === aHash) {
+          const aOrgId = String(oRec.orgId || orgKey);
+          ORG_ID = aOrgId;
+          const perms = a.perms || {};
+          const u = { loginType: 'assistant', email: a.email || id, name: a.name || id, role: 'assistant', orgId: aOrgId, orgKey: orgKey, perms: perms, passwordHash: aHash };
+          saveSession(u);
+          currentUser = { username: u.name, email: u.email, role: 'assistant', perms: perms };
+          return 'assistant';
+        }
+        throw new Error('كلمة المرور غير صحيحة');
+      }
+    }
+    throw new Error('لا توجد مؤسسة بهذا الإيميل — تأكد من الإيميل أو اضغط «تسجيل جديد»');
+  }
+  const orgId = String(rec.orgId || key);
+  const hash = await hashPassword(pass);
+  if (rec.passwordHash === hash) {
+    ORG_ID = orgId;
+    const u = { loginType: 'admin', email: rec.email || id, name: rec.name || id, role: 'admin', orgId: orgId, passwordHash: hash };
+    saveSession(u);
+    currentUser = { username: u.name, email: u.email, role: 'admin' };
+    return 'admin';
+  }
+  let staffHash = null;
+  try { staffHash = (await db.ref(orgPathFor(orgId) + 'settings/staffPasswordHash').once('value')).val(); } catch (e) {}
+  if (staffHash && staffHash === hash) {
+    ORG_ID = orgId;
+    const u = { loginType: 'employee', email: rec.email || id, role: 'employee', orgId: orgId, passwordHash: hash };
+    saveSession(u);
+    currentUser = { username: 'موظف', email: u.email, role: 'employee' };
+    return 'employee';
+  }
+  throw new Error('كلمة المرور غير صحيحة');
+}
+// بعد أي دخول ناجح: لو كانت الصفحة مربوطة بمؤسسة أخرى نعيد التحميل لتبدأ نظيفة
+function afterLogin() {
+  document.getElementById('loginModal').classList.add('hidden');
+  document.body.classList.remove('start-mode');
+  try { if (window.__dataStarted) { window.__dataStarted = false; location.reload(); return; } } catch (e) {}
+  enterApp();
+}
+async function handleLogin() {
+  const id = document.getElementById('loginId').value.trim();
+  const pass = document.getElementById('loginPass').value;
+  document.getElementById('loginError').classList.add('hidden');
+  if (!id || !pass) { errLogin('أدخل الإيميل وكلمة المرور'); return; }
+  const btn = document.getElementById('loginBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ جارٍ الدخول…'; }
+  try {
+    await loginWithCredentials(id, pass);
+    hideLoginCodeRow();
+    afterLogin();
+  } catch (e) {
+    const msg = e && e.message ? e.message : 'فشل الدخول — تحقق من الإنترنت';
+    // صاحب طلب تسجيل معلّق: أخبره بحالته واعرض خانة الرمز إن كان الرمز صادراً
+    if (msg.indexOf('لا توجد مؤسسة') >= 0) {
+      const st = await pendingSignupState(id);
+      if (st === 'pending-code') { showLoginCodeRow('🔔 حسابك بانتظار رمز التفعيل — أدخله هنا ليُفتح لك مباشرة'); return; }
+      if (st === 'pending') { errLogin('⏳ حسابك بانتظار التفعيل — سيتواصل معك أدمن النظام على جوالك لإرسال الرمز'); return; }
+    }
+    errLogin(msg);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'دخول'; }
+  }
+}
+// ===== نسيت كلمة المرور: التعيين عبر مالك النظام فقط =====
+function showForgotPanel() {
+  logoutNote('');
+  document.getElementById('loginEmailPanel').classList.add('hidden');
+  document.getElementById('signupPanel').classList.add('hidden');
+  const panel = document.getElementById('forgotPanel');
+  const err = document.getElementById('fpError');
+  const res = document.getElementById('fpResult');
+  if (panel) panel.classList.remove('hidden');
+  if (err) { err.textContent = ''; err.classList.add('hidden'); }
+  if (res) { res.innerHTML = ''; res.classList.add('hidden'); }
+  const inp = document.getElementById('fpEmail');
+  if (inp) inp.focus();
+}
+async function forgotPasswordSubmit() {
+  const email = ((document.getElementById('fpEmail') || {}).value || '').trim();
+  const err = document.getElementById('fpError');
+  const res = document.getElementById('fpResult');
+  if (err) { err.textContent = ''; err.classList.add('hidden'); }
+  if (res) { res.innerHTML = ''; res.classList.add('hidden'); }
+  if (email.indexOf('@') < 0) {
+    if (err) { err.textContent = 'أدخل إيميل صحيح'; err.classList.remove('hidden'); }
+    return;
+  }
+  const btn = document.getElementById('fpBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ جارٍ التحقق…'; }
+  try {
+    let rec = null;
+    try { rec = await fetchOrgRecord(emailKey(email)); }
+    catch (e) {
+      if (err) { err.textContent = 'تعذر الاتصال بالخادم — تحقق من الإنترنت'; err.classList.remove('hidden'); }
+      return;
+    }
+    if (!rec) {
+      if (err) { err.textContent = 'لا يوجد حساب بهذا الإيميل — تأكد من الإيميل أو سلّم طلب تسجيل جديد'; err.classList.remove('hidden'); }
+      return;
+    }
+    const support = (APP_CONFIG && APP_CONFIG.supportEmail) || '';
+    let html = '<div class="bg-amber-50 border border-amber-200 text-amber-900 rounded-xl p-3 text-xs leading-relaxed text-right">'
+      + '👤 الحساب: <b>' + escapeHtml(rec.name || email) + '</b><br>'
+      + 'كلمة المرور لا تُرسل تلقائياً — <b>مالك النظام</b> يعيد تعيينها ويرسلها إلى بريدك.<br>';
+    if (support) {
+      const subject = encodeURIComponent('طلب إعادة تعيين كلمة المرور — ' + (rec.name || email));
+      const body = encodeURIComponent('الإيميل: ' + email + '\nأرجو إعادة تعيين كلمة المرور وإرسال الكلمة الجديدة على هذا البريد.');
+      html += '<a href="mailto:' + encodeURIComponent(support) + '?subject=' + subject + '&body=' + body + '" class="btn-teal inline-block px-3 py-2 rounded-xl font-bold mt-2">📧 إرسال طلب بالبريد لمالك النظام</a>';
+    } else {
+      html += 'راسل مالك النظام مباشرة ليصفّرها لك من لوحة الطلبات.';
+    }
+    html += '</div>';
+    if (res) { res.innerHTML = html; res.classList.remove('hidden'); }
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'إرسال الطلب'; }
+  }
+}
+// حالة طلب التسجيل لبريد معيّن: null / 'pending' / 'pending-code'
+async function pendingSignupState(id) {
+  try {
+    const su = (await db.ref('signups/' + emailKey(id)).once('value')).val();
+    if (!su || su.status !== 'pending') return null;
+    return su.codeHash ? 'pending-code' : 'pending';
+  } catch (e) { return null; }
+}
+function showLoginCodeRow(msg) {
+  document.getElementById('loginError').classList.add('hidden');
+  const row = document.getElementById('loginCodeRow');
+  const info = document.getElementById('loginCodeInfo');
+  if (info) info.textContent = msg || '';
+  if (row) row.classList.remove('hidden');
+  const c = document.getElementById('loginCode');
+  if (c) c.focus();
+}
+function hideLoginCodeRow() {
+  const row = document.getElementById('loginCodeRow');
+  if (row) row.classList.add('hidden');
+  const c = document.getElementById('loginCode');
+  if (c) c.value = '';
+}
+// زر «تفعيل الحساب والدخول» داخل شاشة الدخول
+async function handleActivateFromLogin() {
+  const id = document.getElementById('loginId').value.trim();
+  const pass = document.getElementById('loginPass').value;
+  const code = document.getElementById('loginCode').value.trim();
+  document.getElementById('loginError').classList.add('hidden');
+  if (!id || !pass || !code) { errLogin('أدخل الإيميل وكلمة المرور ورمز التفعيل'); return; }
+  const btn = document.querySelector('#loginCodeRow button');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ جارٍ التفعيل…'; }
+  try {
+    await activateSignup(id, pass, code);
+    hideLoginCodeRow();
+    toast('✅ تم تفعيل حسابك — أهلاً بك');
+    afterLogin();
+  } catch (e) {
+    errLogin(e && e.message ? e.message : 'تعذر التفعيل — تحقق من الإنترنت');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '✅ تفعيل الحساب والدخول'; }
+  }
+}
+// توافق مع الاستدعاءات القديمة
+async function loginAdmin(email, password) { await loginWithCredentials(email, password); afterLogin(); }
+
+
+// ===== الجلسة الدائمة =====
+// لا يُسحب الدخول إلا بزر «تسجيل الخروج»، أو إذا حذف الأدمن الحساب/أوقف الموظف.
+// انقطاع الإنترنت أو تغيّر كلمة المرور لا يمس الجلسة إطلاقاً.
+function logout(message) {
+  currentUser = null;
+  ORG_ID = DEFAULT_ORG_ID;
+  try { localStorage.removeItem('wrdiatUser'); } catch (e) {}
+  showStartScreen();
+  if (message) logoutNote(message);
+  try { if (window.__dataStarted) { window.__dataStarted = false; location.reload(); } } catch (e) {}
+}
+function logoutNote(msg) {
+  const el = document.getElementById('sessionNote');
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.toggle('hidden', !msg);
+}
+function sessionToCurrentUser(u) {
+  if (!u || typeof u !== 'object') return null;
+  if (u.loginType === 'admin' && u.email) return { username: u.name || u.email, email: u.email, role: 'admin' };
+  if (u.loginType === 'employee' && u.email) return { username: u.name || 'موظف', email: u.email, role: 'employee' };
+  if (u.loginType === 'assistant' && u.email) return { username: u.name || u.email, email: u.email, role: 'assistant', perms: u.perms || {} };
+  return null;
+}
+// تحقق صامت في الخلفية بعد الاستعادة المحلية: لا يخرج إلا عند إيقاف/حذف الحساب فعلياً
+async function validateSessionInBackground(u) {
+  try {
+    if (u && u.loginType === 'admin' && u.email) {
+      const rec = await fetchOrgRecord(emailKey(u.email));
+      if (!rec) { logout('⚠️ حُذف حساب الأدمن — أنشئ حساباً جديداً'); return; }
+      // تحديث الاسم إن تغيّر + تحديث الجلسة المحفوظة (تغيير كلمة المرور لا يخرج المستخدم)
+      if (rec.name && rec.name !== u.name) {
+        u.name = rec.name;
+        localStorage.setItem('wrdiatUser', JSON.stringify(u));
+        const cu = sessionToCurrentUser(u);
+        if (cu) { currentUser = cu; document.getElementById('welcomeMessage').textContent = '👋 ' + cu.username; }
+      }
+    } else if (u && u.loginType === 'assistant') {
+      // مساعد: لو أزاله الأدمن أو غيّر كلمته → خروج، ولو غيّر صلاحياته → تسري فوراً
+      // (سجل المساعد داخل سجل مؤسسة أدمنه — orgKey)
+      const rec = await fetchOrgRecord(u.orgKey || emailKey(u.email));
+      const a = rec && rec.assistants && rec.assistants[emailKey(u.email)];
+      if (!a || a.passwordHash !== u.passwordHash) { logout('⚠️ أوقف حسابك كمساعد من قبل الأدمن'); return; }
+      if (JSON.stringify(a.perms || {}) !== JSON.stringify(u.perms || {})) {
+        u.perms = a.perms || {};
+        localStorage.setItem('wrdiatUser', JSON.stringify(u));
+        const cu = sessionToCurrentUser(u);
+        if (cu) { currentUser = cu; renderAll(); }
+      }
+    } else if (u && u.loginType === 'employee') {
+      // موظف: لو غيّر الأدمن كلمة مرور الموظفين أو أزالها → الجلسة تُبطَل
+      const cur = (await db.ref(orgPathFor(u.orgId || DEFAULT_ORG_ID) + 'settings/staffPasswordHash').once('value')).val();
+      if (!cur || cur !== u.passwordHash) { logout('أعد تسجيل الدخول — تغيّرت كلمة مرور الموظفين'); return; }
+    } else if (u && u.loginType === 'staff' && u.code) {
+      const rec = (await db.ref(path('staff/' + u.code)).once('value')).val();
+      if (!rec || rec.disabled) { logout('⚠️ تم إيقاف حسابك من قبل الأدمن'); return; }
+    }
+  } catch (e) { /* لا إنترنت أو خطأ مؤقت → الجلسة تبقى كما هي */ }
+}
+
+function enterApp() {
+  document.getElementById('mainApp').classList.remove('hidden');
+  document.getElementById('loginModal').classList.add('hidden');
+  document.body.classList.remove('start-mode');
+  const isAdm = isAdmin(), isAsst = isAssistant();
+  document.getElementById('welcomeMessage').textContent = isAdm
+    ? '⚙️ ' + currentUser.username + ' — أدمن'
+    : isAsst
+      ? '🤝 ' + ((currentUser && currentUser.username) || 'مساعد') + ' — أدمن مساعد'
+      : '👀 ' + ((currentUser && currentUser.username) || 'موظف') + ' — عرض فقط';
+  document.getElementById('addSlotBtn').classList.toggle('hidden', !can('slots'));
+  document.getElementById('adminSettings').classList.toggle('hidden', !(isAdm || isAsst));
+  document.getElementById('logoutBtn').classList.toggle('hidden', !(isAdm || isAsst));
+  // تبويبات الإعدادات: الأدمن يرى الكل، والمساعد يرى ما يملك صلاحيته فقط
+  const tabsVis = { depts: can('depts'), staff: can('staff'), shifts: can('rules'), security: isAdm, signups: isSuperAdmin() };
+  Object.keys(tabsVis).forEach(function(n) {
+    const b = document.getElementById('tabBtn-' + n);
+    if (b) b.classList.toggle('hidden', !tabsVis[n]);
+  });
+  const adminBtn = document.getElementById('adminBtn');
+  if (adminBtn) adminBtn.title = isAdm ? 'الإعدادات' : 'دخول الأدمن';
+  renderAll();
+  if (!window.__dataStarted && db) { window.__dataStarted = true; listenData(); }
+  if (!document.querySelector('.page:not(.hidden)')) showPage('day');
+}
+// زر ⚙️ في الهيدر: أدمن → الإعدادات، زائر → نافذة دخول الأدمن
+function onAdminClick() {
+  if (isAdmin() || isAssistant()) showPage('settings');
+  else openLoginModal();
+}
+// ===== طلبات التسجيل: لمالك النظام فقط (أدمن المؤسسة الأصلية) =====
+function isSuperAdmin() {
+  if (!isAdmin()) return false;
+  try {
+    const u = JSON.parse(localStorage.getItem('wrdiatUser') || 'null');
+    return !!(u && u.loginType === 'admin' && String(u.orgId || DEFAULT_ORG_ID) === DEFAULT_ORG_ID);
+  } catch (e) { return false; }
+}
+async function signupsRefresh() {
+  const box = document.getElementById('signupsList');
+  if (!box) return;
+  if (!isSuperAdmin()) { box.innerHTML = '<p class="text-sm text-slate-500">هذه الصفحة لمالك النظام فقط.</p>'; return; }
+  box.innerHTML = '<p class="text-sm text-slate-500">⏳ جارٍ التحميل…</p>';
+  let all = null;
+  try { all = (await db.ref('signups').once('value')).val() || {}; }
+  catch (e) { box.innerHTML = '<p class="su-state-wait">تعذر تحميل الطلبات — تحقق من الإنترنت</p>'; return; }
+  const pend = [];
+  Object.keys(all).forEach(function(k) {
+    const rec = Object.assign({ key: k }, all[k] || {});
+    if (rec.status !== 'active') pend.push(rec);
+  });
+  pend.sort(function(a, b) { return (b.createdAt || 0) - (a.createdAt || 0); });
+  let html = '';
+  if (!pend.length) html += '<p class="text-sm text-slate-500">لا توجد طلبات جديدة الآن.</p>';
+  pend.forEach(function(rec) { html += signupCardHtml(rec); });
+  // المؤسسات المسجّلة (من orgs): هنا يصفّر المالك كلمة مرور أي أدمن نسيها
+  let orgs = {};
+  try { orgs = (await db.ref('orgs').once('value')).val() || {}; } catch (e) {}
+  const orgKeys = Object.keys(orgs).sort();
+  if (orgKeys.length) {
+    html += '<details><summary class="su-summary">🏢 المؤسسات المسجّلة (' + orgKeys.length + ') — تصفير كلمة المرور</summary>';
+    orgKeys.forEach(function(k) {
+      const rec = orgs[k] || {};
+      const isSelf = String(rec.orgId || k) === String(DEFAULT_ORG_ID);
+      const digits = String(rec.phone || '').replace(/\D/g, '');
+      html += '<div class="su-req">'
+        + '<div class="su-head">' + escapeHtml(rec.name || k) + ' <span class="su-mail" dir="ltr">' + escapeHtml(rec.email || '') + '</span></div>';
+      if (digits) html += '<div class="su-phone" dir="ltr">📱 ' + escapeHtml(rec.phone) + ' · <a href="https://wa.me/' + digits.replace(/^0+/, '') + '" target="_blank" rel="noopener">💬 واتساب</a></div>';
+      if (isSelf) html += '<div class="su-state-ok">👤 أنت (مالك النظام) — كلمة مرورك تغيّرها من تبويب 🔐 الأمان</div>';
+      else html += '<button type="button" class="su-rst" onclick="resetOrgPassword(\'' + k + '\')">🔑 تصفير كلمة المرور وإرسالها له بالبريد</button><div id="rst-' + k + '"></div>';
+      html += '</div>';
+    });
+    html += '</details>';
+  }
+  box.innerHTML = html;
+}
+// المالك يصفّر كلمة مرور أدمن مؤسسة (نسيها): كلمة مؤقتة تُكتب في سجله وتُعرض للمالك ليرسلها بالبريد
+async function resetOrgPassword(key) {
+  if (!isSuperAdmin()) return;
+  let rec = null;
+  try { rec = await fetchOrgRecord(key); }
+  catch (e) { toast('تعذر الاتصال — تحقق من الإنترنت'); return; }
+  if (!rec || !rec.email) { toast('لا يوجد سجل بهذا المفتاح'); return; }
+  if (String(rec.orgId || key) === String(DEFAULT_ORG_ID)) { toast('كلمة مرورك أنت تغيّرها من تبويب 🔐 الأمان'); return; }
+  if (!confirm('توليد كلمة مرور جديدة لـ ' + (rec.name || rec.email) + '؟\nكلمة المرور القديمة تتوقف فوراً.')) return;
+  const temp = genTempPassword();
+  try {
+    await db.ref('orgs/' + key + '/passwordHash').set(await hashPassword(temp));
+    const line = document.getElementById('rst-' + key);
+    if (line) {
+      const mailBody = encodeURIComponent('كلمة المرور الجديدة: ' + temp + '\nادخل بإيميلك (' + rec.email + ') وهذه الكلمة، ثم غيّرها من: الإعدادات ← 🔐 الأمان');
+      line.innerHTML = '<div class="su-temp">🔑 كلمة المرور الجديدة: <b dir="ltr">' + temp + '</b> '
+        + '<button type="button" class="su-copy" onclick="copyText(\'' + temp + '\')">📋 نسخ</button> '
+        + '<a href="mailto:' + encodeURIComponent(rec.email) + '?subject=' + encodeURIComponent('كلمة مرور جديدة — نظام الورديات') + '&body=' + mailBody + '">📧 إرسال بالبريد</a></div>';
+    }
+    toast('✔ تم التصفير — أرسل الكلمة الجديدة لصاحب المؤسسة');
+  } catch (e) {
+    toast('تعذر التصفير — تأكد من الإنترنت ومن نشر قواعد orgs (passwordHash)');
+  }
+}
+function genTempPassword() {
+  const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
+  let out = '';
+  try {
+    const arr = new Uint8Array(8);
+    crypto.getRandomValues(arr);
+    for (let i = 0; i < 8; i++) out += chars.charAt(arr[i] % chars.length);
+  } catch (e) {
+    for (let i = 0; i < 8; i++) out += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return out;
+}
+function copyText(t) {
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(t); toast('📋 تم النسخ'); return; }
+  } catch (e) {}
+  toast(t);
+}
+function signupCardHtml(rec) {
+  const digits = String(rec.phone || '').replace(/\D/g, '');
+  const waLink = digits ? 'https://wa.me/' + digits.replace(/^0+/, '') : '';
+  const state = rec.codeHash
+    ? '<div class="su-state-ok">✅ رمز صادر — بانتظار أن يدخله صاحب الطلب</div>'
+    : '<div class="su-state-wait">⏳ لم يُصدر رمز بعد — أصدره وأرسله لصاحب الطلب</div>';
+  let phoneLine = '<div class="su-phone" dir="ltr">📱 ' + escapeHtml(rec.phone || '—');
+  if (digits) {
+    phoneLine += ' · <a href="tel:' + escapeHtml(rec.phone) + '">اتصال</a>'
+      + ' · <a href="' + waLink + '" target="_blank" rel="noopener">💬 واتساب</a>'
+      + ' · <a href="javascript:void(0)" onclick="copySignupPhone(\'' + digits + '\')">📋 نسخ الرقم</a>';
+  }
+  phoneLine += '</div>';
+  return '<div class="su-req">'
+    + '<div class="su-head">' + escapeHtml(rec.name || '') + ' <span class="su-mail" dir="ltr">' + escapeHtml(rec.email || '') + '</span></div>'
+    + phoneLine
+    + state
+    + '<div class="su-row">'
+    + '<input id="codeFor-' + rec.key + '" placeholder="رمز التفعيل" inputmode="numeric">'
+    + '<button type="button" class="su-dice" title="توليد رقم عشوائي" onclick="genSignupCode(\'' + rec.key + '\')">🎲</button>'
+    + '<button type="button" class="btn-teal text-sm px-3 py-2 rounded-xl font-bold" onclick="saveSignupCode(\'' + rec.key + '\')">' + (rec.codeHash ? '♻️ تحديث الرمز' : '💾 إصدار الرمز') + '</button>'
+    + '</div>'
+    + '<button type="button" class="su-del" onclick="deleteSignup(\'' + rec.key + '\')">🗑 حذف الطلب (رفض)</button>'
+    + '</div>';
+}
+// المالك يصدر رمز التفعيل — يُحفظ مشفراً ولا يظهر لصاحب الطلب في أي مكان
+async function saveSignupCode(key) {
+  if (!isSuperAdmin()) return;
+  const inp = document.getElementById('codeFor-' + key);
+  const code = inp ? String(inp.value).trim() : '';
+  if (code.length < 4) { toast('اكتب رمزاً من 4 خانات على الأقل — أو اضغط 🎲 للتوليد'); return; }
+  try {
+    const codeHash = await hashPassword('code:' + code);
+    await db.ref('signups/' + key + '/codeHash').set(codeHash);
+    toast('✔ صدر الرمز (' + escapeHtml(code) + ') — أرسله لصاحب الطلب على جواله');
+    signupsRefresh();
+  } catch (e) {
+    toast('تعذر إصدار الرمز — تحقق من الإنترنت والقواعد');
+  }
+}
+function genSignupCode(key) {
+  const inp = document.getElementById('codeFor-' + key);
+  if (inp) inp.value = String(Math.floor(1000 + Math.random() * 9000));
+}
+function copySignupPhone(digits) {
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(digits); toast('📋 تم نسخ الرقم: ' + digits); return; }
+  } catch (e) {}
+  toast('الرقم: ' + digits);
+}
+async function deleteSignup(key) {
+  if (!isSuperAdmin()) return;
+  if (!confirm('حذف الطلب نهائياً؟ لن يستطيع صاحبه التفعيل بعدها.')) return;
+  try { await db.ref('signups/' + key).remove(); toast('تم حذف الطلب'); signupsRefresh(); }
+  catch (e) { toast('تعذر الحذف — تحقق من الإنترنت'); }
+}
+// أزرار تبويب الإعدادات: الأقسام / الموظفين / الورديات
+function securityRefresh() {
+  const st = document.getElementById('staffPassStatus');
+  const box = document.getElementById('staffPassCurBox');
+  const cur = document.getElementById('staffPassCur');
+  if (st) st.textContent = '⏳ جارٍ التحقق…';
+  const safe = function(p) { return p.catch(function() { return { val: function() { return undefined; } }; }); };
+  return Promise.all([
+    safe(db.ref(path('settings/staffPasswordHash')).once('value')),
+    safe(db.ref(path('settings/staffPassword')).once('value'))
+  ]).then(function(r) {
+    const hashVal = r[0].val(), plainVal = r[1].val();
+    if (st) {
+      if (hashVal) { st.textContent = '✅ كلمة مرور الموظفين مضبوطة'; st.className = 'text-sm font-bold mb-2 text-teal-700'; }
+      else { st.textContent = '⚠️ غير مضبوطة — الموظفون لا يستطيعون الدخول بعد'; st.className = 'text-sm font-bold mb-2 text-amber-700'; }
+    }
+    if (box && cur) {
+      if (plainVal) { cur.textContent = plainVal; box.classList.remove('hidden'); }
+      else if (hashVal) { cur.textContent = '•••• أعد حفظ الكلمة من الأسفل لتظهر هنا'; box.classList.remove('hidden'); }
+      else box.classList.add('hidden');
+    }
+    if (isAdmin()) assistantsRefresh();
+  });
+}
+function staffPassMsg(text, ok) {
+  const el = document.getElementById('staffPassMsg');
+  if (!el) return;
+  el.textContent = text;
+  el.className = 'text-xs mt-2 font-bold ' + (ok ? 'text-teal-700' : 'text-red-600');
+}
+async function saveStaffPassword() {
+  if (!isAdmin()) return;
+  const el = document.getElementById('staffPassInput');
+  const pass = el ? el.value : '';
+  if (!pass || pass.length < 4) { staffPassMsg('اكتب كلمة مرور من 4 أحرف على الأقل', false); return; }
+  const oldHash = (await db.ref(path('settings/staffPasswordHash')).once('value')).val();
+  if (oldHash) {
+    const okGo = confirm('تغيير كلمة مرور الموظفين سيُخرج الموظفين المسجّلين حالياً ويطلب منهم الدخول بالكلمة الجديدة.\n\nمتابعة؟');
+    if (!okGo) return;
+  }
+  try {
+    const hash = await hashPassword(pass);
+    // حماية: لا تُقبل كلمة مرور الموظفين أن تكون نفس كلمة مرور الأدمن (وإلا صار الموظف أدمن)
+    if (currentUser && currentUser.email) {
+      let admRec = null;
+      try { admRec = await fetchOrgRecord(emailKey(currentUser.email)); } catch (e) {}
+      if (admRec && admRec.passwordHash === hash) {
+        staffPassMsg('اختر كلمة مختلفة عن كلمة مرور الأدمن — وإلا دخل الموظف كأدمن', false);
+        return;
+      }
+    }
+    await db.ref(path('settings/staffPasswordHash')).set(hash);
+    await db.ref(path('settings/staffPassword')).set(pass); // تُحفظ ظاهرة ليعرضها تبويب الأمان للأدمن (حتى لا ينساها)
+    if (el) el.value = '';
+    staffPassMsg('✔ تم حفظ كلمة مرور الموظفين — أعطها لموظفيك', true);
+    securityRefresh();
+  } catch (e) {
+    staffPassMsg('تعذر الحفظ: ' + ((e && (e.code || e.message)) || 'خطأ'), false);
+  }
+}
+async function clearStaffPassword() {
+  if (!isAdmin()) return;
+  if (!confirm('إزالة كلمة مرور الموظفين؟ لن يستطيع الموظفون الدخول بعدها.')) return;
+  try {
+    await db.ref(path('settings/staffPasswordHash')).remove();
+    await db.ref(path('settings/staffPassword')).remove();
+    staffPassMsg('تمت الإزالة — الموظفون لن يستطيعوا الدخول', true);
+    securityRefresh();
+  } catch (e) {
+    staffPassMsg('تعذر الإزالة: ' + ((e && (e.code || e.message)) || 'خطأ'), false);
+  }
+}
+function admPassMsg(text, ok) {
+  const el = document.getElementById('admPassMsg');
+  if (!el) return;
+  el.textContent = text;
+  el.className = 'text-xs mt-2 font-bold ' + (ok ? 'text-teal-700' : 'text-red-600');
+}
+// تغيير كلمة مرور الأدمن: تتحقق من الكلمة الحالية وتكتب الهاش الجديد في سجل المؤسسة
+async function changeAdminPassword() {
+  if (!isAdmin() || !currentUser || !currentUser.email) { admPassMsg('هذه الصفحة للأدمن فقط', false); return; }
+  const oldP = (document.getElementById('admOldPass') || {}).value || '';
+  const newP = (document.getElementById('admNewPass') || {}).value || '';
+  const newP2 = (document.getElementById('admNewPass2') || {}).value || '';
+  if (!oldP || !newP) { admPassMsg('ادخل كلمة المرور الحالية والجديدة', false); return; }
+  if (newP.length < 4) { admPassMsg('كلمة المرور الجديدة قصيرة (4 أحرف على الأقل)', false); return; }
+  if (newP !== newP2) { admPassMsg('تأكيد كلمة المرور غير مطابق', false); return; }
+  let rec = null;
+  try { rec = await fetchOrgRecord(emailKey(currentUser.email)); }
+  catch (e) { admPassMsg('تعذر الاتصال بالخادم — تحقق من الإنترنت', false); return; }
+  if (!rec) { admPassMsg('لا يوجد سجل أدمن لهذا الإيميل — راجع مالك النظام', false); return; }
+  const oldH = await hashPassword(oldP);
+  if (rec.passwordHash !== oldH) { admPassMsg('كلمة المرور الحالية غير صحيحة', false); return; }
+  const newH = await hashPassword(newP);
+  if (newH === oldH) { admPassMsg('الكلمة الجديدة نفس القديمة — اكتب كلمة مختلفة', false); return; }
+  // حماية معاكسة: لا تجعل كلمة الأدمن نفس كلمة الموظفين (وإلا دخل الموظف كأدمن)
+  let staffHash = null;
+  try { staffHash = (await db.ref(path('settings/staffPasswordHash')).once('value')).val(); } catch (e) {}
+  if (staffHash && staffHash === newH) { admPassMsg('اختر كلمة مختلفة عن كلمة مرور الموظفين — وإلا صار الموظف أدمن', false); return; }
+  try {
+    await db.ref('orgs/' + emailKey(currentUser.email) + '/passwordHash').set(newH);
+    // تحديث الجلسة المحفوظة على هذا الجهاز بالهاش الجديد
+    try {
+      const u = JSON.parse(localStorage.getItem('wrdiatUser') || 'null');
+      if (u && u.loginType === 'admin') { u.passwordHash = newH; localStorage.setItem('wrdiatUser', JSON.stringify(u)); }
+    } catch (e) {}
+    ['admOldPass', 'admNewPass', 'admNewPass2'].forEach(function(id) { const el = document.getElementById(id); if (el) el.value = ''; });
+    admPassMsg('✔ تم تغيير كلمة المرور — استخدم الكلمة الجديدة في الدخول القادم', true);
+    securityRefresh();
+  } catch (e) {
+    admPassMsg('تعذر التغيير — تأكد من الإنترنت ومن نشر قواعد orgs الجديدة (passwordHash)', false);
+  }
+}
+// حذف جميع الورديات: تأكيد مزدوج ثم مسح عقدة shifts في مسار المؤسسة
+async function deleteAllShifts() {
+  if (!can('rules')) return;
+  if (!confirm('⚠️ حذف جميع الورديات نهائياً؟\nسيتم مسح كل ورديات المؤسسة في كل الأيام — الأقسام والموظفون والقواعد الأسبوعية تبقى كما هي.')) return;
+  if (!confirm('تأكيد أخير: لا يمكن التراجع بعد الحذف. متابعة؟')) return;
+  try {
+    await db.ref(path('shifts')).remove();
+    shifts = {}; saveOfflineShifts(shifts); clearShiftsDirty();
+    renderAll();
+    toast('✔ تم حذف جميع الورديات');
+  } catch (e) {
+    toast('تعذر الحذف — تحقق من الإنترنت وحاول مرة أخرى');
+  }
+}
+// ===== أدمن مساعد: إضافته وتحكم الأدمن الرئيسي في صلاحياته =====
+let editingAssistantKey = null; // مفتاح المساعد قيد التعديل (null = إضافة جديدة)
+function asstMsg(text, ok) {
+  const el = document.getElementById('asMsg');
+  if (!el) return;
+  el.textContent = text;
+  el.className = 'text-xs mt-2 font-bold ' + (ok ? 'text-teal-700' : 'text-red-600');
+}
+function setAssistantPermChecks(p) {
+  const set = function(id, v) { const el = document.getElementById(id); if (el) el.checked = !!v; };
+  set('asPermDepts', p.depts); set('asPermStaff', p.staff); set('asPermRules', p.rules); set('asPermSlots', p.slots);
+}
+function assistantPermsFromForm() {
+  return {
+    depts: !!(document.getElementById('asPermDepts') || {}).checked,
+    staff: !!(document.getElementById('asPermStaff') || {}).checked,
+    rules: !!(document.getElementById('asPermRules') || {}).checked,
+    slots: !!(document.getElementById('asPermSlots') || {}).checked
+  };
+}
+function assistantsRefresh() {
+  const box = document.getElementById('assistantsList');
+  if (!box) return;
+  if (!isAdmin() || !currentUser || !currentUser.email) { box.innerHTML = ''; return; }
+  box.innerHTML = '<p class="text-sm text-slate-500">⏳ جارٍ التحميل…</p>';
+  db.ref('orgs/' + emailKey(currentUser.email) + '/assistants').once('value').then(function(snap) {
+    const all = snap.val() || {};
+    const keys = Object.keys(all);
+    box.innerHTML = keys.length ? keys.map(function(k) {
+      const a = all[k] || {};
+      const perms = a.perms || {};
+      const chips = ['🏢 الأقسام', '👥 الموظفون', '🗓️ الورديات', '➕ ورديات اليوم'].filter(function(_, i) {
+        return [perms.depts, perms.staff, perms.rules, perms.slots][i];
+      }).join(' · ') || 'لا شيء — عرض فقط';
+      return '<div class="border rounded-xl p-2 mb-2">'
+        + '<div class="flex justify-between items-center gap-2">'
+        + '<div><div class="font-bold text-sm">' + escapeHtml(a.name || '') + '</div>'
+        + '<div class="text-xs text-slate-500" dir="ltr">' + escapeHtml(a.email || '') + '</div></div>'
+        + '<div class="flex gap-1">'
+        + '<button type="button" title="تعديل البيانات والصلاحيات" onclick="loadAssistantToForm(' + "'" + k + "'" + ')" class="text-lg px-2">✏️</button>'
+        + '<button type="button" title="كلمة مرور جديدة" onclick="resetAssistantPassword(' + "'" + k + "'" + ')" class="text-lg px-2">🔑</button>'
+        + '<button type="button" title="إزالة المساعد" onclick="removeAssistant(' + "'" + k + "'" + ')" class="text-red-500 text-lg px-2">✕</button>'
+        + '</div></div>'
+        + '<div class="text-xs text-slate-600 mt-1">الصلاحيات: ' + chips + '</div>'
+        + '<div id="arst-' + k + '"></div>'
+        + '</div>';
+    }).join('') : '<p class="text-sm text-slate-500">لا مساعدين بعد — أضف واحداً من الأسفل.</p>';
+  }).catch(function() { box.innerHTML = '<p class="text-xs text-red-500">تعذر تحميل المساعدين — تحقق من الإنترنت</p>'; });
+}
+function loadAssistantToForm(key) {
+  if (!isAdmin()) return;
+  db.ref('orgs/' + emailKey(currentUser.email) + '/assistants/' + key).once('value').then(function(snap) {
+    const a = snap.val(); if (!a) return;
+    editingAssistantKey = key;
+    const nm = document.getElementById('asName'); if (nm) nm.value = a.name || '';
+    const em = document.getElementById('asEmail'); if (em) em.value = a.email || '';
+    const ps = document.getElementById('asPass'); if (ps) ps.value = '';
+    setAssistantPermChecks(a.perms || {});
+    const btn = document.getElementById('asSaveBtn'); if (btn) btn.textContent = '💾 حفظ التعديلات';
+    const c = document.getElementById('asCancelEdit'); if (c) c.classList.remove('hidden');
+  });
+}
+function cancelAssistantEdit() {
+  editingAssistantKey = null;
+  const nm = document.getElementById('asName'); if (nm) nm.value = '';
+  const em = document.getElementById('asEmail'); if (em) em.value = '';
+  const ps = document.getElementById('asPass'); if (ps) ps.value = '';
+  setAssistantPermChecks({});
+  const btn = document.getElementById('asSaveBtn'); if (btn) btn.textContent = '➕ إضافة مساعد';
+  const c = document.getElementById('asCancelEdit'); if (c) c.classList.add('hidden');
+}
+// إضافة/تعديل مساعد: يُخزَّن في سجل المؤسسة + فهرس المساعدين (ليجد التطبيق مؤسسته عند الدخول)
+async function addAssistant() {
+  if (!isAdmin()) return;
+  const name = ((document.getElementById('asName') || {}).value || '').trim();
+  const email = ((document.getElementById('asEmail') || {}).value || '').trim();
+  const pass = (document.getElementById('asPass') || {}).value || '';
+  if (name.length < 2) { asstMsg('أدخل اسم المساعد', false); return; }
+  if (email.indexOf('@') < 0) { asstMsg('أدخل إيميل صحيحاً للمساعد', false); return; }
+  const key = emailKey(email);
+  const orgKey = emailKey(currentUser.email);
+  if (key === orgKey) { asstMsg('هذا إيميلك أنت — المساعد يحتاج إيميلاً خاصاً به', false); return; }
+  let orgRec = null;
+  try { orgRec = await fetchOrgRecord(orgKey); }
+  catch (e) { asstMsg('تعذر الاتصال بالخادم — تحقق من الإنترنت', false); return; }
+  if (!orgRec) { asstMsg('لا يوجد سجل مؤسستك — راجع مالك النظام', false); return; }
+  const existing = (orgRec.assistants || {})[key];
+  const perms = assistantPermsFromForm();
+  try {
+    if (editingAssistantKey) {
+      // تعديل: الاسم والصلاحيات (+ كلمة مرور جديدة فقط إن كُتبت)
+      if (!existing) { asstMsg('المساعد غير موجود', false); return; }
+      const upd = { name: name, perms: perms };
+      let newPass = '';
+      if (pass.length >= 4) { upd.passwordHash = await hashPassword(pass); newPass = pass; }
+      await db.ref('orgs/' + orgKey + '/assistants/' + key).update(upd);
+      asstMsg('✔ تم تحديث المساعد' + (newPass ? ' — كلمة المرور الجديدة: ' + newPass : ''), true);
+    } else {
+      // إضافة جديدة: لا تصادم مع أدمن مؤسسة ولا مساعد مؤسسة أخرى
+      if (existing) { asstMsg('هذا الإيميل مساعد عندك بالفعل', false); return; }
+      const other = await fetchOrgRecord(key);
+      if (other) { asstMsg('هذا الإيميل أدمن مؤسسة بالفعل — اختر إيميلاً آخر', false); return; }
+      let idxOrg = null;
+      try { idxOrg = (await db.ref('assistantIndex/' + key).once('value')).val(); } catch (e) {}
+      if (idxOrg && idxOrg !== orgKey) { asstMsg('هذا الإيميل مساعد في مؤسسة أخرى — اختر إيميلاً آخر', false); return; }
+      const passFinal = pass.length >= 4 ? pass : genTempPassword();
+      await db.ref('orgs/' + orgKey + '/assistants/' + key).set({ email: email, name: name, passwordHash: await hashPassword(passFinal), perms: perms, createdAt: Date.now() });
+      await db.ref('assistantIndex/' + key).set(orgKey);
+      asstMsg('✔ تمت الإضافة — كلمة مرور المساعد: ' + passFinal + ' (أعطها له الآن)', true);
+    }
+    cancelAssistantEdit();
+    assistantsRefresh();
+  } catch (e) {
+    asstMsg('تعذر الحفظ — تأكد من الإنترنت ومن نشر قواعد orgs/assistants وassistantIndex', false);
+  }
+}
+async function removeAssistant(key) {
+  if (!isAdmin()) return;
+  if (!confirm('إزالة المساعد نهائياً؟ سيفقد دخوله فوراً.')) return;
+  try {
+    await db.ref('orgs/' + emailKey(currentUser.email) + '/assistants/' + key).remove();
+    await db.ref('assistantIndex/' + key).remove();
+    toast('تمت إزالة المساعد');
+    assistantsRefresh();
+  } catch (e) { toast('تعذر الحذف — تحقق من الإنترنت'); }
+}
+async function resetAssistantPassword(key) {
+  if (!isAdmin()) return;
+  if (!confirm('توليد كلمة مرور جديدة للمساعد؟ القديمة تتوقف فوراً.')) return;
+  const temp = genTempPassword();
+  try {
+    await db.ref('orgs/' + emailKey(currentUser.email) + '/assistants/' + key + '/passwordHash').set(await hashPassword(temp));
+    const line = document.getElementById('arst-' + key);
+    if (line) line.innerHTML = '<div class="su-temp">🔑 الكلمة الجديدة: <b dir="ltr">' + temp + '</b> <button type="button" class="su-copy" onclick="copyText(' + "'" + temp + "'" + ')">📋 نسخ</button></div>';
+  } catch (e) { toast('تعذر التصفير — تحقق من الإنترنت'); }
+}
+function showSettingsTab(name) {
+  if (name === 'signups' && !isSuperAdmin()) name = 'depts'; // تبويب الطلبات لمالك النظام فقط
+  if (name === 'security' && !isAdmin()) name = 'depts'; // الأمان للأدمن الرئيسي فقط
+  if (isAssistant()) { // المساعد: لا يفتح إلا تبويبات صلاحياته
+    const okTabs = { depts: can('depts'), staff: can('staff'), shifts: can('rules') };
+    if (!okTabs[name]) name = okTabs.depts ? 'depts' : (okTabs.staff ? 'staff' : (okTabs.shifts ? 'shifts' : ''));
+    if (!name) { showPage('day'); return; }
+  }
+  ['depts', 'staff', 'shifts', 'security', 'signups'].forEach(function(n) {
+    const panel = document.getElementById('tab-' + n);
+    const btn = document.getElementById('tabBtn-' + n);
+    if (panel) panel.classList.toggle('hidden', n !== name);
+    if (btn) btn.classList.toggle('btn-teal', n === name);
+    if (btn) btn.classList.toggle('bg-slate-100', n !== name);
+  });
+  if (name === 'depts') renderSettingsLists();
+  if (name === 'staff') renderSettingsLists();
+  if (name === 'shifts') renderScheduleRules();
+  if (name === 'security') securityRefresh();
+  if (name === 'signups') signupsRefresh();
+}
+
+function listenData() {
+  db.ref(path('departments')).on('value', function(s) { onDepartmentsValue(s.val()); });
+  db.ref(path('staff')).on('value', function(s) { onStaffValue(s.val()); });
+  // الورديات والقواعد: إن كان في الجهاز تعديلات لم تُزامَن بعد (علم «معدَّل»)
+  // يبقى المحلي هو المعتمد ويُدفع للخادم تلقائياً — فلا تضيع المدخلات مع تحديث الصفحة.
+  db.ref(path('shifts')).on('value', function(s) { onShiftsValue(s.val() || {}); });
+  db.ref(path('scheduleRules')).on('value', function(s) { onRulesValue(s.val() || {}); });
+}
+
+function renderAll() {
+  renderDay(); renderCal(); renderStats(); renderSettingsLists();
+  const isAdm = isAdmin();
+  const adminBtn = document.getElementById('adminBtn');
+  if (adminBtn) { const mgr = isAdm || isAssistant(); adminBtn.textContent = mgr ? '⚙️' : '🔑'; adminBtn.title = mgr ? 'الإعدادات' : 'دخول الأدمن'; }
+}
+
+function showPage(name) {
+  if (name === 'settings' && !isAdmin() && !isAssistant()) { openLoginModal(); return; }
+  ['day','cal','stats','settings'].forEach(function(n) {
+    document.getElementById(n + 'Page').classList.toggle('hidden', n !== name);
+  });
+  if (name === 'settings' && (isAdmin() || isAssistant())) showSettingsTab('depts');
+}
+
+function shiftDay(n) { viewDate.setDate(viewDate.getDate() + n); renderDay(); }
+// ===== السحب أفقيّاً في صفحة اليوم يغيّر الأيام (منطق عربي: اسحب لليسار = اليوم التالي) =====
+(function () {
+  let x0 = null, y0 = null, tracking = false;
+  const MIN_DX = 56;   // أقل مسافة أفقية للاعتبار سحباً
+  const RATIO = 1.2;   // الأفقية يجب أن تطغى على العمودية
+  document.addEventListener('touchstart', function(e) {
+    if (e.touches.length !== 1) { tracking = false; return; }
+    const t = e.touches[0];
+    x0 = t.clientX; y0 = t.clientY; tracking = true;
+  }, { passive: true });
+  document.addEventListener('touchend', function(e) {
+    if (!tracking) return;
+    tracking = false;
+    const day = document.getElementById('dayPage');
+    if (!day || day.classList.contains('hidden')) return; // السحب يعمل في صفحة اليوم فقط
+    const t = (e.changedTouches || [])[0];
+    if (!t || x0 == null || y0 == null) return;
+    const dx = t.clientX - x0, dy = t.clientY - y0;
+    x0 = y0 = null;
+    if (Math.abs(dx) < MIN_DX || Math.abs(dx) < Math.abs(dy) * RATIO) return; // تمرير عمودي عادي
+    // سحب لليمين (dx موجب) → اليوم التالي · سحب لليسار (dx سالب) → اليوم السابق
+    shiftDay(dx < 0 ? -1 : 1);
+  }, { passive: true });
+  document.addEventListener('touchcancel', function() { tracking = false; x0 = y0 = null; }, { passive: true });
+})();
+function moveMonth(n) { calDate.setMonth(calDate.getMonth() + n); renderCal(); }
+
+function renderDay() {
+  document.getElementById('dayNum').textContent = viewDate.getDate();
+  document.getElementById('dayLabel').textContent = arabicDays[viewDate.getDay()] + ' — ' + arabicMonths[viewDate.getMonth()] + ' ' + viewDate.getFullYear();
+  const f = document.getElementById('deptFilter');
+  const deptIds = Object.keys(departments);
+  if (f) {
+    f.innerHTML = '<option value="">كل الأقسام</option>' +
+      deptIds.map(function(id) {
+        return '<option value="' + escapeHtml(id) + '">' + escapeHtml(departments[id].name) + '</option>';
+      }).join('');
+    // حالة التطبيق هي المرجع (لو حُذف القسم المفلتَر يعود «كل الأقسام» تلقائياً)
+    f.value = (filterDept && deptIds.indexOf(String(filterDept)) >= 0) ? String(filterDept) : '';
+    filterDept = f.value || '';
+  }
+  let slots = daySlots(viewDate);
+  if (filterDept) slots = slots.filter(function(sl) {
+    const st = staffById(sl.employeeId);
+    return st && String(st.deptId) === String(filterDept);
+  });
+  const box = document.getElementById('slotsList');
+  if (!slots.length) {
+    box.innerHTML = '<p class="text-center text-slate-400 py-8">لا توجد ورديات في هذا اليوم</p>';
+    return;
+  }
+  // بطاقتان بجوار بعض: عرض أكبر قدر من المعلومات بأقل مساحة (بلا شارة «تلقائي»)
+  box.innerHTML = slots.map(function(sl) {
+    const st = staffById(sl.employeeId) || { name: 'موظف', hex: '#0f766e', title: '' };
+    const del = can('slots') ? '<button onclick="deleteSlot(\'' + sl.id + '\')" class="slot-del">✕</button>' : '';
+    const info = (st.title || '') + (deptName(st.deptId) ? (st.title ? ' · ' : '') + deptName(st.deptId) : '');
+    const nm = can('slots')
+      ? '<button type="button" data-key="' + formatKey(viewDate) + '" data-slot="' + sl.id + '" class="swap-trigger" title="اضغط على الاسم للتبديل في حال الغياب">' + (st.mgr ? '👔 ' : '') + displayName(st) + ' ⇄</button>'
+      : '<span>' + (st.mgr ? '👔 ' : '') + displayName(st) + '</span>';
+    return '<div class="slot shadow" style="background:' + (st.hex || '#0f766e') + '">' + del +
+      '<div class="slot-emp">' + nm + '</div>' +
+      (info ? '<div class="slot-info">' + info + '</div>' : '') +
+      '<div class="slot-time">⏰ ' + (sl.start || '') + ' — ' + (sl.end || '') + '</div></div>';
+  }).join('');
+}
+
+function renderCal() {
+  const y = calDate.getFullYear(), m = calDate.getMonth();
+  document.getElementById('calTitle').textContent = arabicMonths[m] + ' ' + y;
+  const grid = document.getElementById('calGrid');
+  grid.innerHTML = '';
+  const first = (new Date(y, m, 1).getDay() + 1) % 7;
+  const days = new Date(y, m+1, 0).getDate();
+  const today = new Date();
+  for (let i=0;i<first;i++) grid.appendChild(Object.assign(document.createElement('div'), { className: 'cal-cell bg-slate-50' }));
+  for (let d=1; d<=days; d++) {
+    const date = new Date(y, m, d);
+    const slots = daySlots(date);
+    const cell = document.createElement('div');
+    const firstEmp = slots[0] ? staffById(slots[0].employeeId) : null;
+    cell.className = 'cal-cell' + (slots.length ? ' has' : '');
+    if (firstEmp) cell.style.background = firstEmp.hex || '#0f766e';
+    const hasAuto = slots.some(function(s) { return s.auto; });
+    cell.innerHTML = '<div class="font-bold">' + d + '</div>' + (slots.length ? '<div class="text-xs mt-1">' + (hasAuto ? '⚡' : '') + ' ' + slots.length + ' شفت</div>' : '');
+    if (today.toDateString() === date.toDateString()) cell.style.boxShadow = 'inset 0 0 0 3px #000';
+    cell.onclick = function() { viewDate = new Date(date); showPage('day'); renderDay(); };
+    grid.appendChild(cell);
+  }
+}
+
+function renderStats() {
+  const y = viewDate.getFullYear(), m = viewDate.getMonth();
+  const counts = {};
+  staffList().forEach(function(s) { counts[s.id] = 0; });
+  const last = new Date(y, m+1, 0).getDate();
+  for (let d=1; d<=last; d++) {
+    daySlots(new Date(y, m, d)).forEach(function(sl) {
+      if (counts[sl.employeeId] !== undefined) counts[sl.employeeId]++;
+    });
+  }
+  document.getElementById('statsBox').innerHTML = sortedStaffForList(staffList()).map(function(s) {
+    return '<div class="p-4 rounded-2xl text-white" style="background:' + (s.hex||'#0f766e') + '"><div class="flex justify-between"><span class="font-bold">' + (s.pinned ? '📌 ' : '') + displayName(s) + (s.mgr ? ' 👔' : '') + '</span><span>' + (counts[s.id]||0) + ' وردية</span></div><div class="text-xs opacity-80">' + (s.title||'') + ' · ' + deptName(s.deptId) + '</div></div>';
+  }).join('') || '<p class="text-slate-400">لا يوجد موظفون</p>';
+}
+
+function renderSettingsLists() {
+  const dl = document.getElementById('deptList');
+  if (dl) dl.innerHTML = Object.keys(departments).map(function(id) {
+    const members = staffList().filter(function(s) { return String(s.deptId) === String(id); });
+    const membersHtml = members.length
+      ? '<div class="text-xs text-slate-500 mt-1">' + members.map(function(s) { return '<span class="inline-block bg-slate-100 rounded-full px-2 py-0.5 ml-1 mt-1">' + escapeHtml(displayName(s)) + '</span>'; }).join('') + '</div>'
+      : '<div class="text-xs text-red-500 mt-1">⚠️ لا موظفون في هذا القسم بعد — أضفهم من تبويب «👥 الموظفون»</div>';
+    return '<div class="border rounded-xl p-2"><div class="flex justify-between items-center"><span class="font-bold">' + departments[id].name + '</span>' +
+      (can('depts') ? '<span class="flex gap-2"><button onclick="openRenameDept(\'' + id + '\')\" title="تعديل اسم القسم" class="text-teal-700 text-lg px-2">✏️</button><button onclick="removeDept(\'' + id + '\')\" title="حذف القسم" class="text-red-500 text-lg px-2">✕</button></span>' : '') + '</div>' + membersHtml + '</div>';
+  }).join('') || '<p class="text-slate-400 text-sm">لا أقسام بعد</p>';
+  const sel = document.getElementById('stDept');
+  if (sel) sel.innerHTML = '<option value="">بدون قسم</option>' + Object.keys(departments).map(function(id) {
+    return '<option value="' + id + '">' + departments[id].name + '</option>';
+  }).join('');
+  const sortSel = document.getElementById('staffSort');
+  if (sortSel) sortSel.value = staffSortPref();
+  const prefS = staffSortPref();
+  const countsS = prefS === 'shifts' ? staffShiftCounts() : null;
+  const sl = document.getElementById('staffList');
+  if (sl) sl.innerHTML = sortedStaffForList(allStaffList()).map(function(s) {
+    return '<div class="border rounded-xl p-3"><div class="flex justify-between items-center gap-2">' +
+      '<div><div class="font-bold">' + (s.pinned ? '📌 ' : '') + displayName(s) +
+        (s.mgr ? ' <span class="text-[10px] bg-amber-100 text-amber-800 rounded-full px-2 py-0.5 font-bold">👔 مدير قسم</span>' : '') + '</div>' +
+      '<div class="text-sm text-slate-500">' + (s.title||'') + ' · ' + deptName(s.deptId) +
+        (countsS ? ' · ' + (countsS[s.id] || 0) + ' وردية' : '') + '</div></div>' +
+      '<div class="flex gap-1 text-sm">' +
+        '<button type="button" onclick="loadStaffToForm(\'' + String(s.code).replace(/'/g, "\\'") + '\')" title="تعديل" class="bg-teal-800 text-amber-100 px-3 py-1 rounded-lg">✏️</button>' +
+        '<button type="button" title="' + (s.disabled ? '✅ تفعيل الموظف' : '⛔ إيقاف الموظف') + '" onclick="toggleStaffDisabled(\'' + String(s.code).replace(/'/g, "\\'") + '\',' + (s.disabled ? 'false' : 'true') + ')" class="bg-slate-200 text-slate-700 px-3 py-1 rounded-lg">' + (s.disabled ? '✅ تفعيل الموظف' : '⛔ إيقاف الموظف') + '</button>' +
+        '<button type="button" onclick="removeStaff(\'' + String(s.code).replace(/'/g, "\\'") + '\')" title="حذف" class="text-red-500 text-lg px-2 py-1">✕</button>' +
+      '</div></div>' +
+      (s.disabled ? '<div class="text-xs bg-red-50 text-red-600 font-bold px-2 py-1 rounded-lg mt-1 inline-block">⛔ موقوف — لا يدخل التوزيع ولا يسجّل الدخول</div>' : '') +
+    '</div>';
+  }).join('') || '<p class="text-slate-400 text-sm">لا موظفون بعد</p>';
+  fbConnectRefresh();
+  renderScheduleRules();
+}
+
+let renameDeptId = null;
+function openRenameDept(id) {
+  renameDeptId = id;
+  const input = document.getElementById('renameDeptInput');
+  if (input) { input.value = (departments[id] && departments[id].name) || ''; input.focus(); }
+  document.getElementById('renameDeptModal').classList.remove('hidden');
+}
+function closeRenameDept() {
+  document.getElementById('renameDeptModal').classList.add('hidden');
+  renameDeptId = null;
+}
+async function saveDeptName() {
+  if (!can('depts')) return;
+  const name = document.getElementById('renameDeptInput').value.trim();
+  if (!renameDeptId || !name) return;
+  if (departments[renameDeptId]) departments[renameDeptId].name = name;
+  await db.ref(path('departments/' + renameDeptId + '/name')).set(name);
+  closeRenameDept();
+  renderAll();
+  renderScheduleRules();
+  toast('✔ تم تعديل اسم القسم');
+}
+function addDepartment() {
+  if (!can('depts')) return;
+  const name = document.getElementById('newDeptName').value.trim();
+  if (!name) return;
+  db.ref(path('departments')).push({ name: name, createdAt: Date.now() });
+  document.getElementById('newDeptName').value = '';
+}
+function removeDept(id) { if (!can('depts')) return; if (confirm('حذف القسم؟')) db.ref(path('departments/' + id)).remove(); }
+
+// ===== لوحة ألوان الموظف: مجموعة أوسع + منتقي مخصص + الألوان المختارة حديثاً =====
+const STAFF_COLORS = [
+  '#0f766e', '#0d9488', '#1d4ed8', '#1e40af', '#4338ca', '#6d28d9', '#7e22ce', '#a21caf',
+  '#be185d', '#db2777', '#e11d48', '#b91c1c', '#c2410c', '#ea580c', '#d97706', '#b45309',
+  '#4d7c0f', '#15803d', '#166534', '#0e7490', '#155e75', '#374151', '#334155', '#78350f',
+  '#78716c', '#57534e'
+];
+function staffRecentColors() {
+  try { return JSON.parse(localStorage.getItem('wrdiat_recent_colors_v1') || '[]'); } catch (e) { return []; }
+}
+function pushRecentColor(hex) {
+  hex = String(hex || '').toLowerCase();
+  if (!/^#[0-9a-f]{6}$/.test(hex)) return;
+  let list = staffRecentColors().filter(function(c) { return c !== hex; });
+  list.unshift(hex);
+  try { localStorage.setItem('wrdiat_recent_colors_v1', JSON.stringify(list.slice(0, 8))); } catch (e) {}
+}
+function colorSwatchHtml(hex, selected) {
+  return '<button type="button" class="st-swatch' + (selected ? ' sel' : '') + '" style="background:' + hex + '" title="' + hex + '" onclick="pickStaffColor(' + "'" + hex + "'" + ')"></button>';
+}
+function refreshColorPalette() {
+  const box = document.getElementById('stColorPalette');
+  if (!box) return;
+  const cur = (document.getElementById('stColor') || {}).value || '#0f766e';
+  box.innerHTML = STAFF_COLORS.map(function(c) { return colorSwatchHtml(c, c === cur); }).join('');
+  const rBox = document.getElementById('stRecentBox');
+  const rCol = document.getElementById('stRecentColors');
+  const rec = staffRecentColors();
+  if (rBox && rCol) {
+    rBox.classList.toggle('hidden', !rec.length);
+    rCol.innerHTML = rec.map(function(c) { return colorSwatchHtml(c, c === cur); }).join('');
+  }
+}
+function pickStaffColor(hex) {
+  const el = document.getElementById('stColor');
+  if (el && /^#[0-9a-f]{6}$/i.test(hex)) el.value = hex.toLowerCase();
+  refreshColorPalette();
+}
+// النموذج المطوي: فتح/إغلاق
+function toggleStaffForm(forceClose) {
+  const form = document.getElementById('staffForm');
+  if (!form) return;
+  const closing = forceClose === true || !form.classList.contains('hidden');
+  if (closing && editingStaffCode && !forceClose) { cancelStaffEdit(); return; }
+  if (closing) { form.classList.add('hidden'); return; }
+  form.classList.remove('hidden');
+  refreshColorPalette();
+  const nm = document.getElementById('stName');
+  if (nm) nm.focus();
+}
+function staffMsg(text, ok) {
+  const el = document.getElementById('staffMsg');
+  if (!el) { alert(text); return; }
+  el.textContent = text;
+  el.classList.remove('hidden');
+  el.className = 'text-sm mt-2 ' + (ok ? 'text-teal-700' : 'text-red-600');
+}
+// ===== الموظفون: إضافة / تعديل بعد الحفظ / إيقاف / حذف =====
+let editingStaffCode = null; // مفتاح السجل قيد التعديل (null = إضافة جديدة)
+function nextStaffKey() { // معرف داخلي تلقائي — لا حاجة لأرقام دخول
+  let max = 0;
+  Object.keys(staff).forEach(function(k) { const n = Number(k); if (Number.isFinite(n) && n > max) max = n; });
+  let k = String(max + 1);
+  while (staff[k]) k = String(Number(k) + 1);
+  return k;
+}
+function readStaffForm() {
+  return {
+    name: document.getElementById('stName').value.trim(),
+    lastName: (document.getElementById('stLast') || { value: '' }).value.trim(),
+    title: document.getElementById('stTitle').value.trim(),
+    deptId: document.getElementById('stDept').value,
+    hex: document.getElementById('stColor').value,
+    _hexTouched: (document.getElementById('stColor') || {}).__touched,
+    displayMode: (document.querySelector('input[name="stDisp"]:checked') || { value: 'full' }).value,
+    pinned: !!(document.getElementById('stPinned') || {}).checked,
+    mgr: !!(document.getElementById('stMgr') || {}).checked
+  };
+}
+function setStaffForm(d) {
+  document.getElementById('stName').value = d.name || '';
+  if (document.getElementById('stLast')) document.getElementById('stLast').value = d.lastName || '';
+  document.getElementById('stTitle').value = d.title || '';
+  document.getElementById('stDept').value = d.deptId || '';
+  document.getElementById('stColor').value = d.hex || '#0f766e';
+  const radio = document.querySelector('input[name="stDisp"][value="' + (d.displayMode || 'full') + '"]');
+  if (radio) radio.checked = true;
+  const pin = document.getElementById('stPinned'); if (pin) pin.checked = !!d.pinned;
+  const mg = document.getElementById('stMgr'); if (mg) mg.checked = !!d.mgr;
+  const colorInput = document.getElementById('stColor');
+  if (colorInput) { colorInput.value = d.hex || '#0f766e'; colorInput.__touched = false; }
+  refreshColorPalette();
+}
+function loadStaffToForm(code) {
+  const s = staff[String(code)];
+  if (!s) return;
+  editingStaffCode = String(code);
+  setStaffForm(Object.assign({ code: code }, s));
+  document.getElementById('staffBtnLabel').textContent = '💾 حفظ التعديلات';
+  document.getElementById('staffCancelEdit').classList.remove('hidden');
+  staffMsg('جارٍ تعديل: ' + displayName(Object.assign({ code: code }, s)), true);
+  document.getElementById('stName').focus();
+}
+function cancelStaffEdit() {
+  editingStaffCode = null;
+  setStaffForm({ code: '', name: '', lastName: '', title: '', deptId: '', hex: '#0f766e', displayMode: 'full' });
+  document.getElementById('staffBtnLabel').textContent = 'حفظ الموظف';
+  document.getElementById('staffCancelEdit').classList.add('hidden');
+  document.getElementById('staffMsg').classList.add('hidden');
+}
+async function addStaff() {
+  if (!can('staff')) { staffMsg('لا تملك صلاحية إدارة الموظفين'); return; }
+  try {
+    const f = readStaffForm();
+    if (f.hex) pushRecentColor(f.hex); // سجل اللون المختار حديثاً
+    if (f.name.length < 2) { staffMsg('أدخل اسم الموظف'); return; }
+    if (f.displayMode === 'laqab' && f.lastName.length < 1) { staffMsg('أدخل اللقب أو اختر عرض الاسم كاملاً'); return; }
+    if (editingStaffCode) {
+      // تعديل موظف موجود: نفس المفتاح (معرف داخلي ثابت لا يتغير)
+      const key = editingStaffCode;
+      const oldRec = staff[key] || {};
+      const id = Number(oldRec.id) || Number(key) || Date.now();
+      await db.ref(path('staff/' + key)).set({
+        name: f.name, lastName: f.lastName, displayMode: f.displayMode,
+        title: f.title, deptId: f.deptId, id: id, hex: f.hex,
+        pinned: !!f.pinned, mgr: !!f.mgr,
+        disabled: !!oldRec.disabled, code: key
+      });
+      staffMsg('✔ تم تحديث بيانات الموظف', true);
+      cancelStaffEdit();
+      return;
+    }
+    // إضافة جديدة: مفتاح داخلي تلقائي (لا أرقام دخول)
+    const key = nextStaffKey();
+    await db.ref(path('staff/' + key)).set({
+      name: f.name, lastName: f.lastName, displayMode: f.displayMode,
+      title: f.title, deptId: f.deptId, id: Number(key), hex: f.hex, disabled: false, code: key,
+      pinned: !!f.pinned, mgr: !!f.mgr
+    });
+    staffMsg('✔ تم حفظ الموظف', true);
+    cancelStaffEdit();
+  } catch (e) {
+    staffMsg('تعذر الحفظ: ' + (e.message || e));
+  }
+}
+
+async function toggleStaffDisabled(code, disabled) {
+  if (!can('staff')) return;
+  const rec = staff[String(code)];
+  if (!rec) return;
+  await db.ref(path('staff/' + code + '/disabled')).set(disabled);
+  toast(disabled ? '🛑 تم إيقاف الموظف' : '✅ تم تفعيل الموظف');
+}
+async function removeStaff(code) {
+  if (!can('staff')) return;
+  if (!confirm('حذف الموظف نهائياً؟ ستبقى وردياته السابقة لكن لن يظهر في التوزيع أو الدخول.')) return;
+  await db.ref(path('staff/' + code)).remove();
+  toast('تم حذف الموظف');
+}
+
+function openSlotModal() {
+  if (!can('slots')) return;
+  const sel = document.getElementById('slotEmp');
+  sel.innerHTML = staffList().map(function(s) {
+    return '<option value="' + s.id + '">' + displayName(s) + (s.title ? ' — ' + s.title : '') + '</option>';
+  }).join('');
+  if (!staffList().length) { alert('أضف موظفين أولاً من الإعدادات'); return; }
+  document.getElementById('slotModal').classList.remove('hidden');
+}
+function closeSlotModal() { document.getElementById('slotModal').classList.add('hidden'); }
+
+function saveSlot() {
+  if (!can('slots')) return;
+  const employeeId = Number(document.getElementById('slotEmp').value);
+  const start = document.getElementById('slotStart').value;
+  const end = document.getElementById('slotEnd').value;
+  if (!employeeId || !start || !end) return;
+  if (end <= start) { document.getElementById('slotErr').textContent = 'وقت النهاية بعد البداية'; document.getElementById('slotErr').classList.remove('hidden'); return; }
+  const key = formatKey(viewDate);
+  const list = daySlots(viewDate);
+  list.push({ id: Date.now().toString(36), employeeId: employeeId, start: start, end: end });
+  db.ref(path('shifts/' + key)).set(list);
+  closeSlotModal();
+}
+function deleteSlot(id) {
+  if (!can('slots')) return;
+  const key = formatKey(viewDate);
+  const list = daySlots(viewDate).filter(function(s) { return s.id !== id; });
+  db.ref(path('shifts/' + key)).set(list);
+}
+
+// ===== تبديل سريع من بطاقة اليوم (في حال غياب أحدهم) =====
+let swapTarget = null; // { key, slotId }
+function openSwapModal(key, slotId) {
+  if (!can('slots')) return;
+  const list = Array.isArray(shifts[key]) ? shifts[key] : [];
+  const slot = list.find(function(s) { return s.id === slotId; });
+  if (!slot) return;
+  const emp = staffById(slot.employeeId);
+  swapTarget = { key: key, slotId: slotId };
+  const info = document.getElementById('swapInfo');
+  if (info) info.textContent = 'وردية ' + (emp ? displayName(emp) : '؟') + ' (' + (slot.start || '—') + ' إلى ' + (slot.end || '—') + ') — اختر من يغطيها:';
+  // التبديل بين موظفي نفس القسم فقط (طباخ ← طباخ، كاشير ← كاشير…)
+  // إن لم يكن للموظف قسم (بدون قسم) يقف التبديل عند كل الموظفين النشطين.
+  const sameDept = staffList().filter(function(s) {
+    return Number(s.id) !== Number(slot.employeeId) &&
+      (!(emp && emp.deptId) || String(s.deptId) === String(emp.deptId));
+  });
+  const deptLabel = (emp && emp.deptId)
+    ? 'من قسم «' + deptName(emp.deptId) + '» فقط:'
+    : 'كل الموظفين النشطين (موظف بدون قسم):';
+  let html = '';
+  if (sameDept.length) {
+    html += '<div class="text-xs font-bold text-slate-500 mb-1">' + deptLabel + '</div>' + sameDept.map(swapOptionHtml).join('');
+  }
+  const noOneMsg = (emp && emp.deptId)
+    ? 'لا يوجد موظف آخر في قسم «' + deptName(emp.deptId) + '» للتبديل'
+    : 'لا يوجد موظف نشط آخر للتبديل';
+  document.getElementById('swapList').innerHTML = html || '<p class="text-sm text-slate-400 text-center py-4">' + noOneMsg + '</p>';
+  document.getElementById('swapModal').classList.remove('hidden');
+}
+function swapOptionHtml(s) {
+  return '<button type="button" data-swap-to="' + Number(s.id) + '" class="swap-option w-full flex items-center gap-2 border rounded-xl p-3 text-right bg-white" style="margin-bottom:6px">' +
+    '<span class="inline-block rounded-full" style="width:14px;height:14px;background:' + (s.hex || '#0f766e') + '"></span>' +
+    '<span class="flex-1"><span class="font-bold block">' + escapeHtml(displayName(s)) + '</span>' +
+    '<span class="text-xs text-slate-500">' + escapeHtml(s.title || '') + (deptName(s.deptId) ? ' · ' + escapeHtml(deptName(s.deptId)) : '') + '</span></span>' +
+    '<span class="text-teal-700 text-sm font-bold">⇄ تبديل</span></button>';
+}
+async function doSwap(newEmpId) {
+  if (!can('slots')) return;
+  if (!swapTarget) return;
+  const key = swapTarget.key, slotId = swapTarget.slotId;
+  const list = Array.isArray(shifts[key]) ? shifts[key] : [];
+  const slot = list.find(function(s) { return s.id === slotId; });
+  if (!slot) return;
+  const from = Number(slot.employeeId), to = Number(newEmpId);
+  if (!to || from === to) return;
+  const fromEmp = staffById(from), toEmp = staffById(to);
+  slot.employeeId = to;
+  slot.auto = false; // التبديل اليدوي يلغي صفة التلقائي لهذه الوردية تحديداً
+  if (currentUser && currentUser.role === 'employee') slot.swappedBy = currentUser.username;
+  shifts[key] = list;
+  markShiftsDirty();
+  closeSwapModal();
+  try {
+    await db.ref(path('shifts/' + key)).set(list);
+    clearShiftsDirty();
+    try {
+      await db.ref(path('swapLog')).push({ date: key, slotId: slotId, from: from, to: to, fromName: fromEmp ? displayName(fromEmp) : '', toName: toEmp ? displayName(toEmp) : '', by: (currentUser && currentUser.username) || '', at: Date.now() });
+    } catch (e) {}
+    toast('✔ تم تبديل الوردية');
+  } catch (e) {
+    toast('تم التبديل على هذا الجهاز — سيُزامن عند عودة الاتصال');
+  }
+  renderAll();
+}
+function closeSwapModal() {
+  document.getElementById('swapModal').classList.add('hidden');
+  swapTarget = null;
+}
+
+// مستمع نقرة واحد على مستوى الصفحة (اسم الموظف في البطاقة أو خيار التبديل في النافذة)
+document.addEventListener('input', function(e) {
+  if (e.target && e.target.id === 'stColor') { e.target.__touched = true; refreshColorPalette(); }
+});
+document.addEventListener('click', function(e) {
+  const t = e.target.closest('.swap-trigger');
+  if (t) { openSwapModal(t.getAttribute('data-key'), t.getAttribute('data-slot')); return; }
+  const o = e.target.closest('.swap-option');
+  if (o) doSwap(o.getAttribute('data-swap-to'));
+});
+
+// ===== استجابة حسية: اهتزاز خفيف عند ضغط أي زر (يعمل على أندرويد) =====
+function buzz(pattern) {
+  try { if (navigator.vibrate) navigator.vibrate(pattern); } catch (e) {}
+}
+document.addEventListener('click', function(e) {
+  const t = e.target.closest ? e.target.closest('button, .rule-chip, .st-swatch, .su-copy, .su-dice, .su-del, .su-rst, .su-summary') : null;
+  if (t && !t.disabled) buzz(8);
+}, true);
+
+window.addEventListener('load', async function() {
+  applySignupFlag();
+  // لا تظهر البيانات إلا لجلسة معروفة (أدمن مؤسسة أو موظفها)
+  // تحذير إن كانت إعدادات Firebase ناقصة (مثلاً databaseURL مفقود في المشروع الجديد)
+  if (firebaseConfigBroken()) {
+    const warn = document.createElement('div');
+    warn.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:9999;background:#b91c1c;color:#fff;font:bold 13px/1.6 sans-serif;padding:10px 14px;text-align:center';
+    warn.textContent = '⚠️ إعدادات Firebase غير مكتملة (databaseURL مفقود في config.js) — التطبيق يعمل محلياً على هذا الجهاز، وللمزامنة أضف رابط القاعدة في ملف config.js (firebaseConfig).';
+    document.body.appendChild(warn);
+  }
+  // مزامنة تلقائية: عند عودة الاتصال أو دورياً يُدفع المحلي المعلَّق للخادم
+  window.addEventListener('online', function() { syncDirtyAll(); });
+  setInterval(function() { if (isAdmin()) syncDirtyAll(); }, 60000);
+  let u = null;
+  try { u = JSON.parse(localStorage.getItem('wrdiatUser') || 'null'); } catch (e) {}
+  const cu = u ? applySession(u) : null;
+  if (!cu) { showStartScreen(); return; }   // لا جلسة → شاشة البداية
+  restoreOfflineData();                     // بيانات هذا الجهاز لهذه المؤسسة
+  enterApp();
+  validateSessionInBackground(u);           // تحقق صامت في الخلفية
+});
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' });
+  });
+}
+
+// ===== إبقاء الخانة المركَّز عليها ظاهرة عند فتح لوحة المفاتيح في الجوال =====
+(function() {
+  function keepInView(el) {
+    var m = el.closest && el.closest('.overflow-y-auto, [id$="Modal"]');
+    setTimeout(function() {
+      try {
+        if (el.scrollIntoView) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      } catch (e) {
+        try { el.scrollIntoView(false); } catch (e2) {}
+      }
+    }, 250); // انتظار ظهور لوحة المفاتيح
+  }
+  document.addEventListener('focusin', function(ev) {
+    var t = ev.target;
+    if (!t || !t.tagName) return;
+    var tag = t.tagName.toLowerCase();
+    if (tag === 'input' || tag === 'select' || tag === 'textarea') keepInView(t);
+  });
+})();
+</script>
 </body>
 </html>
