@@ -326,8 +326,8 @@ select:focus, textarea:focus {
   padding: 7px 0;
 }
 @keyframes announceLTR {
-  from { transform: translateX(-50%); }  /* يبدأ من يسار الشاشة */
-  to   { transform: translateX(0); }      /* يتحرك نحو اليمين باستمرار */
+  from { transform: translateX(0); }                     /* المجموعة الأولى تغطي الشاشة */
+  to   { transform: translateX(var(--ann-shift, 50%)); } /* إزاحة بمقدار مجموعة كاملة = حلقة متطابقة تماماً */
 }
 
 /* ===== الموظف المثالي: نجمة الشهر ===== */
@@ -1463,32 +1463,40 @@ function announceSpeedSeconds(speed) {
   if (speed === 'fast') return 9;
   return 16; // normal
 }
-function renderAnnouncement() {
+function renderAnnouncement(force) {
   const bar = document.getElementById('announceBar');
   const track = document.getElementById('announceTrack');
   if (!bar || !track) return;
   const text = (announcement && announcement.text) ? String(announcement.text).trim() : '';
   const enabled = !!(announcement && announcement.enabled) && text.length > 0;
+  const speed = (announcement && announcement.speed) || 'normal';
+  const screenW = window.innerWidth || 360;
+  const sig = (enabled ? '1' : '0') + '|' + text + '|' + speed + '|' + Math.round(screenW);
+  // لا تغيير في النص/الحالة/السرعة/العرض → لا نعيد البناء (وإلا تتقفز الحركة مع كل تحديث بيانات)
+  if (!force && track.__annSig === sig) return;
+  track.__annSig = sig;
   if (!enabled) { bar.classList.add('hidden'); track.innerHTML = ''; return; }
   bar.classList.remove('hidden');
-  const dur = announceSpeedSeconds(announcement.speed);
+  const dur = announceSpeedSeconds(speed);
   bar.style.setProperty('--ann-dur', dur + 's');
-  // نسخ كافية لتغطية عرض الشاشة مرتين (حتى يكون التكرار سلساً بلا فراغات)
-  let itemW = 0;
+  // عنصر حقيقي (نص + فاصل ✦) لقياس عرضه الفعلي بدقة
+  const itemHtml = '<span class="announce-item">' + escapeHtml(text) + '  <span style="opacity:.55">✦</span>  </span>';
+  let unitW = 0;
   try {
+    track.innerHTML = '';
     const probe = document.createElement('span');
     probe.className = 'announce-item';
-    probe.textContent = text;
-    track.innerHTML = '';
+    probe.innerHTML = escapeHtml(text) + '  <span style="opacity:.55">✦</span>  ';
     track.appendChild(probe);
-    itemW = probe.offsetWidth || (text.length * 9);
-  } catch (e) { itemW = text.length * 9; }
-  const screenW = window.innerWidth || 360;
-  const unitW = Math.max(itemW + 40, 60); // النص + فاصل
-  const copies = Math.max(2 * (Math.ceil(screenW / unitW) + 1), 4);
-  let html = '';
-  for (let i = 0; i < copies; i++) html += '<span class="announce-item">' + escapeHtml(text) + '  <span style="opacity:.55">✦</span>  </span>';
-  track.innerHTML = html;
+    unitW = probe.offsetWidth || (text.length * 9 + 40);
+  } catch (e) { unitW = text.length * 9 + 40; }
+  if (unitW <= 0) unitW = 60;
+  // مجموعة تغطي عرض الشاشة بفائض آمن (+2 عنصر) حتى لا تظهر أي فجوة مهما تغيّر الخط
+  const perGroup = Math.max(Math.ceil(screenW / unitW) + 2, 3);
+  const groupHtml = new Array(perGroup).fill(itemHtml).join('');
+  // مجموعتان متطابقتان: الإزاحة بمقدار عرض مجموعة واحدة تجعل نقطة الالتفاف مطابقة تماماً (حلقة ناعمة بلا قفزة)
+  track.innerHTML = groupHtml + groupHtml;
+  track.style.setProperty('--ann-shift', (perGroup * unitW) + 'px');
 }
 function announceMsg(text, ok) {
   const el = document.getElementById('annMsg');
@@ -2939,6 +2947,9 @@ function measureSettingsTabs() {
   if (nav && tabs) tabs.style.top = (nav.offsetHeight + 2) + 'px';
 }
 window.addEventListener('resize', measureSettingsTabs);
+// إعادة بناء شريط التعميم عند تغيّر العرض أو بعد تحميل الخط (حتى يبقى القياس دقيقاً والحلقة سلسة)
+window.addEventListener('resize', function() { renderAnnouncement(true); });
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(function() { renderAnnouncement(true); });
 
 function listenData() {
   db.ref(path('departments')).on('value', function(s) { onDepartmentsValue(s.val()); });
