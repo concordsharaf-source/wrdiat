@@ -2262,7 +2262,7 @@ async function signupsRefresh() {
       const digits = String(rec.phone || '').replace(/\D/g, '');
       html += '<div class="su-req">'
         + '<div class="su-head">' + escapeHtml(rec.name || k) + ' <span class="su-mail" dir="ltr">' + escapeHtml(rec.email || '') + '</span></div>';
-      if (digits) html += '<div class="su-phone" dir="ltr">📱 ' + escapeHtml(rec.phone) + ' · <a href="https://wa.me/' + digits.replace(/^0+/, '') + '" target="_blank" rel="noopener">💬 واتساب</a></div>';
+      if (digits) html += '<div class="su-phone" dir="ltr">📱 ' + escapeHtml(rec.phone) + ' · <a href="' + whatsappLink(rec.phone) + '" target="_blank" rel="noopener">💬 واتساب</a></div>';
       if (isSelf) html += '<div class="su-state-ok">👤 أنت (مالك النظام) — كلمة مرورك تغيّرها من تبويب 🔐 الأمان</div>';
       else html += '<button type="button" class="su-rst" onclick="resetOrgPassword(\'' + k + '\')">🔑 تصفير كلمة المرور وإرسالها له بالبريد</button><div id="rst-' + k + '"></div>';
       html += '</div>';
@@ -2313,17 +2313,30 @@ function copyText(t) {
   } catch (e) {}
   toast(t);
 }
+// رقم واتساب صحيح: يُضيف رمز الدولة تلقائياً إن كان الرقم مسجلاً بدونه (بدون «المفتاح»)
+function whatsappNumber(raw) {
+  let digits = String(raw || '').replace(/\D/g, '').replace(/^0+/, '');
+  if (!digits) return '';
+  const cc = String((APP_CONFIG && APP_CONFIG.phoneCountryCode) || '967');
+  if (digits.indexOf(cc) === 0) return digits;   // يحمل رمز الدولة بالفعل → أبقِه
+  if (digits.length <= 9) return cc + digits;    // رقم محلي بدون رمز الدولة → أضِفه
+  return digits;                                  // رقم طويل يحمل رمز دولة آخر
+}
+function whatsappLink(raw) {
+  const n = whatsappNumber(raw);
+  return n ? 'https://wa.me/' + n : '';
+}
 function signupCardHtml(rec) {
   const digits = String(rec.phone || '').replace(/\D/g, '');
-  const waLink = digits ? 'https://wa.me/' + digits.replace(/^0+/, '') : '';
+  const waNum = whatsappNumber(rec.phone);
   const state = rec.codeHash
     ? '<div class="su-state-ok">✅ رمز صادر — بانتظار أن يدخله صاحب الطلب</div>'
     : '<div class="su-state-wait">⏳ لم يُصدر رمز بعد — أصدره وأرسله لصاحب الطلب</div>';
   let phoneLine = '<div class="su-phone" dir="ltr">📱 ' + escapeHtml(rec.phone || '—');
   if (digits) {
     phoneLine += ' · <a href="tel:' + escapeHtml(rec.phone) + '">اتصال</a>'
-      + ' · <a href="' + waLink + '" target="_blank" rel="noopener">💬 واتساب</a>'
-      + ' · <a href="javascript:void(0)" onclick="copySignupPhone(\'' + digits + '\')">📋 نسخ الرقم</a>';
+      + ' · <a href="' + whatsappLink(rec.phone) + '" target="_blank" rel="noopener">💬 واتساب</a>'
+      + ' · <a href="javascript:void(0)" onclick="copySignupPhone(\'' + waNum + '\')">📋 نسخ الرقم</a>';
   }
   phoneLine += '</div>';
   return '<div class="su-req">'
