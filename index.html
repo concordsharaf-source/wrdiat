@@ -584,8 +584,8 @@ select:focus, textarea:focus {
             <span class="text-sm font-bold text-slate-600 whitespace-nowrap">🔀 ترتيب القائمة:</span>
             <select id="staffSort" onchange="setStaffSortPref(this.value)" class="flex-1 border rounded-xl p-2 bg-white text-sm">
               <option value="name">أبجدياً بالاسم</option>
-              <option value="dept">بالقسم (الفئة)</option>
-              <option value="shifts">بعدد الورديات (الأكثر أولاً)</option>
+              <option value="dept">بالقسم</option>
+              <option value="shifts">بعدد الورديات</option>
             </select>
           </div>
           <div id="staffList" class="mt-3 space-y-2"></div>
@@ -1171,8 +1171,8 @@ function ruleRowHtml(scopeIdx, day, row, idx) {
   return '<div id="ruleRow-' + scopeIdx + '-' + day + '-' + idx + '" class="border border-slate-200 rounded-xl p-2 mb-2 bg-white">' +
     '<div class="flex gap-2 mb-1">' +
       '<select id="ruleMode-' + scopeIdx + '-' + day + '-' + idx + '" onchange="ruleModeChanged(' + scopeIdx + ',' + day + ',' + idx + ')" class="flex-1 border rounded-lg p-2 bg-white text-sm">' +
-        '<option value="fixed"' + (row.mode === 'fixed' ? ' selected' : '') + '>تلقائي — نفس الموظفين كل أسبوع</option>' +
-        '<option value="rotate"' + (row.mode !== 'fixed' ? ' selected' : '') + '>تناوب — دور أسبوعي</option>' +
+        '<option value="fixed"' + (row.mode === 'fixed' ? ' selected' : '') + '>تلقائي</option>' +
+        '<option value="rotate"' + (row.mode !== 'fixed' ? ' selected' : '') + '>تناوب</option>' +
       '</select>' +
       '<button type="button" onclick="removeRuleRow(' + scopeIdx + ',' + day + ',' + idx + ')" class="text-red-500 text-sm px-2" title="حذف الشفت">✕</button>' +
     '</div>' +
