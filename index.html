@@ -93,28 +93,42 @@ input::placeholder, textarea::placeholder { color: #9a3412 !important; opacity: 
 .slot-time { margin-top: 3px; font-weight: 700; font-size: 13px; white-space: nowrap; }
 .slot-del { position: absolute; left: 5px; top: 4px; color: rgba(255,255,255,.85); line-height: 1; z-index: 2; }
 @media (max-width: 360px) { .slot-emp, .slot-emp .swap-trigger { font-size: 14px; } .slot-time { font-size: 12px; } }
+/* ===== شاشة البداية (تسجيل الدخول) ===== */
+.start-bg { background: linear-gradient(160deg, #0f766e, #115e59, #134e4a); }
+body.start-mode { background: linear-gradient(160deg, #0f766e, #115e59, #134e4a); }
+#loginModal .w\\[19rem\\] { max-width: 92vw; }
+.sec-card { background: #fff; border-radius: 18px; padding: 16px; box-shadow: 0 1px 3px rgba(15,23,42,.08); }
+.sec-card + .sec-card { margin-top: 14px; }
+
 #toast { background: #111827; color: #fde047; padding: 10px 18px; border-radius: 14px; font-weight: 800; box-shadow: 0 10px 25px rgba(0,0,0,.35); max-width: 90%; width: max-content; text-align: center; }
 </style>
 </head>
 <body class="bg-slate-100 min-h-screen">
 
 <!-- ===== نافذة دخول الأدمن فقط (الموظفون والزوّار يشاهدون الجدول مباشرة) ===== -->
+<!-- ===== شاشة البداية: تسجيل الدخول (أدمن أو موظف) ===== -->
 <div id="loginModal" class="fixed inset-0 z-50 hidden">
-  <div class="absolute inset-0 bg-black/60" onclick="closeLoginModal()"></div>
+  <div class="absolute inset-0 start-bg" onclick="closeLoginModal()"></div>
   <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 bg-white rounded-2xl p-6 shadow-2xl">
+    <div class="text-center mb-4">
+      <div class="text-xl font-extrabold text-teal-800 leading-tight" id="loginOrgName">نظام الورديات</div>
+      <div class="text-xs text-slate-500 mt-1" id="loginOrgSubtitle">إدارة الأقسام والورديات</div>
+    </div>
     <div class="flex items-center justify-between mb-3">
-      <h3 class="font-bold text-lg" id="loginModalTitle">دخول الأدمن</h3>
-      <button type="button" onclick="closeLoginModal()" class="text-slate-400 text-xl leading-none">×</button>
+      <h3 class="font-bold text-lg" id="loginModalTitle">تسجيل الدخول</h3>
+      <button type="button" id="loginCloseBtn" onclick="closeLoginModal()" class="text-slate-400 text-xl leading-none hidden">×</button>
     </div>
 
     <div id="loginEmailPanel">
-      <p class="text-xs text-slate-500 mb-3">عبر الإيميل وكلمة المرور — الأدمن فقط يستطيع إدارة الأقسام والموظفين والورديات.</p>
-      <input id="loginId" class="w-full border rounded-xl p-3 mb-2 text-center" placeholder="إيميل الأدمن">
-      <input id="loginPass" type="password" class="w-full border rounded-xl p-3 mb-2 text-center" placeholder="كلمة المرور">
+      <p class="text-[11px] text-slate-500 mb-3 text-center leading-relaxed">الأدمن: إيميلك وكلمة مرورك<br>الموظف: إيميل الأدمن وكلمة مرور الموظفين</p>
+      <input id="loginId" class="w-full border rounded-xl p-3 mb-2 text-center" placeholder="الإيميل">
+      <input id="loginPass" type="password" class="w-full border rounded-xl p-3 mb-2 text-center" placeholder="كلمة المرور" onkeydown="if(event.key==='Enter')handleLogin()">
       <div id="loginError" class="text-red-600 text-sm hidden mb-2 text-center"></div>
-      <button type="button" onclick="handleLogin()" class="btn-amber w-full py-3 rounded-xl mb-2">دخول</button>
+      <button type="button" id="loginBtn" onclick="handleLogin()" class="btn-amber w-full py-3 rounded-xl mb-2 font-bold">دخول</button>
       <div id="sessionNote" class="text-red-500 text-sm hidden mb-2 text-center"></div>
-      <button type="button" id="signupLink" onclick="showSignupPanel()" class="text-teal-700 text-sm w-full font-bold">لا يوجد حساب؟ أنشئ حساب أدمن جديد</button>
+      <div class="border-t mt-3 pt-3 text-center">
+        <button type="button" id="signupLink" onclick="showSignupPanel()" class="text-teal-700 text-sm font-bold">➕ تسجيل جديد (أدمن مؤسسة)</button>
+      </div>
     </div>
 
     <div id="signupPanel" class="hidden">
@@ -185,6 +199,7 @@ input::placeholder, textarea::placeholder { color: #9a3412 !important; opacity: 
         <button id="tabBtn-depts" onclick="showSettingsTab('depts')" class="flex-1 py-2 rounded-xl font-bold text-sm">🏢 الأقسام</button>
         <button id="tabBtn-staff" onclick="showSettingsTab('staff')" class="flex-1 py-2 rounded-xl font-bold text-sm">👥 الموظفون</button>
         <button id="tabBtn-shifts" onclick="showSettingsTab('shifts')" class="flex-1 py-2 rounded-xl font-bold text-sm">🗓️ الورديات</button>
+        <button id="tabBtn-security" onclick="showSettingsTab('security')" class="flex-1 py-2 rounded-xl font-bold text-sm">🔐 الأمان</button>
       </div>
 
       <div id="tab-depts" class="tab-panel space-y-6">
@@ -210,6 +225,26 @@ input::placeholder, textarea::placeholder { color: #9a3412 !important; opacity: 
             </details>
           </div>
         </section>
+      </div>
+
+      <div id="tab-security" class="tab-panel hidden">
+        <div class="sec-card">
+          <h3 class="font-bold text-lg mb-1">🔑 كلمة مرور الموظفين</h3>
+          <p class="text-sm text-slate-500 mb-3">الموظف يفتح التطبيق بـ<b>إيميلك (إيميل الأدمن)</b> + هذه الكلمة — ويدخل <b>للعرض فقط</b> على ورديات مؤسسته. كل ما تحتاجه من إدارة يبقى لك وحدك.</p>
+          <div id="staffPassStatus" class="text-sm font-bold mb-2">—</div>
+          <input id="staffPassInput" type="password" class="w-full border rounded-xl p-3 mb-2" placeholder="كلمة مرور الموظفين">
+          <div class="flex gap-2 items-center">
+            <button type="button" onclick="saveStaffPassword()" class="flex-1 btn-teal py-2 rounded-xl">💾 حفظ الكلمة</button>
+            <button type="button" onclick="clearStaffPassword()" class="text-red-600 text-sm px-2">إزالة</button>
+          </div>
+          <div id="staffPassMsg" class="text-xs mt-2"></div>
+        </div>
+        <div class="sec-card">
+          <h3 class="font-bold text-lg mb-2">ℹ️ بيانات المؤسسة</h3>
+          <p class="text-sm text-slate-500 mb-1">إيميل الأدمن (اسم الدخول): <b id="orgEmailLabel">—</b></p>
+          <p class="text-sm text-slate-500">مسار بيانات المؤسسة: <b id="orgPathLabel">—</b></p>
+          <p class="text-xs text-slate-400 mt-2">كل إيميل أدمن له مسار مستقل ⇒ بيانات كل مؤسسة معزولة عن غيرها.</p>
+        </div>
       </div>
 
       <div id="tab-staff" class="tab-panel hidden">
@@ -312,8 +347,13 @@ firebase.initializeApp(APP_CONFIG.firebaseConfig);
 let db = null;
 try { db = firebase.database(); } catch (e) { db = null; }
 function firebaseConfigBroken() { return !db; }
-const ORG = (APP_CONFIG.org && APP_CONFIG.org.id) || 'wrdiat';
-function path(k) { return 'sessions/_wrdiat_org/' + k; }
+const DEFAULT_ORG_ID = (APP_CONFIG.org && APP_CONFIG.org.id) || 'wrdiat';
+// كل أدمن يسجّل = مؤسسة مستقلة: بياناتها في مسار خاص بها (يُحدَّد عند تسجيل الدخول)
+let ORG_ID = DEFAULT_ORG_ID;
+function orgPathFor(id) { return 'sessions/_' + String(id) + '_org/'; }
+function path(k) { return orgPathFor(ORG_ID) + k; }
+// مفاتيح التخزين المحلي: مساحة لكل مؤسسة (المؤسسة الأصلية تحتفظ بمفاتيحها القديمة بلا تغيير)
+function lk(base) { return (ORG_ID && ORG_ID !== DEFAULT_ORG_ID) ? (base + '_' + ORG_ID) : base; }
 function emailKey(e) { return String(e || '').trim().toLowerCase().replace(/[.#$\[\]]/g, '_'); }
 
 const arabicMonths = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
@@ -467,10 +507,10 @@ function normalizeScheduleRules(value) {
   return out;
 }
 
-function saveOfflineRules(value) { try { localStorage.setItem(OFFLINE_RULES_KEY, JSON.stringify(value)); } catch (e) {} }
-function saveOfflineShifts(value) { try { localStorage.setItem(OFFLINE_SHIFTS_KEY, JSON.stringify(value || {})); } catch (e) {} }
-function saveOfflineDepartments(value) { try { localStorage.setItem(OFFLINE_DEPARTMENTS_KEY, JSON.stringify(value || {})); } catch (e) {} }
-function saveOfflineStaff(value) { try { localStorage.setItem(OFFLINE_STAFF_KEY, JSON.stringify(value || {})); } catch (e) {} }
+function saveOfflineRules(value) { try { localStorage.setItem(lk(OFFLINE_RULES_KEY), JSON.stringify(value)); } catch (e) {} }
+function saveOfflineShifts(value) { try { localStorage.setItem(lk(OFFLINE_SHIFTS_KEY), JSON.stringify(value || {})); } catch (e) {} }
+function saveOfflineDepartments(value) { try { localStorage.setItem(lk(OFFLINE_DEPARTMENTS_KEY), JSON.stringify(value || {})); } catch (e) {} }
+function saveOfflineStaff(value) { try { localStorage.setItem(lk(OFFLINE_STAFF_KEY), JSON.stringify(value || {})); } catch (e) {} }
 
 // ===== الحفظ المحلي الفوري + المزامنة التلقائية مع Firebase =====
 // كل تعديل يُحفظ محلياً فوراً (لا يضيع مع تحديث الصفحة)، وعند فتح الصفحة لاحقاً
@@ -478,10 +518,10 @@ function saveOfflineStaff(value) { try { localStorage.setItem(OFFLINE_STAFF_KEY,
 const DIRTY_RULES_KEY = 'wrdiat_dirty_rules';
 const DIRTY_SHIFTS_KEY = 'wrdiat_dirty_shifts';
 let rulesDirty = false, shiftsDirty = false, rulesPushing = false, shiftsPushing = false;
-function markRulesDirty() { rulesDirty = true; try { localStorage.setItem(DIRTY_RULES_KEY, '1'); } catch (e) {} saveOfflineRules(scheduleRules); }
-function markShiftsDirty() { shiftsDirty = true; try { localStorage.setItem(DIRTY_SHIFTS_KEY, '1'); } catch (e) {} saveOfflineShifts(shifts); }
-function clearRulesDirty() { rulesDirty = false; try { localStorage.removeItem(DIRTY_RULES_KEY); } catch (e) {} }
-function clearShiftsDirty() { shiftsDirty = false; try { localStorage.removeItem(DIRTY_SHIFTS_KEY); } catch (e) {} }
+function markRulesDirty() { rulesDirty = true; try { localStorage.setItem(lk(DIRTY_RULES_KEY), '1'); } catch (e) {} saveOfflineRules(scheduleRules); }
+function markShiftsDirty() { shiftsDirty = true; try { localStorage.setItem(lk(DIRTY_SHIFTS_KEY), '1'); } catch (e) {} saveOfflineShifts(shifts); }
+function clearRulesDirty() { rulesDirty = false; try { localStorage.removeItem(lk(DIRTY_RULES_KEY)); } catch (e) {} }
+function clearShiftsDirty() { shiftsDirty = false; try { localStorage.removeItem(lk(DIRTY_SHIFTS_KEY)); } catch (e) {} }
 async function pushRulesLocal() {
   if (rulesPushing || !rulesDirty) return;
   rulesPushing = true;
@@ -501,23 +541,23 @@ async function syncDirtyAll() {
 }
 function restoreOfflineData() {
   try {
-    const d = JSON.parse(localStorage.getItem(OFFLINE_DEPARTMENTS_KEY) || 'null');
+    const d = JSON.parse(localStorage.getItem(lk(OFFLINE_DEPARTMENTS_KEY)) || 'null');
     if (d && typeof d === 'object' && !Array.isArray(d)) departments = d;
   } catch (e) {}
   try {
-    const st = JSON.parse(localStorage.getItem(OFFLINE_STAFF_KEY) || 'null');
+    const st = JSON.parse(localStorage.getItem(lk(OFFLINE_STAFF_KEY)) || 'null');
     if (st && typeof st === 'object' && !Array.isArray(st)) staff = st;
   } catch (e) {}
   try {
-    const r = JSON.parse(localStorage.getItem(OFFLINE_RULES_KEY) || 'null');
+    const r = JSON.parse(localStorage.getItem(lk(OFFLINE_RULES_KEY)) || 'null');
     if (r && typeof r === 'object') scheduleRules = normalizeScheduleRules(r);
   } catch (e) {}
   try {
-    const s = JSON.parse(localStorage.getItem(OFFLINE_SHIFTS_KEY) || 'null');
+    const s = JSON.parse(localStorage.getItem(lk(OFFLINE_SHIFTS_KEY)) || 'null');
     if (s && typeof s === 'object' && !Array.isArray(s)) shifts = s;
   } catch (e) {}
-  try { rulesDirty = localStorage.getItem(DIRTY_RULES_KEY) === '1'; } catch (e) {}
-  try { shiftsDirty = localStorage.getItem(DIRTY_SHIFTS_KEY) === '1'; } catch (e) {}
+  try { rulesDirty = localStorage.getItem(lk(DIRTY_RULES_KEY)) === '1'; } catch (e) {}
+  try { shiftsDirty = localStorage.getItem(lk(DIRTY_SHIFTS_KEY)) === '1'; } catch (e) {}
 }
 
 function pad2(n) { return String(n).padStart(2, '0'); }
@@ -766,7 +806,7 @@ async function pushAllLocalToFirebase(btn) {
     await db.ref(path('scheduleRules')).set(rulesForFirebase(scheduleRules));
     if (n.days) await db.ref(path('shifts')).set(shifts || {});
     clearRulesDirty(); clearShiftsDirty();
-    try { localStorage.setItem(MIGRATE_PUSH_KEY, '1'); } catch (e) {}
+    try { localStorage.setItem(lk(MIGRATE_PUSH_KEY), '1'); } catch (e) {}
     pushAllMsg('✔ تم رفع كل البيانات إلى Firebase (' + localDataSummaryText(n) + ')', true);
     toast('☁️ تم رفع بيانات هذا الجهاز إلى Firebase');
     if (btn) saveBtnFlash(btn, '✔ تم الرفع', true);
@@ -781,7 +821,7 @@ async function pushAllLocalToFirebase(btn) {
 // عند اكتشاف قاعدة فارغة: يرفع بيانات هذا الجهاز إليها مرة واحدة تلقائياً (للأدمن فقط)
 async function autoMigrateLocalToServer() {
   if (migratingLocal || !isAdmin()) return;
-  try { if (localStorage.getItem(MIGRATE_PUSH_KEY) === '1') return; } catch (e) {}
+  try { if (localStorage.getItem(lk(MIGRATE_PUSH_KEY)) === '1') return; } catch (e) {}
   const n = localDataSummary();
   if (!(n.depts || n.staff || n.scopes || n.days)) return;
   migratingLocal = true;
@@ -791,7 +831,7 @@ async function autoMigrateLocalToServer() {
     await db.ref(path('scheduleRules')).set(rulesForFirebase(scheduleRules));
     if (n.days) await db.ref(path('shifts')).set(shifts || {});
     clearRulesDirty(); clearShiftsDirty();
-    try { localStorage.setItem(MIGRATE_PUSH_KEY, '1'); } catch (e) {}
+    try { localStorage.setItem(lk(MIGRATE_PUSH_KEY), '1'); } catch (e) {}
     toast('☁️ القاعدة الجديدة فارغة — تم رفع بيانات هذا الجهاز إليها تلقائياً');
   } catch (e) {}
   migratingLocal = false;
@@ -1254,6 +1294,9 @@ async function applyScheduleToFuture() {
 // ===== نافذة دخول الأدمن (التطبيق يفتح للاطلاع للجميع) =====
 function openLoginModal() {
   applySignupFlag();
+  fillLoginOrgLabel();
+  const cb = document.getElementById('loginCloseBtn');
+  if (cb) cb.classList.toggle('hidden', !currentUser);
   document.getElementById('loginModal').classList.remove('hidden');
   document.getElementById('loginEmailPanel').classList.remove('hidden');
   document.getElementById('signupPanel').classList.add('hidden');
@@ -1263,6 +1306,8 @@ function openLoginModal() {
   if (id) id.focus();
 }
 function closeLoginModal() {
+  // في شاشة البداية (بلا جلسة) لا يُغلق — لا شيء خلفه
+  if (!currentUser) return;
   document.getElementById('loginModal').classList.add('hidden');
 }
 function showLoginPanel() {
@@ -1309,13 +1354,15 @@ async function handleSignup() {
   try {
     const hash = await hashPassword(pass);
     const key = emailKey(email);
-    const exists = (await db.ref(path('admins/' + key)).once('value')).val();
-    if (exists) { errSignup('هذا الإيميل مسجّل مسبقاً، استخدم تسجيل الدخول'); return; }
-    await db.ref(path('admins/' + key)).set({ email: email, passwordHash: hash, role: 'admin', name: name });
+    const exists = await fetchOrgRecord(key);
+    if (exists) { errSignup('هذا الإيميل مسجّل مسبقاً — استخدم تسجيل الدخول'); return; }
+    // كل أدمن = مؤسسة مستقلة بمسارها الخاص (بيانات معزولة عن بقية المؤسسات)
+    const orgId = key;
+    await db.ref('orgs/' + key).set({ email: email, name: name, passwordHash: hash, role: 'admin', orgId: orgId, createdAt: Date.now() });
+    ORG_ID = orgId;
     currentUser = { username: name, email: email, role: 'admin' };
-    localStorage.setItem('wrdiatUser', JSON.stringify({ loginType: 'admin', email: email, passwordHash: hash, name: name, role: 'admin' }));
-    closeLoginModal();
-    enterApp();
+    saveSession({ loginType: 'admin', email: email, name: name, role: 'admin', orgId: orgId, passwordHash: hash });
+    afterLogin();
   } catch (e) {
     const msg = String(e.message || e.code || e);
     if (/PERMISSION|permission/i.test(msg)) errSignup('قاعدة البيانات منعت الحفظ. حدّث الصفحة وجرب مرة أخرى.');
@@ -1323,29 +1370,103 @@ async function handleSignup() {
   }
 }
 
+// ===== شاشة البداية (تسجيل الدخول) =====
+function fillLoginOrgLabel() {
+  const o = (APP_CONFIG && APP_CONFIG.org) || {};
+  const n = document.getElementById('loginOrgName');
+  if (n) n.textContent = o.name || 'نظام الورديات';
+  const sub = document.getElementById('loginOrgSubtitle');
+  if (sub) sub.textContent = o.subtitle || '';
+}
+function showStartScreen() {
+  const main = document.getElementById('mainApp');
+  if (main) main.classList.add('hidden');
+  document.body.classList.add('start-mode');
+  closeAllPages();
+  fillLoginOrgLabel();
+  const cb = document.getElementById('loginCloseBtn');
+  if (cb) cb.classList.add('hidden');
+  const t = document.getElementById('loginModalTitle');
+  if (t) t.textContent = 'تسجيل الدخول';
+  const modal = document.getElementById('loginModal');
+  modal.classList.remove('hidden');
+  showLoginPanel();
+  applySignupFlag();
+  const id = document.getElementById('loginId');
+  if (id) id.focus();
+}
+function closeAllPages() {
+  ['day', 'cal', 'stats', 'settings'].forEach(function(n) {
+    const el = document.getElementById(n + 'Page');
+    if (el) el.classList.add('hidden');
+  });
+}
+function saveSession(u) { try { localStorage.setItem('wrdiatUser', JSON.stringify(u)); } catch (e) {} }
+// يستعيد جلسة الجهاز: يضبط مسار المؤسسة والمستخدم الحالي
+function applySession(u) {
+  const cu = sessionToCurrentUser(u);
+  if (!cu) return null;
+  ORG_ID = String(u.orgId || DEFAULT_ORG_ID);
+  currentUser = cu;
+  return cu;
+}
+// ملاحظة: أخطاء الشبكة تُرمى (لتُعامل كـ«لا إنترنت»)، وnull تعني «لا يوجد سجل فعلاً»
+async function fetchOrgRecord(key) {
+  const snap = await db.ref('orgs/' + key).once('value');
+  return snap.val();
+}
+// يحدّد نوع الدخول: أدمن (إيميله + كلمة مروره) أو موظف (إيميل الأدمن + كلمة مرور الموظفين)
+async function loginWithCredentials(id, pass) {
+  const key = emailKey(id);
+  let rec = null;
+  try { rec = await fetchOrgRecord(key); }
+  catch (e) { throw new Error('تعذر الاتصال بالخادم — تحقق من الإنترنت وحاول مرة أخرى'); }
+  if (!rec) throw new Error('لا توجد مؤسسة بهذا الإيميل — تأكد من الإيميل أو اضغط «تسجيل جديد»');
+  const orgId = String(rec.orgId || key);
+  const hash = await hashPassword(pass);
+  if (rec.passwordHash === hash) {
+    ORG_ID = orgId;
+    const u = { loginType: 'admin', email: rec.email || id, name: rec.name || id, role: 'admin', orgId: orgId, passwordHash: hash };
+    saveSession(u);
+    currentUser = { username: u.name, email: u.email, role: 'admin' };
+    return 'admin';
+  }
+  let staffHash = null;
+  try { staffHash = (await db.ref(orgPathFor(orgId) + 'settings/staffPasswordHash').once('value')).val(); } catch (e) {}
+  if (staffHash && staffHash === hash) {
+    ORG_ID = orgId;
+    const u = { loginType: 'employee', email: rec.email || id, role: 'employee', orgId: orgId, passwordHash: hash };
+    saveSession(u);
+    currentUser = { username: 'موظف', email: u.email, role: 'employee' };
+    return 'employee';
+  }
+  throw new Error('كلمة المرور غير صحيحة');
+}
+// بعد أي دخول ناجح: لو كانت الصفحة مربوطة بمؤسسة أخرى نعيد التحميل لتبدأ نظيفة
+function afterLogin() {
+  document.getElementById('loginModal').classList.add('hidden');
+  document.body.classList.remove('start-mode');
+  try { if (window.__dataStarted) { window.__dataStarted = false; location.reload(); return; } } catch (e) {}
+  enterApp();
+}
 async function handleLogin() {
   const id = document.getElementById('loginId').value.trim();
   const pass = document.getElementById('loginPass').value;
   document.getElementById('loginError').classList.add('hidden');
-  if (!id || !pass) { errLogin('أدخل البيانات'); return; }
-  if (id.indexOf('@') < 0) { errLogin('أدخل إيميل الأدمن'); return; }
-  try { await loginAdmin(id, pass); } catch (e) { errLogin(e.message || 'فشل الدخول'); }
-}
-
-async function loginAdmin(email, password) {
-  const hash = await hashPassword(password);
-  const key = emailKey(email);
-  const rec = (await db.ref(path('admins/' + key)).once('value')).val();
-  if (!rec) {
-    throw new Error('هذا الإيميل غير مسجّل، أنشئ حساباً أولاً');
-  } else {
-    if (rec.passwordHash !== hash) throw new Error('كلمة المرور غير صحيحة');
-    currentUser = { username: rec.name || email, email: email, role: 'admin' };
+  if (!id || !pass) { errLogin('أدخل الإيميل وكلمة المرور'); return; }
+  const btn = document.getElementById('loginBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ جارٍ الدخول…'; }
+  try {
+    await loginWithCredentials(id, pass);
+    afterLogin();
+  } catch (e) {
+    errLogin(e && e.message ? e.message : 'فشل الدخول — تحقق من الإنترنت');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'دخول'; }
   }
-  localStorage.setItem('wrdiatUser', JSON.stringify({ loginType: 'admin', email: email, passwordHash: hash, name: rec.name || email, role: 'admin' }));
-  closeLoginModal();
-  enterApp();
 }
+// توافق مع الاستدعاءات القديمة
+async function loginAdmin(email, password) { await loginWithCredentials(email, password); afterLogin(); }
 
 
 // ===== الجلسة الدائمة =====
@@ -1353,10 +1474,11 @@ async function loginAdmin(email, password) {
 // انقطاع الإنترنت أو تغيّر كلمة المرور لا يمس الجلسة إطلاقاً.
 function logout(message) {
   currentUser = null;
-  localStorage.removeItem('wrdiatUser');
-  document.getElementById('loginModal').classList.add('hidden');
-  enterApp(); // العودة لوضع الاطلاع (لا شاشة دخول)
-  if (message) { openLoginModal(); logoutNote(message); }
+  ORG_ID = DEFAULT_ORG_ID;
+  try { localStorage.removeItem('wrdiatUser'); } catch (e) {}
+  showStartScreen();
+  if (message) logoutNote(message);
+  try { if (window.__dataStarted) { window.__dataStarted = false; location.reload(); } } catch (e) {}
 }
 function logoutNote(msg) {
   const el = document.getElementById('sessionNote');
@@ -1367,14 +1489,14 @@ function logoutNote(msg) {
 function sessionToCurrentUser(u) {
   if (!u || typeof u !== 'object') return null;
   if (u.loginType === 'admin' && u.email) return { username: u.name || u.email, email: u.email, role: 'admin' };
-  if (u.loginType === 'staff' && u.code) return { username: u.username || u.name || 'موظف', id: Number(u.id) || null, role: 'employee', code: u.code, deptId: u.deptId };
+  if (u.loginType === 'employee' && u.email) return { username: u.name || 'موظف', email: u.email, role: 'employee' };
   return null;
 }
 // تحقق صامت في الخلفية بعد الاستعادة المحلية: لا يخرج إلا عند إيقاف/حذف الحساب فعلياً
 async function validateSessionInBackground(u) {
   try {
     if (u && u.loginType === 'admin' && u.email) {
-      const rec = (await db.ref(path('admins/' + emailKey(u.email))).once('value')).val();
+      const rec = await fetchOrgRecord(emailKey(u.email));
       if (!rec) { logout('⚠️ حُذف حساب الأدمن — أنشئ حساباً جديداً'); return; }
       // تحديث الاسم إن تغيّر + تحديث الجلسة المحفوظة (تغيير كلمة المرور لا يخرج المستخدم)
       if (rec.name && rec.name !== u.name) {
@@ -1383,6 +1505,10 @@ async function validateSessionInBackground(u) {
         const cu = sessionToCurrentUser(u);
         if (cu) { currentUser = cu; document.getElementById('welcomeMessage').textContent = '👋 ' + cu.username; }
       }
+    } else if (u && u.loginType === 'employee') {
+      // موظف: لو غيّر الأدمن كلمة مرور الموظفين أو أزالها → الجلسة تُبطَل
+      const cur = (await db.ref(orgPathFor(u.orgId || DEFAULT_ORG_ID) + 'settings/staffPasswordHash').once('value')).val();
+      if (!cur || cur !== u.passwordHash) { logout('أعد تسجيل الدخول — تغيّرت كلمة مرور الموظفين'); return; }
     } else if (u && u.loginType === 'staff' && u.code) {
       const rec = (await db.ref(path('staff/' + u.code)).once('value')).val();
       if (!rec || rec.disabled) { logout('⚠️ تم إيقاف حسابك من قبل الأدمن'); return; }
@@ -1391,13 +1517,13 @@ async function validateSessionInBackground(u) {
 }
 
 function enterApp() {
-  // التطبيق مفتوح دائماً للجميع: الزائر يرى فقط، والأدمن يرى أدوات التعديل
   document.getElementById('mainApp').classList.remove('hidden');
   document.getElementById('loginModal').classList.add('hidden');
+  document.body.classList.remove('start-mode');
   const isAdm = isAdmin();
   document.getElementById('welcomeMessage').textContent = isAdm
     ? '⚙️ ' + currentUser.username + ' — أدمن'
-    : '👀 وضع الاطلاع — يشاهد الجميع الورديات';
+    : '👀 ' + ((currentUser && currentUser.username) || 'موظف') + ' — عرض فقط';
   document.getElementById('addSlotBtn').classList.toggle('hidden', !isAdm);
   document.getElementById('adminSettings').classList.toggle('hidden', !isAdm);
   document.getElementById('logoutBtn').classList.toggle('hidden', !isAdm);
@@ -1413,8 +1539,58 @@ function onAdminClick() {
   else openLoginModal();
 }
 // أزرار تبويب الإعدادات: الأقسام / الموظفين / الورديات
+function securityRefresh() {
+  const st = document.getElementById('staffPassStatus');
+  const em = document.getElementById('orgEmailLabel');
+  const pa = document.getElementById('orgPathLabel');
+  if (em) em.textContent = (currentUser && currentUser.email) || '—';
+  if (pa) pa.textContent = orgPathFor(ORG_ID);
+  if (st) st.textContent = '⏳ جارٍ التحقق…';
+  db.ref(path('settings/staffPasswordHash')).once('value').then(function(s) {
+    if (!st) return;
+    st.textContent = s.val() ? '✅ كلمة مرور الموظفين مضبوطة' : '⚠️ غير مضبوطة — الموظفون لا يستطيعون الدخول بعد';
+    st.className = 'text-sm font-bold mb-2 ' + (s.val() ? 'text-teal-700' : 'text-amber-700');
+  }).catch(function() { if (st) st.textContent = 'تعذر التحقق (لا إنترنت)'; });
+}
+function staffPassMsg(text, ok) {
+  const el = document.getElementById('staffPassMsg');
+  if (!el) return;
+  el.textContent = text;
+  el.className = 'text-xs mt-2 font-bold ' + (ok ? 'text-teal-700' : 'text-red-600');
+}
+async function saveStaffPassword() {
+  if (!isAdmin()) return;
+  const el = document.getElementById('staffPassInput');
+  const pass = el ? el.value : '';
+  if (!pass || pass.length < 4) { staffPassMsg('اكتب كلمة مرور من 4 أحرف على الأقل', false); return; }
+  const oldHash = (await db.ref(path('settings/staffPasswordHash')).once('value')).val();
+  if (oldHash) {
+    const okGo = confirm('تغيير كلمة مرور الموظفين سيُخرج الموظفين المسجّلين حالياً ويطلب منهم الدخول بالكلمة الجديدة.\n\nمتابعة؟');
+    if (!okGo) return;
+  }
+  try {
+    const hash = await hashPassword(pass);
+    await db.ref(path('settings/staffPasswordHash')).set(hash);
+    if (el) el.value = '';
+    staffPassMsg('✔ تم حفظ كلمة مرور الموظفين — أعطها لموظفيك', true);
+    securityRefresh();
+  } catch (e) {
+    staffPassMsg('تعذر الحفظ: ' + ((e && (e.code || e.message)) || 'خطأ'), false);
+  }
+}
+async function clearStaffPassword() {
+  if (!isAdmin()) return;
+  if (!confirm('إزالة كلمة مرور الموظفين؟ لن يستطيع الموظفون الدخول بعدها.')) return;
+  try {
+    await db.ref(path('settings/staffPasswordHash')).remove();
+    staffPassMsg('تمت الإزالة — الموظفون لن يستطيعوا الدخول', true);
+    securityRefresh();
+  } catch (e) {
+    staffPassMsg('تعذر الإزالة: ' + ((e && (e.code || e.message)) || 'خطأ'), false);
+  }
+}
 function showSettingsTab(name) {
-  ['depts', 'staff', 'shifts'].forEach(function(n) {
+  ['depts', 'staff', 'shifts', 'security'].forEach(function(n) {
     const panel = document.getElementById('tab-' + n);
     const btn = document.getElementById('tabBtn-' + n);
     if (panel) panel.classList.toggle('hidden', n !== name);
@@ -1424,6 +1600,7 @@ function showSettingsTab(name) {
   if (name === 'depts') renderSettingsLists();
   if (name === 'staff') renderSettingsLists();
   if (name === 'shifts') renderScheduleRules();
+  if (name === 'security') securityRefresh();
 }
 
 function listenData() {
@@ -1793,10 +1970,7 @@ document.addEventListener('click', function(e) {
 
 window.addEventListener('load', async function() {
   applySignupFlag();
-  // 1) التطبيق يفتح مباشرة في وضع الاطلاع — الجميع يشاهدون الورديات بدون دخول
-  restoreOfflineData();
-  enterApp(); // وضع الاطلاع: التطبيق ظاهر والبيانات تظهر لأي زائر
-  // 2) جلسة الأدمن الدائمة (إن وجدت): استعادة فورية من الجهاز
+  // لا تظهر البيانات إلا لجلسة معروفة (أدمن مؤسسة أو موظفها)
   // تحذير إن كانت إعدادات Firebase ناقصة (مثلاً databaseURL مفقود في المشروع الجديد)
   if (firebaseConfigBroken()) {
     const warn = document.createElement('div');
@@ -1807,15 +1981,13 @@ window.addEventListener('load', async function() {
   // مزامنة تلقائية: عند عودة الاتصال أو دورياً يُدفع المحلي المعلَّق للخادم
   window.addEventListener('online', function() { syncDirtyAll(); });
   setInterval(function() { if (isAdmin()) syncDirtyAll(); }, 60000);
-  const saved = localStorage.getItem('wrdiatUser');
-  if (!saved) return;
   let u = null;
-  try { u = JSON.parse(saved); } catch (e) {}
-  const cu = sessionToCurrentUser(u);
-  if (!cu || cu.role !== 'admin') return;
-  currentUser = cu;
-  enterApp(); // دخول الأدمن — لا يخرج إلا بتسجيل الخروج
-  validateSessionInBackground(u); // تحقق صامت في الخلفية
+  try { u = JSON.parse(localStorage.getItem('wrdiatUser') || 'null'); } catch (e) {}
+  const cu = u ? applySession(u) : null;
+  if (!cu) { showStartScreen(); return; }   // لا جلسة → شاشة البداية
+  restoreOfflineData();                     // بيانات هذا الجهاز لهذه المؤسسة
+  enterApp();
+  validateSessionInBackground(u);           // تحقق صامت في الخلفية
 });
 
 if ('serviceWorker' in navigator) {
