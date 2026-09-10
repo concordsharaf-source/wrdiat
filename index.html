@@ -73,6 +73,11 @@ input::placeholder, textarea::placeholder { color: #9a3412 !important; opacity: 
 .opacity-80 { opacity: .8; }
 .opacity-90 { opacity: .9; }
 .space-y-6 > * + * { margin-top: 1.5rem; }
+.space-y-1 > * + * { margin-top: .25rem; }
+.space-y-2 > * + * { margin-top: .5rem; }
+.space-y-4 > * + * { margin-top: 1rem; }
+.list-disc { list-style-type: disc; }
+.pr-5 { padding-right: 1.25rem; }
 .shadow { box-shadow: 0 1px 3px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.08); }
 .ring-2 { box-shadow: 0 0 0 2px #0f766e; }
 .border-orange-100 { border-color: #ffedd5; }
@@ -373,8 +378,9 @@ select:focus, textarea:focus {
       <div class="font-bold text-sm" id="welcomeMessage">👀 وضع الاطلاع — يمكن للجميع مشاهدة الورديات</div>
       <div class="flex gap-2">
         <button onclick="showPage('day')" class="p-2" title="اليوم">📅</button>
-        <button onclick="openAboutModal()" class="p-2" title="حول التطبيق">ℹ️</button>
+        <button onclick="showPage('help')" class="p-2" title="التعليمات">❓</button>
         <button onclick="showPage('stats')" class="p-2" title="الإحصائيات">📊</button>
+        <button onclick="openAboutModal()" class="p-2" title="حول التطبيق">ℹ️</button>
         <button id="adminBtn" onclick="onAdminClick()" class="p-2" title="الإعدادات / دخول الأدمن">⚙️</button>
       </div>
     </div>
@@ -400,6 +406,59 @@ select:focus, textarea:focus {
   <div id="statsPage" class="page hidden max-w-3xl mx-auto p-4">
     <h2 class="text-xl font-bold mb-3">إحصائيات الشهر</h2>
     <div id="statsBox" class="space-y-3"></div>
+  </div>
+
+  <div id="helpPage" class="page hidden max-w-3xl mx-auto p-4 space-y-4">
+    <h2 class="text-xl font-bold">📖 دليل استخدام التطبيق</h2>
+    <p class="text-sm text-slate-500">شرح مبسّط لكل شاشة وخطوة في نظام الورديات.</p>
+
+    <section class="sec-card">
+      <h3 class="font-bold text-lg mb-2">🚪 الدخول إلى التطبيق</h3>
+      <p class="text-sm text-slate-600 mb-2">عند فتح التطبيق تظهر شاشة الدخول:</p>
+      <ul class="text-sm text-slate-600 space-y-1 list-disc pr-5">
+        <li><b>الأدمن:</b> يدخل بإيميله وكلمة مروره ويملك كل الصلاحيات.</li>
+        <li><b>الأدمن المساعد:</b> يدخل بإيميله وكلمته، ويرى فقط ما يسمح له به الأدمن (الأقسام/الموظفون/الورديات/ورديات اليوم/الغياب).</li>
+        <li><b>الموظف:</b> يدخل بإيميل الأدمن + كلمة مرور الموظفين، ويعرض الورديات فقط.</li>
+      </ul>
+    </section>
+
+    <section class="sec-card">
+      <h3 class="font-bold text-lg mb-2">📅 صفحة اليوم</h3>
+      <ul class="text-sm text-slate-600 space-y-1 list-disc pr-5">
+        <li>تعرض ورديات اليوم المحدد — التنقل بين الأيام بالأسهم ◀ ▶ أو بالسحب يمين/يسار.</li>
+        <li>اضغط <b>🏢 القسم</b> أعلى الصفحة لتصفية الورديات حسب قسم معين.</li>
+        <li>زر <b>➕ إضافة وردية</b> (للأدمن ومن يملك الصلاحية) يضيف وردية بموظف ووقت من/إلى.</li>
+        <li>اضغط على <b>اسم الموظف</b> لتبديله بزميل من نفس القسم في حال الغياب.</li>
+        <li>زر <b>✕</b> على البطاقة يحذف الوردية من هذا اليوم فقط ويُسجّل الموظف غياباً.</li>
+      </ul>
+    </section>
+
+    <section class="sec-card">
+      <h3 class="font-bold text-lg mb-2">📊 الإحصائيات</h3>
+      <p class="text-sm text-slate-600">تعرض عدد ورديات كل موظف خلال الشهر الحالي، ملونة حسب لون قسمه.</p>
+    </section>
+
+    <section class="sec-card">
+      <h3 class="font-bold text-lg mb-2">⚙️ الإعدادات (للأدمن والمساعد)</h3>
+      <p class="text-sm text-slate-600 mb-2">بعد الدخول، اضغط ⚙️ في الأعلى ثم تنقّل بين التبويبات:</p>
+      <ul class="text-sm text-slate-600 space-y-2 list-disc pr-5">
+        <li><b>🏢 الأقسام:</b> أضف أقساماً بلا حد (صوت، تصوير، مطبخ…)، واختر <b>لوناً لكل قسم</b> فيتلوّن به كل موظفيه تلقائياً. زر ✏️ يعدّل الاسم، و✕ يحذف.</li>
+        <li><b>👥 الموظفون:</b> زر «➕ إضافة موظف» يفتح نموذجاً (اسم، لقب، مسمى، قسم، تثبيت، مدير قسم). بجانب كل موظف: ✏️ تعديل · ⛔ إيقاف · ✅ تفعيل · ✕ حذف.</li>
+        <li><b>🗓️ الورديات:</b> التوزيع الأسبوعي التلقائي — ثابت (نفس الموظفين كل أسبوع) أو تناوب (دور أسبوعي). زر الحفظ يطبّق على 5 سنوات قادمة.</li>
+        <li><b>🔐 الأمان:</b> كلمة مرور الموظفين، تغيير كلمة مرور الأدمن، وإضافة أدمن مساعد بصلاحيات محددة.</li>
+        <li><b>🚫 الغياب:</b> سجل كل الموظفين الذين حُذفت وردياتهم، مع إمكانية حذف السجل.</li>
+      </ul>
+    </section>
+
+    <section class="sec-card">
+      <h3 class="font-bold text-lg mb-2">🎨 لون كل قسم</h3>
+      <p class="text-sm text-slate-600">كل قسم له لون يظهر في صفحة اليوم والإحصائيات. أي موظف ينتمي لقسم معين يأخذ لون قسمه تلقائياً — والموظف بدون قسم يظهر بلون رمادي افتراضي.</p>
+    </section>
+
+    <section class="sec-card">
+      <h3 class="font-bold text-lg mb-2">💬 الدعم والتواصل</h3>
+      <p class="text-sm text-slate-600">عندك سؤال أو اقتراح؟ اضغط أيقونة ℹ️ في الأعلى وستجد البريد الإلكتروني وزر الواتساب للتواصل المباشر مع مطوّر التطبيق.</p>
+    </section>
   </div>
 
   <div id="settingsPage" class="page hidden max-w-3xl mx-auto p-4">
@@ -468,7 +527,8 @@ select:focus, textarea:focus {
           <label class="flex items-center gap-2 mb-1 text-sm"><input type="checkbox" id="asPermDepts" checked> 🏢 إدارة الأقسام</label>
           <label class="flex items-center gap-2 mb-1 text-sm"><input type="checkbox" id="asPermStaff" checked> 👥 إدارة الموظفين</label>
           <label class="flex items-center gap-2 mb-1 text-sm"><input type="checkbox" id="asPermRules"> 🗓️ الورديات والقواعد</label>
-          <label class="flex items-center gap-2 mb-3 text-sm"><input type="checkbox" id="asPermSlots"> ➕ ورديات اليوم (إضافة/حذف/تبديل)</label>
+          <label class="flex items-center gap-2 mb-1 text-sm"><input type="checkbox" id="asPermSlots"> ➕ ورديات اليوم (إضافة/حذف/تبديل)</label>
+          <label class="flex items-center gap-2 mb-3 text-sm"><input type="checkbox" id="asPermAbsences"> 🚫 سجل الغياب</label>
           <div class="flex gap-2">
             <button type="button" onclick="addAssistant()" id="asSaveBtn" class="flex-1 btn-teal py-2 rounded-xl">➕ إضافة مساعد</button>
             <button type="button" onclick="cancelAssistantEdit()" id="asCancelEdit" class="btn-amber px-4 py-2 rounded-xl hidden">إلغاء</button>
@@ -1873,7 +1933,7 @@ function showStartScreen() {
   if (id) id.focus();
 }
 function closeAllPages() {
-  ['day', 'stats', 'settings'].forEach(function(n) {
+  ['day', 'help', 'stats', 'settings'].forEach(function(n) {
     const el = document.getElementById(n + 'Page');
     if (el) el.classList.add('hidden');
   });
@@ -2150,7 +2210,7 @@ function enterApp() {
   document.getElementById('adminSettings').classList.toggle('hidden', !(isAdm || isAsst));
   document.getElementById('logoutBtn').classList.toggle('hidden', !(isAdm || isAsst));
   // تبويبات الإعدادات: الأدمن يرى الكل، والمساعد يرى ما يملك صلاحيته فقط
-  const tabsVis = { depts: can('depts'), staff: can('staff'), shifts: can('rules'), security: isAdm, absences: isAdm, signups: isSuperAdmin() };
+  const tabsVis = { depts: can('depts'), staff: can('staff'), shifts: can('rules'), security: isAdm, absences: can('absences'), signups: isSuperAdmin() };
   Object.keys(tabsVis).forEach(function(n) {
     const b = document.getElementById('tabBtn-' + n);
     if (b) b.classList.toggle('hidden', !tabsVis[n]);
@@ -2447,14 +2507,15 @@ function asstMsg(text, ok) {
 }
 function setAssistantPermChecks(p) {
   const set = function(id, v) { const el = document.getElementById(id); if (el) el.checked = !!v; };
-  set('asPermDepts', p.depts); set('asPermStaff', p.staff); set('asPermRules', p.rules); set('asPermSlots', p.slots);
+  set('asPermDepts', p.depts); set('asPermStaff', p.staff); set('asPermRules', p.rules); set('asPermSlots', p.slots); set('asPermAbsences', p.absences);
 }
 function assistantPermsFromForm() {
   return {
     depts: !!(document.getElementById('asPermDepts') || {}).checked,
     staff: !!(document.getElementById('asPermStaff') || {}).checked,
     rules: !!(document.getElementById('asPermRules') || {}).checked,
-    slots: !!(document.getElementById('asPermSlots') || {}).checked
+    slots: !!(document.getElementById('asPermSlots') || {}).checked,
+    absences: !!(document.getElementById('asPermAbsences') || {}).checked
   };
 }
 function assistantsRefresh() {
@@ -2468,8 +2529,8 @@ function assistantsRefresh() {
     box.innerHTML = keys.length ? keys.map(function(k) {
       const a = all[k] || {};
       const perms = a.perms || {};
-      const chips = ['🏢 الأقسام', '👥 الموظفون', '🗓️ الورديات', '➕ ورديات اليوم'].filter(function(_, i) {
-        return [perms.depts, perms.staff, perms.rules, perms.slots][i];
+      const chips = ['🏢 الأقسام', '👥 الموظفون', '🗓️ الورديات', '➕ ورديات اليوم', '🚫 الغياب'].filter(function(_, i) {
+        return [perms.depts, perms.staff, perms.rules, perms.slots, perms.absences][i];
       }).join(' · ') || 'لا شيء — عرض فقط';
       return '<div class="border rounded-xl p-2 mb-2">'
         + '<div class="flex justify-between items-center gap-2">'
@@ -2576,10 +2637,10 @@ async function resetAssistantPassword(key) {
 function showSettingsTab(name) {
   if (name === 'signups' && !isSuperAdmin()) name = 'depts'; // تبويب الطلبات لمالك النظام فقط
   if (name === 'security' && !isAdmin()) name = 'depts'; // الأمان للأدمن الرئيسي فقط
-  if (name === 'absences' && !isAdmin()) name = 'depts'; // سجل الغياب للأدمن الرئيسي فقط
+  if (name === 'absences' && !can('absences')) name = 'depts'; // سجل الغياب لمن يملك صلاحيته (الأدمن أو المساعد)
   if (isAssistant()) { // المساعد: لا يفتح إلا تبويبات صلاحياته
-    const okTabs = { depts: can('depts'), staff: can('staff'), shifts: can('rules') };
-    if (!okTabs[name]) name = okTabs.depts ? 'depts' : (okTabs.staff ? 'staff' : (okTabs.shifts ? 'shifts' : ''));
+    const okTabs = { depts: can('depts'), staff: can('staff'), shifts: can('rules'), absences: can('absences') };
+    if (!okTabs[name]) name = okTabs.depts ? 'depts' : (okTabs.staff ? 'staff' : (okTabs.shifts ? 'shifts' : (okTabs.absences ? 'absences' : '')));
     if (!name) { showPage('day'); return; }
   }
   ['depts', 'staff', 'shifts', 'security', 'absences', 'signups'].forEach(function(n) {
@@ -2625,7 +2686,7 @@ function renderAll() {
 
 function showPage(name) {
   if (name === 'settings' && !isAdmin() && !isAssistant()) { openLoginModal(); return; }
-  ['day','stats','settings'].forEach(function(n) {
+  ['day','help','stats','settings'].forEach(function(n) {
     document.getElementById(n + 'Page').classList.toggle('hidden', n !== name);
   });
   if (name === 'settings' && (isAdmin() || isAssistant())) showSettingsTab('depts');
@@ -3043,12 +3104,12 @@ function renderAbsences() {
           (r.deptId && deptName(r.deptId) ? ' <span class="text-xs font-normal text-slate-500">· ' + escapeHtml(deptName(r.deptId)) + '</span>' : '') + '</div>' +
         '<div class="text-xs text-slate-500">📅 ' + label + (r.by ? ' · بواسطة ' + escapeHtml(r.by) : '') + '</div>' +
       '</div>' +
-      (isAdmin() ? '<button type="button" onclick="removeAbsence(\'' + String(r._key).replace(/'/g, "\\'") + '\')" title="حذف السجل" class="text-red-500 text-lg px-2 shrink-0">✕</button>' : '') +
+      (can('absences') ? '<button type="button" onclick="removeAbsence(\'' + String(r._key).replace(/'/g, "\\'") + '\')" title="حذف السجل" class="text-red-500 text-lg px-2 shrink-0">✕</button>' : '') +
     '</div>';
   }).join('');
 }
 async function removeAbsence(id) {
-  if (!isAdmin()) return;
+  if (!can('absences')) return;
   if (!confirm('حذف سجل الغياب هذا؟ (لن يُعاد الموظف إلى وردية ذلك اليوم تلقائياً)')) return;
   try {
     await db.ref(path('absences/' + id)).remove();
