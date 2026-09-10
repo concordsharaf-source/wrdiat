@@ -329,6 +329,22 @@ select:focus, textarea:focus {
   from { transform: translateX(-50%); }  /* يبدأ من يسار الشاشة */
   to   { transform: translateX(0); }      /* يتحرك نحو اليمين باستمرار */
 }
+
+/* ===== الموظف المثالي: نجمة الشهر ===== */
+.star-badge {
+  display: inline-block;
+  margin-inline-start: 6px;
+  line-height: 1;
+  vertical-align: middle;
+  filter: drop-shadow(0 0 4px rgba(245,158,11,.85));
+  animation: starGlow 1.9s ease-in-out infinite;
+}
+@keyframes starGlow {
+  0%, 100% { filter: drop-shadow(0 0 2px rgba(245,158,11,.5)); transform: scale(1); }
+  50% { filter: drop-shadow(0 0 8px rgba(245,158,11,1)); transform: scale(1.12); }
+}
+.star-toggle { background: #fef3c7; border: 1px solid #fcd34d; }
+.star-toggle.on { background: linear-gradient(180deg, #fcd34d, #f59e0b); box-shadow: 0 0 8px rgba(245,158,11,.6); }
 </style>
 </head>
 <body class="bg-slate-100 min-h-screen">
@@ -475,7 +491,7 @@ select:focus, textarea:focus {
       <p class="text-sm text-slate-600 mb-2">بعد الدخول، اضغط ⚙️ في الأعلى ثم تنقّل بين التبويبات:</p>
       <ul class="text-sm text-slate-600 space-y-2 list-disc pr-5">
         <li><b>🏢 الأقسام:</b> أضف أقساماً بلا حد (صوت، تصوير، مطبخ…)، واختر <b>لوناً لكل قسم</b> فيتلوّن به كل موظفيه تلقائياً. زر ✏️ يعدّل الاسم، و✕ يحذف.</li>
-        <li><b>👥 الموظفون:</b> زر «➕ إضافة موظف» يفتح نموذجاً (اسم، مسمى، قسم، تثبيت، مدير قسم). بجانب كل موظف: ✏️ تعديل · ⛔ إيقاف · ✅ تفعيل · ✕ حذف.</li>
+        <li><b>👥 الموظفون:</b> زر «➕ إضافة موظف» يفتح نموذجاً (اسم، مسمى، قسم، تثبيت، مدير قسم). بجانب كل موظف: ✏️ تعديل · ⛔ إيقاف · ✅ تفعيل · ✕ حذف · ⭐ تعيينه الموظف المثالي للشهر (نجمته تظهر بجانب اسمه في صفحة اليوم طوال الشهر).</li>
         <li><b>🗓️ الورديات:</b> التوزيع الأسبوعي التلقائي — ثابت (نفس الموظفين كل أسبوع) أو تناوب (دور أسبوعي). زر الحفظ يطبّق على 5 سنوات قادمة.</li>
         <li><b>🔐 الأمان:</b> كلمة مرور الموظفين وتغيير كلمة مرور الأدمن.</li>
         <li><b>🤝 أدمن مساعد:</b> عرض حساب المساعد وتعديله (الاسم، الإيميل، كلمة المرور، الصلاحيات) أو إزالته.</li>
@@ -623,7 +639,7 @@ select:focus, textarea:focus {
             <h3 class="font-bold text-lg">👥 الموظفون</h3>
             <button type="button" id="staffFormToggle" onclick="toggleStaffForm()" class="btn-teal px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap">➕ إضافة موظف</button>
           </div>
-          <p class="text-sm text-slate-500 mb-3">اضغط ✏️ بجانب أي موظف لتعديله، و⛔ لإيقافه أو ✅ لتفعيله.</p>
+          <p class="text-sm text-slate-500 mb-3">اضغط ✏️ بجانب أي موظف لتعديله، و⛔ لإيقافه أو ✅ لتفعيله، و⭐ لتعيينه <b>الموظف المثالي لهذا الشهر</b> — تظهر نجمته بجانب اسمه في صفحة اليوم طوال الشهر.</p>
           <div id="staffForm" class="hidden border rounded-2xl p-3 mb-4 bg-slate-50">
             <div class="flex items-center justify-between mb-2">
               <span class="font-bold text-sm" id="staffFormTitle">➕ موظف جديد</span>
@@ -642,6 +658,7 @@ select:focus, textarea:focus {
             <p class="text-xs text-slate-500 mt-2">بعد الحفظ يظهر الموظف في القائمة بالأسفل.</p>
           </div>
           <div id="staffMsg" class="text-sm mt-2 hidden"></div>
+          <div id="starBanner" class="mb-2"></div>
           <div class="flex items-center gap-2 mb-2">
             <span class="text-sm font-bold text-slate-600 whitespace-nowrap">🔀 ترتيب القائمة:</span>
             <select id="staffSort" onchange="setStaffSortPref(this.value)" class="flex-1 border rounded-xl p-2 bg-white text-sm">
@@ -783,6 +800,7 @@ let staff = {};
 let shifts = {};
 let absences = {}; // سجل الغياب: حذف وردية من صفحة اليوم = غياب لذلك اليوم
 let announcement = null; // تعميم الإدارة: { text, enabled, speed } — يظهر في شريط متحرك أعلى الصفحة
+let stars = {}; // الموظف المثالي لكل شهر: { '2026-9': { employeeId, name, by, at } }
 let filterDept = '';
 let scheduleRules = null; // قواعد التوزيع الأسبوعي (ثابت/تناوب) — تُهيأ بعد تعريف ثوابت الأيام
 
@@ -928,6 +946,7 @@ const OFFLINE_DEPARTMENTS_KEY = 'wrdiat_offline_departments_v1';
 const OFFLINE_STAFF_KEY = 'wrdiat_offline_staff_v1';
 const OFFLINE_ABSENCES_KEY = 'wrdiat_offline_absences_v1';
 const OFFLINE_ANNOUNCE_KEY = 'wrdiat_offline_announce_v1';
+const OFFLINE_STARS_KEY = 'wrdiat_offline_stars_v1';
 
 scheduleRules = normalizeScheduleRules(null); // التهيئة هنا بعد تعريف الثوابت أعلاه
 
@@ -1019,6 +1038,7 @@ function saveOfflineDepartments(value) { try { localStorage.setItem(lk(OFFLINE_D
 function saveOfflineStaff(value) { try { localStorage.setItem(lk(OFFLINE_STAFF_KEY), JSON.stringify(value || {})); } catch (e) {} }
 function saveOfflineAbsences(value) { try { localStorage.setItem(lk(OFFLINE_ABSENCES_KEY), JSON.stringify(value || {})); } catch (e) {} }
 function saveOfflineAnnouncement(value) { try { localStorage.setItem(lk(OFFLINE_ANNOUNCE_KEY), JSON.stringify(value || null)); } catch (e) {} }
+function saveOfflineStars(value) { try { localStorage.setItem(lk(OFFLINE_STARS_KEY), JSON.stringify(value || {})); } catch (e) {} }
 
 // ===== الحفظ المحلي الفوري + المزامنة التلقائية مع Firebase =====
 // كل تعديل يُحفظ محلياً فوراً (لا يضيع مع تحديث الصفحة)، وعند فتح الصفحة لاحقاً
@@ -1071,6 +1091,10 @@ function restoreOfflineData() {
   try {
     const an = JSON.parse(localStorage.getItem(lk(OFFLINE_ANNOUNCE_KEY)) || 'null');
     if (an && typeof an === 'object') announcement = an;
+  } catch (e) {}
+  try {
+    const st = JSON.parse(localStorage.getItem(lk(OFFLINE_STARS_KEY)) || 'null');
+    if (st && typeof st === 'object' && !Array.isArray(st)) stars = st;
   } catch (e) {}
   try { rulesDirty = localStorage.getItem(lk(DIRTY_RULES_KEY)) === '1'; } catch (e) {}
   try { shiftsDirty = localStorage.getItem(lk(DIRTY_SHIFTS_KEY)) === '1'; } catch (e) {}
@@ -1498,6 +1522,84 @@ async function saveAnnouncement() {
     announceMsg('محفوظ على هذا الجهاز — سيُزامن عند عودة الاتصال', false);
   }
 }
+// ===== الموظف المثالي (نجمة الشهر) =====
+function formatMonth(d) { return d.getFullYear() + '-' + (d.getMonth() + 1); }
+function monthLabel(key) {
+  const p = String(key || '').split('-');
+  const m = Number(p[1]); const y = Number(p[0]);
+  if (!m || !y) return '';
+  return (arabicMonths[m - 1] || '') + ' ' + y;
+}
+function starForDate(d) { return stars[formatMonth(d)] || null; }
+// هل هذا الموظف هو المثالي في الشهر المعروض؟
+function isStarEmployee(s, d) {
+  const rec = starForDate(d);
+  return !!(rec && s && Number(rec.employeeId) === Number(s.id));
+}
+function onStarsValue(val) {
+  val = val || {};
+  if (val && typeof val === 'object' && !Array.isArray(val) && Object.keys(val).length) {
+    stars = val; saveOfflineStars(stars); renderAll(); return;
+  }
+  if (Object.keys(stars).length) { // الخادم فارغ وهذا الجهاز فيه نجوم غير مزامنة → تُرفع
+    try { db.ref(path('settings/stars')).set(stars); } catch (e) {}
+    renderAll();
+    return;
+  }
+  stars = {}; saveOfflineStars(stars); renderAll();
+}
+// تعيين/إلغاء نجمة الشهر الحالي لموظف (من قائمة الموظفين)
+async function toggleStar(code) {
+  if (!can('staff')) return;
+  const s = staff[String(code)];
+  if (!s) return;
+  const month = formatMonth(new Date()); // شهر اليوم الحقيقي — النجمة تبقى طوال الشهر
+  const existing = stars[month];
+  const isCurrent = existing && Number(existing.employeeId) === Number(s.id);
+  if (isCurrent) {
+    clearStar();
+    toast('⭐ أُزيل التميز عن «' + displayName(s) + '»');
+    return;
+  }
+  const rec = { employeeId: Number(s.id), name: displayName(s), by: (currentUser && currentUser.username) || '', at: Date.now() };
+  stars[month] = rec;
+  saveOfflineStars(stars);
+  renderAll();
+  try {
+    await db.ref(path('settings/stars/' + month)).set(rec);
+    toast('⭐ ' + displayName(s) + ' هو الموظف المثالي لشهر ' + monthLabel(month));
+  } catch (e) {
+    toast('⭐ محفوظ على هذا الجهاز — سيُزامن عند عودة الاتصال');
+  }
+}
+function renderStarBanner() {
+  const el = document.getElementById('starBanner');
+  if (!el) return;
+  const month = formatMonth(new Date());
+  const rec = stars[month];
+  const monthName = monthLabel(month);
+  if (!rec) {
+    el.innerHTML = '<div class="text-sm text-slate-500 bg-slate-50 border border-dashed border-slate-300 rounded-xl p-3">⭐ لم يُعيَّن موظف مثالي لشهر ' + escapeHtml(monthName) + ' بعد — اضغط زر ⭐ بجانب اسم الموظف أدناه.</div>';
+    return;
+  }
+  const emp = staffList().find(function(s) { return Number(s.id) === Number(rec.employeeId); });
+  const nm = emp ? displayName(emp) : (rec.name || 'موظف محذوف');
+  el.innerHTML = '<div class="flex items-center justify-between gap-2 bg-amber-50 border border-amber-300 rounded-xl p-3">' +
+    '<div class="font-bold text-amber-800">⭐ الموظف المثالي لشهر ' + escapeHtml(monthName) + ': <span class="text-teal-800">' + escapeHtml(nm) + '</span></div>' +
+    (can('staff') ? '<button type="button" onclick="clearStar()" class="text-xs text-red-500 font-bold px-2 py-1 rounded-lg bg-white border border-red-200 shrink-0">إلغاء</button>' : '') +
+    '</div>';
+}
+function clearStar() {
+  if (!can('staff')) return;
+  const month = formatMonth(new Date());
+  delete stars[month];
+  if (!Object.keys(stars).length) stars = {};
+  saveOfflineStars(stars);
+  renderAll();
+  try { db.ref(path('settings/stars/' + month)).remove(); } catch (e) {}
+  toast('⭐ أُزيل الموظف المثالي لهذا الشهر');
+}
+
 // ===== شاشة إعداد الاتصال بقاعدة Firebase =====
 function fbConnectRefresh() {
   const box = document.getElementById('fbConnectBox');
@@ -2843,6 +2945,7 @@ function listenData() {
   db.ref(path('staff')).on('value', function(s) { onStaffValue(s.val()); });
   db.ref(path('absences')).on('value', function(s) { onAbsencesValue(s.val()); });
   db.ref(path('settings/announcement')).on('value', function(s) { onAnnouncementValue(s.val()); });
+  db.ref(path('settings/stars')).on('value', function(s) { onStarsValue(s.val()); });
   // الورديات والقواعد: إن كان في الجهاز تعديلات لم تُزامَن بعد (علم «معدَّل»)
   // يبقى المحلي هو المعتمد ويُدفع للخادم تلقائياً — فلا تضيع المدخلات مع تحديث الصفحة.
   db.ref(path('shifts')).on('value', function(s) { onShiftsValue(s.val() || {}); });
@@ -2922,9 +3025,12 @@ function renderDay() {
     const st = staffById(sl.employeeId) || { name: 'موظف', hex: '#0f766e', title: '' };
     const del = can('slots') ? '<button onclick="deleteSlot(\'' + sl.id + '\')" class="slot-del">✕</button>' : '';
     const info = (st.title || '') + (deptName(st.deptId) ? (st.title ? ' · ' : '') + deptName(st.deptId) : '');
+    const starHtml = isStarEmployee(st, viewDate)
+      ? '<span class="star-badge" title="⭐ الموظف المثالي لهذا الشهر">⭐</span>'
+      : '';
     const nm = can('slots')
-      ? '<button type="button" data-key="' + formatKey(viewDate) + '" data-slot="' + sl.id + '" class="swap-trigger" title="اضغط على الاسم للتبديل في حال الغياب">' + (st.mgr ? '👔 ' : '') + displayName(st) + ' ⇄</button>'
-      : '<span>' + (st.mgr ? '👔 ' : '') + displayName(st) + '</span>';
+      ? '<button type="button" data-key="' + formatKey(viewDate) + '" data-slot="' + sl.id + '" class="swap-trigger" title="اضغط على الاسم للتبديل في حال الغياب">' + starHtml + (st.mgr ? '👔 ' : '') + displayName(st) + ' ⇄</button>'
+      : '<span>' + starHtml + (st.mgr ? '👔 ' : '') + displayName(st) + '</span>';
     return '<div class="slot shadow" style="background:' + staffColor(st) + '">' + del +
       '<div class="slot-emp">' + nm + '</div>' +
       (info ? '<div class="slot-info">' + info + '</div>' : '') +
@@ -2970,11 +3076,12 @@ function renderSettingsLists() {
   const sl = document.getElementById('staffList');
   if (sl) sl.innerHTML = sortedStaffForList(allStaffList()).map(function(s) {
     return '<div class="border rounded-xl p-3"><div class="flex justify-between items-center gap-2">' +
-      '<div><div class="font-bold">' + (s.pinned ? '📌 ' : '') + displayName(s) +
+      '<div><div class="font-bold">' + (s.pinned ? '📌 ' : '') + (isStarEmployee(s, new Date()) ? '<span class="star-badge" title="⭐ الموظف المثالي لهذا الشهر">⭐</span>' : '') + displayName(s) +
         (s.mgr ? ' <span class="text-[10px] bg-amber-100 text-amber-800 rounded-full px-2 py-0.5 font-bold">👔 مدير قسم</span>' : '') + '</div>' +
       '<div class="text-sm text-slate-500">' + (s.title||'') + ' · ' + deptName(s.deptId) +
         (countsS ? ' · ' + (countsS[s.id] || 0) + ' وردية' : '') + '</div></div>' +
       '<div class="flex gap-1 text-sm">' +
+        (can('staff') ? '<button type="button" onclick="toggleStar(\'' + String(s.code).replace(/'/g, "\\'") + '\')" title="' + (isStarEmployee(s, new Date()) ? 'إزالة التميز لهذا الشهر' : '⭐ تعيينه الموظف المثالي لهذا الشهر') + '" class="star-toggle ' + (isStarEmployee(s, new Date()) ? 'on' : '') + ' px-2 py-1 rounded-lg leading-none">⭐</button>' : '') +
         '<button type="button" onclick="loadStaffToForm(\'' + String(s.code).replace(/'/g, "\\'") + '\')" title="تعديل" class="bg-teal-800 text-amber-100 px-2 py-1 rounded-lg text-xs leading-none">✏️</button>' +
         '<button type="button" title="' + (s.disabled ? '✅ تفعيل الموظف' : '⛔ إيقاف الموظف') + '" onclick="toggleStaffDisabled(\'' + String(s.code).replace(/'/g, "\\'") + '\',' + (s.disabled ? 'false' : 'true') + ')" class="bg-slate-200 text-slate-700 px-2 py-1 rounded-lg leading-none">' + (s.disabled ? '✅' : '⛔') + '</button>' +
         '<button type="button" onclick="removeStaff(\'' + String(s.code).replace(/'/g, "\\'") + '\')" title="حذف" class="text-red-500 text-lg px-2 py-1">✕</button>' +
@@ -2982,6 +3089,7 @@ function renderSettingsLists() {
       (s.disabled ? '<div class="text-xs bg-red-50 text-red-600 font-bold px-2 py-1 rounded-lg mt-1 inline-block">⛔ موقوف — لا يدخل التوزيع ولا يسجّل الدخول</div>' : '') +
     '</div>';
   }).join('') || '<p class="text-slate-400 text-sm">لا موظفون بعد</p>';
+  renderStarBanner();
   refreshDeptColorPalette();
   fbConnectRefresh();
   renderScheduleRules();
