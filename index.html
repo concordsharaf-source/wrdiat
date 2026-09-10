@@ -103,6 +103,8 @@ input::placeholder, textarea::placeholder { color: #9a3412 !important; opacity: 
 /* ===== شاشة البداية (تسجيل الدخول) ===== */
 .start-bg { background: linear-gradient(160deg, #0f766e, #115e59, #134e4a); }
 body.start-mode { background: linear-gradient(160deg, #0f766e, #115e59, #134e4a); }
+/* تبويبات الإعدادات: ثابتة أعلى الشاشة أثناء التمرير (أسفل الشريط العلوي) */
+.settings-tabs { position: -webkit-sticky; position: sticky; top: 48px; z-index: 30; }
 #loginModal .w\\[19rem\\] { max-width: 92vw; }
 .sec-card { background: #fff; border-radius: 18px; padding: 16px; box-shadow: 0 1px 3px rgba(15,23,42,.08); }
 .sec-card + .sec-card { margin-top: 14px; }
@@ -294,11 +296,12 @@ button:focus-visible { outline: 3px solid #0f766e; outline-offset: 2px; }
 
   <div id="settingsPage" class="page hidden max-w-3xl mx-auto p-4">
     <div id="adminSettings" class="hidden">
-      <div class="flex gap-2 mb-4 bg-white rounded-2xl p-2 shadow">
+      <div class="settings-tabs flex gap-2 mb-4 bg-white rounded-2xl p-2 shadow">
         <button id="tabBtn-depts" onclick="showSettingsTab('depts')" class="flex-1 py-2 rounded-xl font-bold text-sm">🏢 الأقسام</button>
         <button id="tabBtn-staff" onclick="showSettingsTab('staff')" class="flex-1 py-2 rounded-xl font-bold text-sm">👥 الموظفون</button>
         <button id="tabBtn-shifts" onclick="showSettingsTab('shifts')" class="flex-1 py-2 rounded-xl font-bold text-sm">🗓️ الورديات</button>
         <button id="tabBtn-security" onclick="showSettingsTab('security')" class="flex-1 py-2 rounded-xl font-bold text-sm">🔐 الأمان</button>
+        <button id="tabBtn-absences" onclick="showSettingsTab('absences')" class="flex-1 py-2 rounded-xl font-bold text-sm">🚫 الغياب</button>
         <button id="tabBtn-signups" onclick="showSettingsTab('signups')" class="flex-1 py-2 rounded-xl font-bold text-sm hidden">📋 الطلبات</button>
       </div>
 
@@ -358,6 +361,14 @@ button:focus-visible { outline: 3px solid #0f766e; outline-offset: 2px; }
           </div>
           <div id="asMsg" class="text-xs mt-2"></div>
         </div>
+      </div>
+
+      <div id="tab-absences" class="tab-panel hidden">
+        <section class="bg-white rounded-2xl p-4 shadow">
+          <h3 class="font-bold text-lg mb-2">🚫 سجل الغياب</h3>
+          <p class="text-sm text-slate-500 mb-3">أي حذف لوردية من صفحة اليوم (زر ✕) يُسجَّل هنا غياباً لذلك اليوم فقط — الموظف يبقى مسؤولاً عن بقية أيامه.</p>
+          <div id="absencesList" class="space-y-2"></div>
+        </section>
       </div>
 
       <div id="tab-signups" class="tab-panel hidden">
@@ -527,6 +538,7 @@ let calDate = new Date();
 let departments = {};
 let staff = {};
 let shifts = {};
+let absences = {}; // سجل الغياب: حذف وردية من صفحة اليوم = غياب لذلك اليوم
 let filterDept = '';
 let scheduleRules = null; // قواعد التوزيع الأسبوعي (ثابت/تناوب) — تُهيأ بعد تعريف ثوابت الأيام
 
@@ -608,7 +620,22 @@ function staffById(id) {
   return staffList().find(function(s) { return Number(s.id) === Number(id); });
 }
 function deptName(id) { return (departments[id] && departments[id].name) || ''; }
+// ===== ترتيب الأقسام أبجدياً (بالاسم) بدل ترتيب الإضافة/التعديل =====
+function sortedDeptIds() {
+  return Object.keys(departments).sort(function(a, b) {
+    return String((departments[a] && departments[a].name) || '').localeCompare(String((departments[b] && departments[b].name) || ''), 'ar');
+  });
+}
 function formatKey(d) { return d.getFullYear() + '-' + (d.getMonth()+1) + '-' + d.getDate(); }
+// وصف تاريخ لصيغة YYYY-M-D (للعرض في قوائم الغياب)
+function parseDateKey(key) {
+  const p = String(key || '').split('-').map(Number);
+  if (p.length === 3 && p.every(Number.isFinite)) return new Date(p[0], p[1] - 1, p[2]);
+  return null;
+}
+function dayDateLabel(d) {
+  return arabicDays[d.getDay()] + ' ' + d.getDate() + ' ' + arabicMonths[d.getMonth()] + ' ' + d.getFullYear();
+}
 // منع تكرار الموظف في اليوم الواحد مهما أُضيف من عدة أماكن (يدوي/عام/قسم) — يُعتمد واحد فقط
 // الأولوية: الوردية اليدوية (إضافة/تبديل) ثم الأبكر وقتاً.
 function dedupeSlots(list) {
@@ -648,6 +675,7 @@ const OFFLINE_RULES_KEY = 'wrdiat_schedule_rules_v1';
 const OFFLINE_SHIFTS_KEY = 'wrdiat_offline_shifts_v1';
 const OFFLINE_DEPARTMENTS_KEY = 'wrdiat_offline_departments_v1';
 const OFFLINE_STAFF_KEY = 'wrdiat_offline_staff_v1';
+const OFFLINE_ABSENCES_KEY = 'wrdiat_offline_absences_v1';
 
 scheduleRules = normalizeScheduleRules(null); // التهيئة هنا بعد تعريف الثوابت أعلاه
 
@@ -737,6 +765,7 @@ function saveOfflineRules(value) { try { localStorage.setItem(lk(OFFLINE_RULES_K
 function saveOfflineShifts(value) { try { localStorage.setItem(lk(OFFLINE_SHIFTS_KEY), JSON.stringify(value || {})); } catch (e) {} }
 function saveOfflineDepartments(value) { try { localStorage.setItem(lk(OFFLINE_DEPARTMENTS_KEY), JSON.stringify(value || {})); } catch (e) {} }
 function saveOfflineStaff(value) { try { localStorage.setItem(lk(OFFLINE_STAFF_KEY), JSON.stringify(value || {})); } catch (e) {} }
+function saveOfflineAbsences(value) { try { localStorage.setItem(lk(OFFLINE_ABSENCES_KEY), JSON.stringify(value || {})); } catch (e) {} }
 
 // ===== الحفظ المحلي الفوري + المزامنة التلقائية مع Firebase =====
 // كل تعديل يُحفظ محلياً فوراً (لا يضيع مع تحديث الصفحة)، وعند فتح الصفحة لاحقاً
@@ -782,6 +811,10 @@ function restoreOfflineData() {
     const s = JSON.parse(localStorage.getItem(lk(OFFLINE_SHIFTS_KEY)) || 'null');
     if (s && typeof s === 'object' && !Array.isArray(s)) shifts = s;
   } catch (e) {}
+  try {
+    const a = JSON.parse(localStorage.getItem(lk(OFFLINE_ABSENCES_KEY)) || 'null');
+    if (a && typeof a === 'object' && !Array.isArray(a)) absences = a;
+  } catch (e) {}
   try { rulesDirty = localStorage.getItem(lk(DIRTY_RULES_KEY)) === '1'; } catch (e) {}
   try { shiftsDirty = localStorage.getItem(lk(DIRTY_SHIFTS_KEY)) === '1'; } catch (e) {}
 }
@@ -810,10 +843,10 @@ function weekdayOccurrenceCount(date) {
   return occ;
 }
 
-// النطاقات المعروضة في الواجهة: '' (عام/كل الأقسام) ثم كل الأقسام الحالية
+// النطاقات المعروضة في الواجهة: '' (عام/كل الأقسام) ثم كل الأقسام الحالية (مرتبة أبجدياً)
 function ruleScopes() {
   const keys = [''];
-  Object.keys(departments).forEach(function(id) { keys.push(String(id)); });
+  sortedDeptIds().forEach(function(id) { keys.push(String(id)); });
   return keys;
 }
 // موظفو نطاق: عام = كل النشطين، قسم = موظفو ذلك القسم فقط
@@ -1121,6 +1154,16 @@ function onStaffValue(val) {
   if (Object.keys(staff).length) { autoMigrateLocalToServer(); return; }
   staff = {}; saveOfflineStaff(staff); renderAll();
 }
+function onAbsencesValue(val) {
+  val = val || {};
+  if (Object.keys(val).length) { absences = val; saveOfflineAbsences(absences); renderAbsences(); return; }
+  if (Object.keys(absences).length) { // الخادم فارغ وهذا الجهاز فيه سجلات غير مزامنة → تُرفع
+    try { db.ref(path('absences')).set(absences); } catch (e) {}
+    renderAbsences();
+    return;
+  }
+  absences = {}; saveOfflineAbsences(absences); renderAbsences();
+}
 // ===== شاشة إعداد الاتصال بقاعدة Firebase =====
 function fbConnectRefresh() {
   const box = document.getElementById('fbConnectBox');
@@ -1380,6 +1423,7 @@ async function saveDeptRules(scopeIdx, btn) {
   }
   if (savedServer) { clearRulesDirty(); clearShiftsDirty(); rulesMsg('✔ تم حفظ وتطبيق «' + (scope ? (departments[scope] ? departments[scope].name : scope) : 'القاعدة العامة') + '» على ' + Object.keys(updates).length + ' يوماً (5 سنوات)', true); }
   renderAll();
+  rulesOpen = {}; // طيّ كل البطاقات المفتوحة بعد الحفظ — صفحة منظمة
   renderScheduleRules();
   const freshBtn = document.querySelector('#rulesContainer [data-save-idx="' + scopeIdx + '"]');
   if (savedServer) saveBtnFlash(freshBtn || btn, '✔ تم الحفظ — طُبّق على 5 سنوات', true);
@@ -1977,7 +2021,7 @@ function enterApp() {
   document.getElementById('adminSettings').classList.toggle('hidden', !(isAdm || isAsst));
   document.getElementById('logoutBtn').classList.toggle('hidden', !(isAdm || isAsst));
   // تبويبات الإعدادات: الأدمن يرى الكل، والمساعد يرى ما يملك صلاحيته فقط
-  const tabsVis = { depts: can('depts'), staff: can('staff'), shifts: can('rules'), security: isAdm, signups: isSuperAdmin() };
+  const tabsVis = { depts: can('depts'), staff: can('staff'), shifts: can('rules'), security: isAdm, absences: isAdm, signups: isSuperAdmin() };
   Object.keys(tabsVis).forEach(function(n) {
     const b = document.getElementById('tabBtn-' + n);
     if (b) b.classList.toggle('hidden', !tabsVis[n]);
@@ -2403,12 +2447,13 @@ async function resetAssistantPassword(key) {
 function showSettingsTab(name) {
   if (name === 'signups' && !isSuperAdmin()) name = 'depts'; // تبويب الطلبات لمالك النظام فقط
   if (name === 'security' && !isAdmin()) name = 'depts'; // الأمان للأدمن الرئيسي فقط
+  if (name === 'absences' && !isAdmin()) name = 'depts'; // سجل الغياب للأدمن الرئيسي فقط
   if (isAssistant()) { // المساعد: لا يفتح إلا تبويبات صلاحياته
     const okTabs = { depts: can('depts'), staff: can('staff'), shifts: can('rules') };
     if (!okTabs[name]) name = okTabs.depts ? 'depts' : (okTabs.staff ? 'staff' : (okTabs.shifts ? 'shifts' : ''));
     if (!name) { showPage('day'); return; }
   }
-  ['depts', 'staff', 'shifts', 'security', 'signups'].forEach(function(n) {
+  ['depts', 'staff', 'shifts', 'security', 'absences', 'signups'].forEach(function(n) {
     const panel = document.getElementById('tab-' + n);
     const btn = document.getElementById('tabBtn-' + n);
     if (panel) panel.classList.toggle('hidden', n !== name);
@@ -2419,12 +2464,22 @@ function showSettingsTab(name) {
   if (name === 'staff') renderSettingsLists();
   if (name === 'shifts') renderScheduleRules();
   if (name === 'security') securityRefresh();
+  if (name === 'absences') renderAbsences();
   if (name === 'signups') signupsRefresh();
 }
+
+// ضبط ارتفاع تبويبات الإعدادات الثابتة حسب ارتفاع الشريط العلوي (يتغير مع طول النص)
+function measureSettingsTabs() {
+  const nav = document.querySelector('#mainApp nav');
+  const tabs = document.querySelector('.settings-tabs');
+  if (nav && tabs) tabs.style.top = (nav.offsetHeight + 2) + 'px';
+}
+window.addEventListener('resize', measureSettingsTabs);
 
 function listenData() {
   db.ref(path('departments')).on('value', function(s) { onDepartmentsValue(s.val()); });
   db.ref(path('staff')).on('value', function(s) { onStaffValue(s.val()); });
+  db.ref(path('absences')).on('value', function(s) { onAbsencesValue(s.val()); });
   // الورديات والقواعد: إن كان في الجهاز تعديلات لم تُزامَن بعد (علم «معدَّل»)
   // يبقى المحلي هو المعتمد ويُدفع للخادم تلقائياً — فلا تضيع المدخلات مع تحديث الصفحة.
   db.ref(path('shifts')).on('value', function(s) { onShiftsValue(s.val() || {}); });
@@ -2433,6 +2488,7 @@ function listenData() {
 
 function renderAll() {
   renderDay(); renderCal(); renderStats(); renderSettingsLists();
+  measureSettingsTabs();
   const isAdm = isAdmin();
   const adminBtn = document.getElementById('adminBtn');
   if (adminBtn) { const mgr = isAdm || isAssistant(); adminBtn.textContent = mgr ? '⚙️' : '🔑'; adminBtn.title = mgr ? 'الإعدادات' : 'دخول الأدمن'; }
@@ -2478,7 +2534,7 @@ function renderDay() {
   document.getElementById('dayNum').textContent = viewDate.getDate();
   document.getElementById('dayLabel').textContent = arabicDays[viewDate.getDay()] + ' — ' + arabicMonths[viewDate.getMonth()] + ' ' + viewDate.getFullYear();
   const f = document.getElementById('deptFilter');
-  const deptIds = Object.keys(departments);
+  const deptIds = sortedDeptIds();
   if (f) {
     f.innerHTML = '<option value="">كل الأقسام</option>' +
       deptIds.map(function(id) {
@@ -2554,7 +2610,7 @@ function renderStats() {
 
 function renderSettingsLists() {
   const dl = document.getElementById('deptList');
-  if (dl) dl.innerHTML = Object.keys(departments).map(function(id) {
+  if (dl) dl.innerHTML = sortedDeptIds().map(function(id) {
     const members = staffList().filter(function(s) { return String(s.deptId) === String(id); });
     const membersHtml = members.length
       ? '<div class="text-xs text-slate-500 mt-1">' + members.map(function(s) { return '<span class="inline-block bg-slate-100 rounded-full px-2 py-0.5 ml-1 mt-1">' + escapeHtml(displayName(s)) + '</span>'; }).join('') + '</div>'
@@ -2563,7 +2619,7 @@ function renderSettingsLists() {
       (can('depts') ? '<span class="flex gap-2"><button onclick="openRenameDept(\'' + id + '\')\" title="تعديل اسم القسم" class="text-teal-700 text-lg px-2">✏️</button><button onclick="removeDept(\'' + id + '\')\" title="حذف القسم" class="text-red-500 text-lg px-2">✕</button></span>' : '') + '</div>' + membersHtml + '</div>';
   }).join('') || '<p class="text-slate-400 text-sm">لا أقسام بعد</p>';
   const sel = document.getElementById('stDept');
-  if (sel) sel.innerHTML = '<option value="">بدون قسم</option>' + Object.keys(departments).map(function(id) {
+  if (sel) sel.innerHTML = '<option value="">بدون قسم</option>' + sortedDeptIds().map(function(id) {
     return '<option value="' + id + '">' + departments[id].name + '</option>';
   }).join('');
   const sortSel = document.getElementById('staffSort');
@@ -2720,6 +2776,9 @@ function loadStaffToForm(code) {
   setStaffForm(Object.assign({ code: code }, s));
   document.getElementById('staffBtnLabel').textContent = '💾 حفظ التعديلات';
   document.getElementById('staffCancelEdit').classList.remove('hidden');
+  const form = document.getElementById('staffForm');
+  if (form) form.classList.remove('hidden'); // فتح النموذج عند التعديل
+  refreshColorPalette();
   staffMsg('جارٍ تعديل: ' + displayName(Object.assign({ code: code }, s)), true);
   document.getElementById('stName').focus();
 }
@@ -2748,8 +2807,9 @@ async function addStaff() {
         pinned: !!f.pinned, mgr: !!f.mgr,
         disabled: !!oldRec.disabled, code: key
       });
-      staffMsg('✔ تم تحديث بيانات الموظف', true);
       cancelStaffEdit();
+      staffMsg('✔ تم تحديث بيانات الموظف', true);
+      toggleStaffForm(true); // طيّ النموذج بعد الحفظ
       return;
     }
     // إضافة جديدة: مفتاح داخلي تلقائي (لا أرقام دخول)
@@ -2759,8 +2819,9 @@ async function addStaff() {
       title: f.title, deptId: f.deptId, id: Number(key), hex: f.hex, disabled: false, code: key,
       pinned: !!f.pinned, mgr: !!f.mgr
     });
-    staffMsg('✔ تم حفظ الموظف', true);
     cancelStaffEdit();
+    staffMsg('✔ تم حفظ الموظف', true);
+    toggleStaffForm(true); // طيّ النموذج بعد الحفظ
   } catch (e) {
     staffMsg('تعذر الحفظ: ' + (e.message || e));
   }
@@ -2804,11 +2865,88 @@ function saveSlot() {
   db.ref(path('shifts/' + key)).set(list);
   closeSlotModal();
 }
-function deleteSlot(id) {
+// حذف وردية من صفحة اليوم: بتأكيد، لليوم المحدد فقط، ويُسجَّل الموظف غياباً لذلك اليوم
+async function deleteSlot(id) {
   if (!can('slots')) return;
   const key = formatKey(viewDate);
-  const list = daySlots(viewDate).filter(function(s) { return s.id !== id; });
-  db.ref(path('shifts/' + key)).set(list);
+  const list = daySlots(viewDate);
+  const slot = list.find(function(s) { return s.id === id; });
+  if (!slot) return;
+  const emp = staffById(slot.employeeId);
+  const empName = emp ? displayName(emp) : 'الموظف';
+  if (!confirm('🗑 حذف وردية «' + empName + '» ليوم ' + dayDateLabel(viewDate) + '؟\n\nسيُحذف من هذا اليوم فقط، وسيُحسب الموظف غياباً لهذا اليوم.')) return;
+  const newList = list.filter(function(s) { return s.id !== id; });
+  shifts[key] = newList;
+  markShiftsDirty();
+  renderDay();
+  try {
+    await db.ref(path('shifts/' + key)).set(newList);
+    clearShiftsDirty();
+  } catch (e) { /* يبقى محفوظاً محلياً ويُزامن تلقائياً */ }
+  await recordAbsence(slot.employeeId, key);
+  renderAll();
+}
+// تسجيل غياب موظف (حذف ورديته) في قائمة الغياب
+async function recordAbsence(employeeId, dateKey) {
+  const emp = staffById(employeeId);
+  const rec = {
+    date: dateKey,
+    employeeId: Number(employeeId),
+    employeeName: emp ? displayName(emp) : 'موظف',
+    deptId: emp ? (emp.deptId || '') : '',
+    at: Date.now(),
+    by: (currentUser && currentUser.username) || ''
+  };
+  try {
+    await db.ref(path('absences')).push(rec);
+    toast('✔ حُذفت الوردية وسُجِّل غياب «' + rec.employeeName + '»');
+  } catch (e) {
+    // لا اتصال: يُحفظ محلياً ويُرفع عند أول مزامنة
+    absences['local_' + Date.now()] = rec;
+    saveOfflineAbsences(absences);
+    renderAbsences();
+    toast('✔ حُذفت الوردية وسُجِّل الغياب محلياً — سيُزامن عند عودة الاتصال');
+  }
+}
+// ===== قائمة الغياب (الإعدادات — للأدمن) =====
+function renderAbsences() {
+  const box = document.getElementById('absencesList');
+  if (!box) return;
+  const rows = Object.keys(absences).map(function(k) { return Object.assign({ _key: k }, absences[k]); })
+    .sort(function(a, b) {
+      const ca = String(a.date || ''), cb = String(b.date || '');
+      if (ca !== cb) return cb.localeCompare(ca); // الأحدث أولاً
+      return (b.at || 0) - (a.at || 0);
+    });
+  if (!rows.length) {
+    box.innerHTML = '<p class="text-sm text-slate-400 text-center py-6">لا توجد غيابات مسجلة بعد</p>';
+    return;
+  }
+  box.innerHTML = rows.map(function(r) {
+    const d = parseDateKey(r.date);
+    const label = d ? dayDateLabel(d) : escapeHtml(String(r.date || '—'));
+    return '<div class="border rounded-xl p-3 flex items-center justify-between gap-2">' +
+      '<div class="min-w-0">' +
+        '<div class="font-bold">' + escapeHtml(r.employeeName || 'موظف') +
+          (r.deptId && deptName(r.deptId) ? ' <span class="text-xs font-normal text-slate-500">· ' + escapeHtml(deptName(r.deptId)) + '</span>' : '') + '</div>' +
+        '<div class="text-xs text-slate-500">📅 ' + label + (r.by ? ' · بواسطة ' + escapeHtml(r.by) : '') + '</div>' +
+      '</div>' +
+      (isAdmin() ? '<button type="button" onclick="removeAbsence(\'' + String(r._key).replace(/'/g, "\\'") + '\')" title="حذف السجل" class="text-red-500 text-lg px-2 shrink-0">✕</button>' : '') +
+    '</div>';
+  }).join('');
+}
+async function removeAbsence(id) {
+  if (!isAdmin()) return;
+  if (!confirm('حذف سجل الغياب هذا؟ (لن يُعاد الموظف إلى وردية ذلك اليوم تلقائياً)')) return;
+  try {
+    await db.ref(path('absences/' + id)).remove();
+    toast('تم حذف السجل');
+  } catch (e) {
+    delete absences[id];
+    saveOfflineAbsences(absences);
+    renderAbsences();
+    toast('تم حذف السجل محلياً — سيُزامن عند عودة الاتصال');
+  }
 }
 
 // ===== تبديل سريع من بطاقة اليوم (في حال غياب أحدهم) =====
