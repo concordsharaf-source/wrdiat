@@ -26,6 +26,10 @@ select, textarea {
 input::placeholder, textarea::placeholder { color: #9a3412 !important; opacity: 1; }
 .btn-amber { background: #fbbf24; color: #111827; font-weight: 800; }
 .btn-dark { background: #111827; color: #fde047; font-weight: 800; }
+.save-green { background: #059669 !important; color: #fff !important; }
+.save-red { background: #b91c1c !important; color: #fff !important; }
+@keyframes savePulse { 0% { transform: scale(1); } 35% { transform: scale(1.05); box-shadow: 0 0 0 6px rgba(5,150,105,.35); } 100% { transform: scale(1); } }
+.save-flash { animation: savePulse .45s ease; }
 .btn-teal { background: #115e59; color: #fef3c7; font-weight: 800; }
 .home-card { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25); }
 .slot { border-radius: 16px; color: #fff; padding: 12px 14px; margin-bottom: 8px; position: relative; overflow: hidden; }
@@ -205,7 +209,7 @@ input::placeholder, textarea::placeholder { color: #9a3412 !important; opacity: 
           <h3 class="font-bold text-lg mb-2">🗓️ الورديات — التوزيع الأسبوعي</h3>
           <p class="text-sm text-slate-500 mb-3">اختر طريقة العرض: <b>بالأيام</b> أو <b>بالأقسام</b> — البيانات مطوية وتُفتح عند الضغط. لكل قسم زر حفظ واحد يطبق ما أدخلته على 5 سنوات قادمة.</p>
           <label class="block text-sm font-bold mb-1">تاريخ بداية التناوب (تُحسب منه دورية الترتيب)</label>
-          <input id="rulesAnchor" type="date" class="w-full border rounded-xl p-3 mb-1">
+          <input id="rulesAnchor" type="date" onchange="ruleAnchorChanged(this.value)" class="w-full border rounded-xl p-3 mb-1">
           <p class="text-xs text-slate-500 mb-3">غيّر هذا التاريخ لإعادة ضبط تسلسل التناوب من جديد.</p>
           <div id="rulesMsg" class="text-sm hidden mb-2"></div>
 
@@ -411,6 +415,34 @@ function saveOfflineRules(value) { try { localStorage.setItem(OFFLINE_RULES_KEY,
 function saveOfflineShifts(value) { try { localStorage.setItem(OFFLINE_SHIFTS_KEY, JSON.stringify(value || {})); } catch (e) {} }
 function saveOfflineDepartments(value) { try { localStorage.setItem(OFFLINE_DEPARTMENTS_KEY, JSON.stringify(value || {})); } catch (e) {} }
 function saveOfflineStaff(value) { try { localStorage.setItem(OFFLINE_STAFF_KEY, JSON.stringify(value || {})); } catch (e) {} }
+
+// ===== الحفظ المحلي الفوري + المزامنة التلقائية مع Firebase =====
+// كل تعديل يُحفظ محلياً فوراً (لا يضيع مع تحديث الصفحة)، وعند فتح الصفحة لاحقاً
+// يدفع المحلي للخادم تلقائياً إن كانت فيه تغييرات لم تُزامَن بعد.
+const DIRTY_RULES_KEY = 'wrdiat_dirty_rules';
+const DIRTY_SHIFTS_KEY = 'wrdiat_dirty_shifts';
+let rulesDirty = false, shiftsDirty = false, rulesPushing = false, shiftsPushing = false;
+function markRulesDirty() { rulesDirty = true; try { localStorage.setItem(DIRTY_RULES_KEY, '1'); } catch (e) {} saveOfflineRules(scheduleRules); }
+function markShiftsDirty() { shiftsDirty = true; try { localStorage.setItem(DIRTY_SHIFTS_KEY, '1'); } catch (e) {} saveOfflineShifts(shifts); }
+function clearRulesDirty() { rulesDirty = false; try { localStorage.removeItem(DIRTY_RULES_KEY); } catch (e) {} }
+function clearShiftsDirty() { shiftsDirty = false; try { localStorage.removeItem(DIRTY_SHIFTS_KEY); } catch (e) {} }
+async function pushRulesLocal() {
+  if (rulesPushing || !rulesDirty) return;
+  rulesPushing = true;
+  try { await db.ref(path('scheduleRules')).set(normalizeScheduleRules(scheduleRules)); clearRulesDirty(); } catch (e) {}
+  rulesPushing = false;
+}
+async function pushShiftsLocal() {
+  if (shiftsPushing || !shiftsDirty) return;
+  shiftsPushing = true;
+  try { await db.ref(path('shifts')).set(shifts); clearShiftsDirty(); } catch (e) {}
+  shiftsPushing = false;
+}
+async function syncDirtyAll() {
+  if (!isAdmin()) return;
+  if (rulesDirty) await pushRulesLocal();
+  if (shiftsDirty) await pushShiftsLocal();
+}
 function restoreOfflineData() {
   try {
     const d = JSON.parse(localStorage.getItem(OFFLINE_DEPARTMENTS_KEY) || 'null');
@@ -428,6 +460,8 @@ function restoreOfflineData() {
     const s = JSON.parse(localStorage.getItem(OFFLINE_SHIFTS_KEY) || 'null');
     if (s && typeof s === 'object' && !Array.isArray(s)) shifts = s;
   } catch (e) {}
+  try { rulesDirty = localStorage.getItem(DIRTY_RULES_KEY) === '1'; } catch (e) {}
+  try { shiftsDirty = localStorage.getItem(DIRTY_SHIFTS_KEY) === '1'; } catch (e) {}
 }
 
 function pad2(n) { return String(n).padStart(2, '0'); }
@@ -666,7 +700,7 @@ function rulesByDeptsHtml() {
       '<div class="mt-3">' +
         '<p class="text-xs text-slate-500 mb-2">' + lab.note + '</p>' +
         daysHtml +
-        '<button type="button" onclick="saveDeptRules(' + si + ')" class="w-full mt-3 btn-teal py-3 rounded-2xl font-extrabold">💾 حفظ تغييرات هذا القسم — وتطبيقها 5 سنوات</button>' +
+        '<button type="button" data-save-idx="' + si + '" onclick="saveDeptRules(' + si + ', this)" class="w-full mt-3 btn-teal py-3 rounded-2xl font-extrabold">💾 حفظ تغييرات هذا القسم — وتطبيقها 5 سنوات</button>' +
       '</div></details>';
   }).join('');
 }
@@ -675,12 +709,19 @@ function rerenderRuleRow(scopeIdx, day, idx) {
   const el = document.getElementById('ruleRow-' + scopeIdx + '-' + day + '-' + idx);
   if (el) el.outerHTML = ruleRowHtml(scopeIdx, day, getRuleRow(scopeIdx, day, idx), idx);
 }
-function updateRuleTime(scopeIdx, day, idx, field, value) { getRuleRow(scopeIdx, day, idx)[field] = String(value || ''); }
+function updateRuleTime(scopeIdx, day, idx, field, value) { getRuleRow(scopeIdx, day, idx)[field] = String(value || ''); markRulesDirty(); }
+function ruleAnchorChanged(value) {
+  if (!/^\d{4}-\d{1,2}-\d{1,2}$/.test(value)) return;
+  scheduleRules.anchor = value;
+  markRulesDirty();
+  toast('✔ ضُبط تاريخ بداية التناوب — يُحفظ محلياً الآن');
+}
 function ruleModeChanged(scopeIdx, day, idx) {
   const row = getRuleRow(scopeIdx, day, idx);
   const el = document.getElementById('ruleMode-' + scopeIdx + '-' + day + '-' + idx);
   if (el) row.mode = el.value === 'fixed' ? 'fixed' : 'rotate';
   // الثابت يقبل أكثر من موظف: كل المختارين يظهرون في هذا اليوم كل أسبوع
+  markRulesDirty();
   rerenderRuleRow(scopeIdx, day, idx);
 }
 function toggleRuleEmp(scopeIdx, day, idx, empId) {
@@ -689,6 +730,7 @@ function toggleRuleEmp(scopeIdx, day, idx, empId) {
   const pos = ids.indexOf(Number(empId));
   if (pos >= 0) ids.splice(pos, 1); else ids.push(Number(empId));
   row.employeeIds = ids;
+  markRulesDirty();
   rerenderRuleRow(scopeIdx, day, idx);
 }
 function moveRuleEmp(scopeIdx, day, idx, empId, dir) {
@@ -699,12 +741,14 @@ function moveRuleEmp(scopeIdx, day, idx, empId, dir) {
   if (i < 0 || j < 0 || j >= ids.length) return;
   const t = ids[i]; ids[i] = ids[j]; ids[j] = t;
   row.employeeIds = ids;
+  markRulesDirty();
   rerenderRuleRow(scopeIdx, day, idx);
 }
 function addRuleRow(scopeIdx, day) {
   const sc = scheduleRules.scopes[scopeKey(scopeIdx)] || { days: {} };
   if (!sc.days[day]) sc.days[day] = { rows: [] };
   sc.days[day].rows.push({ mode: 'rotate', employeeIds: [], start: '', end: '' });
+  markRulesDirty();
   renderScheduleRules();
 }
 function removeRuleRow(scopeIdx, day, idx) {
@@ -712,6 +756,7 @@ function removeRuleRow(scopeIdx, day, idx) {
   const rows = sc.days[day] ? sc.days[day].rows : [];
   if (rows.length <= 1) { toast('لا يمكن حذف آخر سطر — عدِّله أو اتركه'); return; }
   rows.splice(idx, 1);
+  markRulesDirty();
   renderScheduleRules();
 }
 
@@ -758,9 +803,22 @@ function readDayRowsFromDom(scopeIdx, day) {
   });
   return rows;
 }
+function saveBtnFlash(btn, text, ok) {
+  if (!btn) return;
+  if (!btn.getAttribute('data-orig')) btn.setAttribute('data-orig', btn.innerHTML);
+  btn.innerHTML = text;
+  btn.classList.remove('save-green', 'save-red');
+  btn.classList.add(ok ? 'save-green' : 'save-red');
+  if (btn.__flashTo) clearTimeout(btn.__flashTo);
+  btn.__flashTo = setTimeout(function() {
+    btn.innerHTML = btn.getAttribute('data-orig') || '';
+    btn.classList.remove('save-green', 'save-red');
+  }, 1500);
+}
 // زر واحد تحت كل قسم: يحفظ كل الأيام المدخلة لهذا القسم ويطبقها 5 سنوات
-async function saveDeptRules(scopeIdx) {
+async function saveDeptRules(scopeIdx, btn) {
   if (!isAdmin()) return;
+  if (btn) { btn.classList.add('save-flash'); btn.innerHTML = '⏳ جارٍ الحفظ…'; }
   const anchorEl = document.getElementById('rulesAnchor');
   const anchorVal = (anchorEl && anchorEl.value) || anchorInputValue();
   if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(anchorVal)) scheduleRules.anchor = anchorVal;
@@ -774,22 +832,27 @@ async function saveDeptRules(scopeIdx) {
       if (row.mode === 'fixed' && !row.employeeIds.length && !fixedEmpty) fixedEmpty = RULE_DAY_NAMES[day];
     });
   });
-  if (fixedEmpty) { rulesMsg('يوم ' + fixedEmpty + ': في النوع «تلقائي» اختَر موظفاً واحداً على الأقل', false); return; }
+  if (fixedEmpty) { saveBtnFlash(btn, '✖ يوم ' + fixedEmpty + ': اختر موظفاً للتلقائي', false); return; }
   scheduleRules = normalizeScheduleRules(scheduleRules);
-  saveOfflineRules(scheduleRules);
+  markRulesDirty();
   const updates = {};
   RULE_DAY_ORDER.forEach(function(day) {
     Object.assign(updates, regenerateScopeWeekday(scope, day));
   });
+  markShiftsDirty();
+  let savedServer = false;
   try {
     await db.ref(path('scheduleRules')).set(scheduleRules);
     if (Object.keys(updates).length) await db.ref(path('shifts')).update(updates);
-    rulesMsg('✔ تم حفظ وتطبيق «' + (scope ? (departments[scope] ? departments[scope].name : scope) : 'القاعدة العامة') + '» على ' + Object.keys(updates).length + ' يوماً (5 سنوات)', true);
-  } catch (e) {
-    rulesMsg('تعذر الحفظ على الخادم — القواعد محفوظة على هذا الجهاز', false);
-  }
+    savedServer = true;
+  } catch (e) {}
+  if (savedServer) { clearRulesDirty(); clearShiftsDirty(); rulesMsg('✔ تم حفظ وتطبيق «' + (scope ? (departments[scope] ? departments[scope].name : scope) : 'القاعدة العامة') + '» على ' + Object.keys(updates).length + ' يوماً (5 سنوات)', true); }
+  else { rulesMsg('تعذر الحفظ على الخادم — البيانات محفوظة على هذا الجهاز وستُزامن تلقائياً عند عودة الاتصال', false); }
   renderAll();
   renderScheduleRules();
+  const freshBtn = document.querySelector('#rulesContainer [data-save-idx="' + scopeIdx + '"]');
+  if (savedServer) saveBtnFlash(freshBtn || btn, '✔ تم الحفظ — طُبّق على 5 سنوات', true);
+  else saveBtnFlash(freshBtn || btn, '✖ محفوظ محلياً — سيُزامن لاحقاً', false);
 }
 
 async function saveDayRules(scopeIdx, day) {
@@ -815,11 +878,13 @@ async function saveDayRules(scopeIdx, day) {
     return;
   }
   scheduleRules = normalizeScheduleRules(scheduleRules);
-  saveOfflineRules(scheduleRules);
+  markRulesDirty();
   const updates = regenerateScopeWeekday(scope, day);
+  markShiftsDirty();
   try {
     await db.ref(path('scheduleRules')).set(scheduleRules);
     if (Object.keys(updates).length) await db.ref(path('shifts')).update(updates);
+    clearRulesDirty(); clearShiftsDirty();
     toast('✔ تم حفظ وتطبيق ' + RULE_DAY_NAMES[day] + ' على ' + Object.keys(updates).length + ' يوماً (5 سنوات)');
   } catch (e) {
     toast('تم الحفظ محلياً — سيُزامن عند عودة الاتصال');
@@ -890,8 +955,8 @@ async function generateThisWeek() {
   const keys = Object.keys(updates);
   if (!keys.length) { toast('لا قواعد قابلة للتطبيق هذا الأسبوع'); return; }
   keys.forEach(function(k) { shifts[k] = updates[k]; });
-  saveOfflineShifts(shifts);
-  try { await db.ref(path('shifts')).update(updates); } catch (e) {}
+  markShiftsDirty();
+  try { await db.ref(path('shifts')).update(updates); clearShiftsDirty(); } catch (e) {}
   renderAll();
   toast('✔ تم توليد ' + keys.length + ' يوم تلقائياً حسب القواعد');
 }
@@ -917,8 +982,8 @@ async function applyScheduleToFuture() {
     generated[key] = generatedSlots.length ? generatedSlots : existing.slice();
   }
   shifts = Object.assign({}, preserved, generated);
-  saveOfflineShifts(shifts);
-  try { await db.ref(path('shifts')).set(shifts); } catch (e) {}
+  markShiftsDirty();
+  try { await db.ref(path('shifts')).set(shifts); clearShiftsDirty(); } catch (e) {}
   renderAll();
   toast('✔ تم تطبيق القواعد على ' + Object.keys(generated).length + ' يوماً (' + REGEN_YEARS + ' سنوات)');
 }
@@ -1087,8 +1152,20 @@ function showSettingsTab(name) {
 function listenData() {
   db.ref(path('departments')).on('value', function(s) { departments = s.val() || {}; saveOfflineDepartments(departments); renderAll(); });
   db.ref(path('staff')).on('value', function(s) { staff = s.val() || {}; saveOfflineStaff(staff); renderAll(); });
-  db.ref(path('shifts')).on('value', function(s) { shifts = s.val() || {}; saveOfflineShifts(shifts); renderAll(); });
+  // الورديات والقواعد: إن كان في الجهاز تعديلات لم تُزامَن بعد (علم «معدَّل»)
+  // يبقى المحلي هو المعتمد ويُدفع للخادم تلقائياً — فلا تضيع المدخلات مع تحديث الصفحة.
+  db.ref(path('shifts')).on('value', function(s) {
+    const val = s.val() || {};
+    if (shiftsDirty) { if (JSON.stringify(val) !== JSON.stringify(shifts || {})) pushShiftsLocal(); return; }
+    shifts = val; saveOfflineShifts(shifts); renderAll();
+  });
   db.ref(path('scheduleRules')).on('value', function(s) {
+    if (rulesDirty) {
+      const ls = normalizeScheduleRules(scheduleRules);
+      const vs = normalizeScheduleRules(s.val() || {});
+      if (JSON.stringify(ls) !== JSON.stringify(vs)) pushRulesLocal();
+      return;
+    }
     scheduleRules = normalizeScheduleRules(s.val() || {});
     saveOfflineRules(scheduleRules);
     if (document.getElementById('rulesAnchor')) document.getElementById('rulesAnchor').value = anchorInputValue();
@@ -1412,10 +1489,11 @@ async function doSwap(newEmpId) {
   slot.auto = false; // التبديل اليدوي يلغي صفة التلقائي لهذه الوردية تحديداً
   if (currentUser && currentUser.role === 'employee') slot.swappedBy = currentUser.username;
   shifts[key] = list;
-  saveOfflineShifts(shifts);
+  markShiftsDirty();
   closeSwapModal();
   try {
     await db.ref(path('shifts/' + key)).set(list);
+    clearShiftsDirty();
     try {
       await db.ref(path('swapLog')).push({ date: key, slotId: slotId, from: from, to: to, fromName: fromEmp ? displayName(fromEmp) : '', toName: toEmp ? displayName(toEmp) : '', by: (currentUser && currentUser.username) || '', at: Date.now() });
     } catch (e) {}
@@ -1443,6 +1521,9 @@ window.addEventListener('load', async function() {
   restoreOfflineData();
   enterApp(); // وضع الاطلاع: التطبيق ظاهر والبيانات تظهر لأي زائر
   // 2) جلسة الأدمن الدائمة (إن وجدت): استعادة فورية من الجهاز
+  // مزامنة تلقائية: عند عودة الاتصال أو دورياً يُدفع المحلي المعلَّق للخادم
+  window.addEventListener('online', function() { syncDirtyAll(); });
+  setInterval(function() { if (isAdmin()) syncDirtyAll(); }, 60000);
   const saved = localStorage.getItem('wrdiatUser');
   if (!saved) return;
   let u = null;
