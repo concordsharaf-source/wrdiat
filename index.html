@@ -622,7 +622,8 @@ function dayChip(day) { return '<span class="text-xs bg-white/20 rounded-full px
 
 // ===== وضع «بالأيام»: 7 بطاقات أيام، داخلها أقسام مطوية =====
 function rulesByDaysHtml() {
-  return RULE_DAY_ORDER.map(function(day) {
+  const hint = '<div class="text-xs text-slate-600 bg-amber-50 border border-amber-200 rounded-xl p-2 mb-3">✏️ عدّل الصفوف كما تريد — ولتطبيق التعديلات على <b>5 سنوات</b> استخدم زر «💾 حفظ» تحت كل قسم في وضع <b>🏢 بالأقسام</b>.</div>';
+  return hint + RULE_DAY_ORDER.map(function(day) {
     const key = 'd:' + day;
     const scopesHtml = ruleScopeKeys.map(function(scope, si) {
       const sc = scheduleRules.scopes[scope] || { days: {} };
@@ -633,7 +634,6 @@ function rulesByDaysHtml() {
         '<summary class="cursor-pointer font-bold text-sm p-1">' + lab.icon + ' ' + lab.name + ' <span class="text-xs text-slate-500">(' + rows.length + ' صف)</span></summary>' +
         '<div class="mt-2">' + rowsHtml +
         '<button type="button" onclick="addRuleRow(' + si + ',' + day + ')" class="text-sm text-teal-700 font-bold">+ إضافة سطر لهذا اليوم</button>' +
-        '<button type="button" onclick="saveDayRules(' + si + ',' + day + ')" class="w-full mt-2 btn-teal py-2 rounded-xl text-sm">💾 حفظ هذا القسم في هذا اليوم — وتطبيقه 5 سنوات</button>' +
         '</div></details>';
     }).join('');
     return '<div class="border-2 border-orange-100 rounded-xl p-3 mb-3 bg-orange-50">' +
