@@ -95,7 +95,7 @@ input::placeholder, textarea::placeholder { color: #9a3412 !important; opacity: 
 .day-filter-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
 .day-filter-label { font-size: 12px; font-weight: 700; color: #64748b; white-space: nowrap; }
 #deptFilter { flex: 1; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 8px 12px; font-size: 14px; font-weight: 700; color: #0f172a; box-shadow: 0 1px 2px rgba(15,23,42,.06); font-family: inherit; }
-#slotsList { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; align-content: start; }
+#slotsList { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--slot-gap, 8px) 8px; align-content: start; }
 #slotsList .slot { margin-bottom: 0; }
 .slot-emp { font-weight: 800; font-size: 16px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-left: 14px; }
 .slot-emp .swap-trigger { font-weight: 800; font-size: 16px; color: #fff; }
@@ -3265,6 +3265,49 @@ if ('serviceWorker' in navigator) {
     var tag = t.tagName.toLowerCase();
     if (tag === 'input' || tag === 'select' || tag === 'textarea') keepInView(t);
   });
+})();
+
+// ===== تأثير بصري في صفحة اليوم: البطاقات تتباعد ثم تتقارب ثم تعود مع التمرير =====
+(function() {
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const BASE = 8, SPREAD = 26, TIGHT = 4, PERIOD = 520; // قيم الفجوة بالبكسل + طول الدورة
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function ease(t) { return (1 - Math.cos(Math.PI * t)) / 2; }
+  // دورة واحدة: طبيعي ← تباعد ← تقارب ← طبيعي (تتكرر بلطف كلما أكملت التمرير)
+  function gapFor(scrollY) {
+    const ph = (scrollY % PERIOD) / PERIOD;
+    if (ph < 1 / 3) return lerp(BASE, SPREAD, ease(ph * 3));
+    if (ph < 2 / 3) return lerp(SPREAD, TIGHT, ease((ph - 1 / 3) * 3));
+    return lerp(TIGHT, BASE, ease((ph - 2 / 3) * 3));
+  }
+  let current = BASE, target = BASE, rafId = null;
+  function activeDay() {
+    const d = document.getElementById('dayPage');
+    return !!d && !d.classList.contains('hidden');
+  }
+  function tick() {
+    const list = document.getElementById('slotsList');
+    if (!activeDay()) target = BASE; // خارج صفحة اليوم → يرجع الوضع الطبيعي
+    current += (target - current) * 0.22; // تنعيم الحركة
+    if (list) list.style.setProperty('--slot-gap', current.toFixed(2) + 'px');
+    if (Math.abs(target - current) > 0.04) {
+      rafId = requestAnimationFrame(tick);
+    } else {
+      if (list) list.style.setProperty('--slot-gap', target.toFixed(2) + 'px');
+      rafId = null;
+    }
+  }
+  function onScroll() {
+    if (!activeDay()) {
+      if (rafId == null && current !== BASE) { target = BASE; rafId = requestAnimationFrame(tick); }
+      return;
+    }
+    target = gapFor(window.scrollY || document.documentElement.scrollTop || 0);
+    if (rafId == null) rafId = requestAnimationFrame(tick);
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', onScroll, { passive: true });
+  onScroll();
 })();
 </script>
 </body>
