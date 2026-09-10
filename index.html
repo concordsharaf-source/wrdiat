@@ -2411,8 +2411,8 @@ function shiftDay(n) { viewDate.setDate(viewDate.getDate() + n); renderDay(); }
     const dx = t.clientX - x0, dy = t.clientY - y0;
     x0 = y0 = null;
     if (Math.abs(dx) < MIN_DX || Math.abs(dx) < Math.abs(dy) * RATIO) return; // تمرير عمودي عادي
-    // سحب لليسار (dx سالب) → اليوم التالي · سحب لليمين (dx موجب) → اليوم السابق
-    shiftDay(dx < 0 ? 1 : -1);
+    // سحب لليمين (dx موجب) → اليوم التالي · سحب لليسار (dx سالب) → اليوم السابق
+    shiftDay(dx < 0 ? -1 : 1);
   }, { passive: true });
   document.addEventListener('touchcancel', function() { tracking = false; x0 = y0 = null; }, { passive: true });
 })();
