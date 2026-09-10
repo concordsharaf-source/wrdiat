@@ -183,6 +183,117 @@ button:active:not(:disabled),
   filter: brightness(.9);
 }
 button:focus-visible { outline: 3px solid #0f766e; outline-offset: 2px; }
+
+/* ============================================================
+   ✨ لمسة تصميم محسّنة: ألوان موحّدة، ظلال أنعم، وتدرجات أنيقة
+   ============================================================ */
+:root {
+  --brand-900: #0b3b35;
+  --brand-800: #0d4a43;
+  --brand-700: #0f766e;
+  --brand-600: #0d9488;
+  --brand-500: #14b8a6;
+  --accent: #f59e0b;
+  --accent-light: #fbbf24;
+  --ink: #0f172a;
+  --edge: #e7f0ee;
+}
+
+/* خلفية الصفحة: درجة دافئة مائلة للتركواز بدل الرمادي الباهت */
+body { background: #edf4f3; }
+body.start-mode { background: radial-gradient(1200px 700px at 20% -10%, #0d9488 0%, transparent 55%), linear-gradient(150deg, #0b4f47 0%, #0f766e 48%, #134e4a 100%); }
+
+/* الشريط العلوي: تدرج أنيق + ظل */
+#mainApp nav {
+  background: linear-gradient(135deg, #0b4f47, #0f766e 55%, #0d9488) !important;
+  box-shadow: 0 4px 18px rgba(11,63,53,.28);
+  border-bottom: 1px solid rgba(255,255,255,.14);
+}
+#mainApp nav button { border-radius: 12px; transition: transform .12s ease, background .12s ease; }
+#mainApp nav button:active { transform: scale(.88); background: rgba(255,255,255,.14); }
+
+/* العناوين */
+h1, h2, h3 { color: var(--brand-800); }
+#dayNum { color: var(--brand-700); }
+#dayLabel { color: #54756f; }
+
+/* الأزرار الأساسية: تدرجات + ظل ناعم */
+.btn-teal {
+  background: linear-gradient(180deg, #0f766e, #0d4a43);
+  color: #fef3c7;
+  box-shadow: 0 3px 10px rgba(13,74,67,.26);
+}
+.btn-amber {
+  background: linear-gradient(180deg, #fcd34d, #f59e0b);
+  color: #1f2937;
+  box-shadow: 0 3px 10px rgba(245,158,11,.26);
+}
+.btn-dark {
+  background: linear-gradient(180deg, #334155, #0f172a);
+  color: #fde047;
+  box-shadow: 0 3px 10px rgba(15,23,42,.26);
+}
+
+/* البطاقات: حواف أنعم وظل أرقّ */
+.sec-card {
+  border-radius: 20px;
+  padding: 18px;
+  border: 1px solid var(--edge);
+  box-shadow: 0 1px 2px rgba(11,63,53,.05), 0 10px 28px rgba(11,63,53,.07);
+}
+section.bg-white {
+  border-radius: 20px !important;
+  border: 1px solid var(--edge);
+  box-shadow: 0 1px 2px rgba(11,63,53,.05), 0 10px 28px rgba(11,63,53,.06) !important;
+}
+
+/* الحقول: أنعم مع توهج عند التركيز */
+input:not([type=color]):not([type=radio]):not([type=checkbox]):not([type=file]),
+select, textarea {
+  border-color: var(--accent-light) !important;
+  background-color: #fffdf4 !important;
+  border-radius: 14px;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+input:not([type=color]):not([type=radio]):not([type=checkbox]):not([type=file]):focus,
+select:focus, textarea:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 4px rgba(245,158,11,.18);
+}
+
+/* بطاقات اليوم (الورديات) */
+.slot { border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,.14); }
+.slot::after { background: linear-gradient(115deg, rgba(255,255,255,.32), transparent 55%); }
+#dayPage > div:first-child > button { border: 1px solid var(--edge); }
+#dayPage > div:first-child > button:active { transform: scale(.92); }
+
+/* تبويبات الإعدادات: إطار أرقّ */
+.settings-tabs {
+  background: #fff;
+  border: 1px solid var(--edge);
+  box-shadow: 0 4px 14px rgba(11,63,53,.08);
+}
+.settings-tabs > button { border-radius: 12px; transition: background .15s ease, color .15s ease; }
+.settings-tabs > button:not(.btn-teal):hover { background: #eef6f5; }
+
+/* النوافذ المنبثقة: زوايا أنعم */
+[id$="Modal"] .bg-white { border-radius: 22px; }
+
+/* إشعار toast */
+#toast {
+  background: linear-gradient(180deg, #134e4a, #0b3b35);
+  border-radius: 16px;
+  box-shadow: 0 12px 30px rgba(0,0,0,.35);
+}
+
+/* انتقال ناعم بين الصفحات */
+.page { animation: pageFade .22s ease; }
+@keyframes pageFade { from { opacity: 0; } to { opacity: 1; } }
+
+/* شريط تمرير أنيق (سطح المكتب) */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: #bfd9d5; border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: #9cc3bd; }
 </style>
 </head>
 <body class="bg-slate-100 min-h-screen">
