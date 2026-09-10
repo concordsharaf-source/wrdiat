@@ -443,7 +443,7 @@ function normalizeScheduleRules(value) {
       const s = (src.days && typeof src.days === 'object') ? src.days[day] : null;
       let rows = [];
       if (s && Array.isArray(s.rows)) rows = s.rows.map(sanitizeRuleRow).filter(Boolean);
-      if (!rows.length) rows = JSON.parse(JSON.stringify(days[day].rows));
+      if (!rows.length && scope === '') rows = JSON.parse(JSON.stringify(days[day].rows)); // القسم: لا صفوف بلا إعداد صريح
       days[day] = { rows: rows };
     });
     out.scopes[scope] = { days: days };
@@ -617,8 +617,31 @@ function toast(msg) {
 // scopeIdx يقصد به ترتيب النطاق في ruleScopeKeys (تجنب مشاكل الاقتباس في معرفات الأقسام)
 let ruleScopeKeys = [''];
 function scopeKey(scopeIdx) { return ruleScopeKeys[Number(scopeIdx)] === undefined ? '' : ruleScopeKeys[Number(scopeIdx)]; }
+// يضمن وجود النطاق في القواعد فعلياً (كان يُنشَأ كائن مؤقت فيُفقد — فلا تظهر أسماء الموظفين ولا يمكن إضافة وردية)
+function ensureRulesScope(scope) {
+  if (!scheduleRules.scopes) scheduleRules.scopes = {};
+  let sc = scheduleRules.scopes[scope];
+  if (!sc || typeof sc !== 'object') sc = scheduleRules.scopes[scope] = { days: {} };
+  // الأيام قد تصل من فايربيس كمصفوفة (المفاتيح 0..6) → نحوّلها كائناً بمفاتيح أيام الأسبوع
+  if (Array.isArray(sc.days)) {
+    const arr = sc.days, obj = {};
+    RULE_DAY_ORDER.forEach(function(day, i) {
+      obj[day] = (arr[day] !== undefined && arr[day] !== null) ? arr[day] : ((arr[i] !== undefined && arr[i] !== null) ? arr[i] : { rows: [] });
+    });
+    sc.days = obj;
+  }
+  if (!sc.days || typeof sc.days !== 'object') sc.days = {};
+  RULE_DAY_ORDER.forEach(function(day) {
+    const d = sc.days[day];
+    if (!d || typeof d !== 'object' || !Array.isArray(d.rows)) {
+      // يوم غير مضبوط: بلا صفوف (كي لا تُولَّد ورديات لم يطلبها المدير) — الواجهة تعرض موظفي القسم لإضافتهم بضغطة
+      sc.days[day] = { rows: [] };
+    }
+  });
+  return sc;
+}
 function getRuleRow(scopeIdx, day, idx) {
-  const sc = scheduleRules.scopes[scopeKey(scopeIdx)] || { days: {} };
+  const sc = ensureRulesScope(scopeKey(scopeIdx));
   return (sc.days[day] && sc.days[day].rows[idx]) || { employeeIds: [] };
 }
 function ruleRowHtml(scopeIdx, day, row, idx) {
@@ -769,9 +792,14 @@ function onDepartmentsValue(val) {
 function localRulesHaveContent(rules) {
   const n = rules || scheduleRules;
   if (!n || !n.scopes) return false;
+  // المحتوى الحقيقي = سطر فيه موظفون مُختارون أو وقت محدَّد (السطور الافتراضية الفارغة ليست محتوى)
   return Object.keys(n.scopes).some(function(scope) {
     const days = (n.scopes[scope] && n.scopes[scope].days) || {};
-    return Object.keys(days).some(function(d) { return ((days[d] && days[d].rows) || []).length > 0; });
+    return Object.keys(days).some(function(d) {
+      return ((days[d] && days[d].rows) || []).some(function(row) {
+        return (row.employeeIds || []).length > 0 || (!!row.start && !!row.end);
+      });
+    });
   });
 }
 function onRulesValue(val) {
@@ -858,13 +886,13 @@ function rulesByDaysHtml() {
   return rulesPendingBanner() + hint + RULE_DAY_ORDER.map(function(day) {
     const key = 'd:' + day;
     const scopesHtml = ruleScopeKeys.map(function(scope, si) {
-      const sc = scheduleRules.scopes[scope] || { days: {} };
+      const sc = ensureRulesScope(scope);
       const rows = (sc.days[day] || { rows: [] }).rows;
       const lab = scopeLabel(scope);
       const rowsHtml = (rows || []).map(function(row, idx) { return ruleRowHtml(si, day, row, idx); }).join('');
       return '<details class="border border-slate-200 rounded-xl p-2 mb-2 bg-slate-50" data-key="d:' + day + ':' + scope + '" ' + ruleOpenAttr('d:' + day + ':' + scope) + ' ontoggle="ruleSectionState(this)">' +
         '<summary class="cursor-pointer font-bold text-sm p-1">' + lab.icon + ' ' + lab.name + ' <span class="text-xs text-slate-500">(' + rows.length + ' صف)</span></summary>' +
-        '<div class="mt-2">' + (rows.length ? '' : '<p class="text-xs text-slate-400 mb-1">لا صفوف لهذا اليوم — اضغط «+ إضافة سطر»</p>') + rowsHtml +
+        '<div class="mt-2">' + (rows.length ? '' : emptyDayStateHtml(si, day, scope)) + rowsHtml +
         '<button type="button" onclick="addRuleRow(' + si + ',' + day + ')" class="text-sm text-teal-700 font-bold">+ إضافة سطر لهذا اليوم</button>' +
         '</div></details>';
     }).join('');
@@ -881,7 +909,7 @@ function rulesByDaysHtml() {
 function rulesByDeptsHtml() {
   const pending = rulesPendingBanner();
   return pending + ruleScopeKeys.map(function(scope, si) {
-    const sc = scheduleRules.scopes[scope] || { days: {} };
+    const sc = ensureRulesScope(scope);
     const lab = scopeLabel(scope);
     const daysHtml = RULE_DAY_ORDER.map(function(day) {
       const rows = (sc.days[day] || { rows: [] }).rows;
@@ -890,7 +918,7 @@ function rulesByDeptsHtml() {
         '<summary class="cursor-pointer font-bold text-sm p-1">📅 ' + RULE_DAY_NAMES[day] +
           (day === 5 ? ' <span class="text-xs font-bold text-orange-700">— ترتيب مستقل</span>' : '') +
           ' <span class="text-xs text-slate-500">(' + rows.length + ' صف)</span></summary>' +
-        '<div class="mt-2">' + (rows.length ? '' : '<p class="text-xs text-slate-400 mb-1">لا صفوف لهذا اليوم — اضغط «+ إضافة سطر»</p>') + rowsHtml +
+        '<div class="mt-2">' + (rows.length ? '' : emptyDayStateHtml(si, day, scope)) + rowsHtml +
         '<button type="button" onclick="addRuleRow(' + si + ',' + day + ')" class="text-sm text-teal-700 font-bold">+ إضافة سطر لهذا اليوم</button>' +
         '</div></details>';
     }).join('');
@@ -943,15 +971,32 @@ function moveRuleEmp(scopeIdx, day, idx, empId, dir) {
   markRulesDirty();
   rerenderRuleRow(scopeIdx, day, idx);
 }
+// يوم بلا صفوف (خصوصاً نطاقات الأقسام): نعرض أسماء موظفي النطاق فوراً — ضغطة على الاسم = وردية له
+function emptyDayStateHtml(scopeIdx, day, scope) {
+  const pool = rowPool(scope);
+  const chips = pool.length
+    ? '<p class="text-xs text-slate-500 mb-1">لا ورديات لهذا اليوم — اضغط على موظف لإضافة وردية له:</p><div class="flex flex-wrap gap-1 mb-1">' +
+      pool.map(function(st) { return '<span class="rule-chip" onclick="addRuleEmpRow(' + scopeIdx + ',' + day + ',' + Number(st.id) + ')">' + escapeHtml(displayName(st)) + '</span>'; }).join('') + '</div>'
+    : '<p class="text-xs font-bold text-red-500 mb-1">⚠️ لا يوجد موظفون نشطون في هذا النطاق — أضفهم أولاً من تبويب «👥 الموظفون»</p>';
+  return chips;
+}
+// إضافة وردية لموظف محدد في يوم محدد بضغطة واحدة (النوع: تلقائي = يظهر كل أسبوع، ويمكن تغييره)
+function addRuleEmpRow(scopeIdx, day, empId) {
+  const sc = ensureRulesScope(scopeKey(scopeIdx));
+  if (!sc.days[day] || !Array.isArray(sc.days[day].rows)) sc.days[day] = { rows: [] };
+  sc.days[day].rows.push({ mode: 'fixed', employeeIds: [Number(empId)], start: '', end: '' });
+  markRulesDirty();
+  renderScheduleRules();
+}
 function addRuleRow(scopeIdx, day) {
-  const sc = scheduleRules.scopes[scopeKey(scopeIdx)] || { days: {} };
+  const sc = ensureRulesScope(scopeKey(scopeIdx));
   if (!sc.days[day]) sc.days[day] = { rows: [] };
   sc.days[day].rows.push({ mode: 'rotate', employeeIds: [], start: '', end: '' });
   markRulesDirty();
   renderScheduleRules();
 }
 function removeRuleRow(scopeIdx, day, idx) {
-  const sc = scheduleRules.scopes[scopeKey(scopeIdx)] || { days: {} };
+  const sc = ensureRulesScope(scopeKey(scopeIdx));
   const rows = sc.days[day] ? sc.days[day].rows : [];
   if (rows.length <= 1) { toast('لا يمكن حذف آخر سطر — عدِّله أو اتركه'); return; }
   rows.splice(idx, 1);
@@ -989,7 +1034,7 @@ function regenerateScopeWeekday(scope, day) {
 // قراءة صفوف يوم واحد أحدثها من الواجهة (النوع/الوقت) مع الإبقاء على قوائم الموظفين
 function readDayRowsFromDom(scopeIdx, day) {
   const scope = scopeKey(scopeIdx);
-  const sc = scheduleRules.scopes[scope] || (scheduleRules.scopes[scope] = { days: emptyRuleDays() });
+  const sc = ensureRulesScope(scope);
   if (!sc.days[day]) sc.days[day] = { rows: [] };
   const rows = sc.days[day].rows;
   rows.forEach(function(row, idx) {
