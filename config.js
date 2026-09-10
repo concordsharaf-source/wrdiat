@@ -18,7 +18,7 @@ const APP_CONFIG = {
   allowSignup: true,
   // بريد مالك النظام: يظهر زر «📧 إرسال طلب بالبريد» في شاشة «نسيت كلمة المرور؟»
   // ضع بريدك هنا ليصل طلب الاستعادة إليك جاهزاً (اختياري — اتركه فارغاً لإخفاء الزر).
-  supportEmail: '',
+  supportEmail: 'concordsharaf@gmail.com',
   appIconPath: 'images/icon-192x192.png'
 };
 
