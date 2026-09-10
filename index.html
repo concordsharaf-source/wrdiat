@@ -1678,7 +1678,7 @@ window.addEventListener('load', async function() {
   if (firebaseConfigBroken()) {
     const warn = document.createElement('div');
     warn.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:9999;background:#b91c1c;color:#fff;font:bold 13px/1.6 sans-serif;padding:10px 14px;text-align:center';
-    warn.textContent = '⚠️ إعدادات Firebase غير مكتملة (databaseURL مفقود في config.js) — التطبيق يعمل محلياً على هذا الجهاز، وللمزامنة أضف رابط القاعدة من مشروع wrdiat.';
+    warn.textContent = '⚠️ إعدادات Firebase غير مكتملة (databaseURL مفقود في config.js) — التطبيق يعمل محلياً على هذا الجهاز، وللمزامنة أضف رابط القاعدة من: الإعدادات ← الأقسام ← 🔗 قاعدة Firebase.';
     document.body.appendChild(warn);
   }
   // مزامنة تلقائية: عند عودة الاتصال أو دورياً يُدفع المحلي المعلَّق للخادم

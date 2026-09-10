@@ -5,13 +5,13 @@ const APP_CONFIG = {
     subtitle: 'إدارة الأقسام والشفتات'
   },
   firebaseConfig: {
-    apiKey: "AIzaSyCHd1yY27vSskKuvvNZ_XmtwgoHc3lPe5k",
-    authDomain: "ytcalender-bae88.firebaseapp.com",
-    databaseURL: "https://ytcalender-bae88-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "ytcalender-bae88",
-    storageBucket: "ytcalender-bae88.firebasestorage.app",
-    messagingSenderId: "625139846676",
-    appId: "1:625139846676:web:691be456f3f31e6572e101"
+    apiKey: "AIzaSyCLJlNT3wRz81MhukTwqPJ2KMD6lc7Zs3w",
+    authDomain: "wrdiat-52c35.firebaseapp.com",
+    databaseURL: "https://wrdiat-52c35-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "wrdiat-52c35",
+    storageBucket: "wrdiat-52c35.firebasestorage.app",
+    messagingSenderId: "998614011974",
+    appId: "1:998614011974:web:50da3d1036d0f1c6d03a47"
   },
   appIconPath: 'images/icon-192x192.png'
 };
