@@ -150,6 +150,19 @@ body.start-mode { background: linear-gradient(160deg, #0f766e, #115e59, #134e4a)
 .su-copy { font-size: .9rem; }
 
 #toast { position: fixed; bottom: 1rem; left: 50%; transform: translateX(-50%); background: #111827; color: #fde047; padding: 10px 18px; border-radius: 14px; font-weight: 800; box-shadow: 0 10px 25px rgba(0,0,0,.35); max-width: calc(100vw - 1.5rem); width: max-content; min-width: 0; text-align: center; word-break: break-word; box-sizing: border-box; z-index: 60; }
+
+/* ===== تأثير استجابة الأزرار (بصري + حسي) ===== */
+button, .rule-chip, .st-swatch, .su-copy, .su-dice, .su-del, .su-rst, .su-summary, .swap-option {
+  -webkit-tap-highlight-color: rgba(15, 118, 110, .3);
+  transition: transform .08s ease, filter .08s ease;
+}
+button:active:not(:disabled),
+.rule-chip:active, .st-swatch:active, .su-copy:active, .su-dice:active,
+.su-del:active, .su-rst:active, .su-summary:active, .swap-option:active {
+  transform: scale(.94);
+  filter: brightness(.9);
+}
+button:focus-visible { outline: 3px solid #0f766e; outline-offset: 2px; }
 </style>
 </head>
 <body class="bg-slate-100 min-h-screen">
@@ -864,6 +877,9 @@ function toast(msg) {
   if (!el) return;
   el.textContent = msg;
   el.classList.remove('hidden');
+  // استجابة حسية: نقرة قصيرة للنجاح ونمط إنذار للخطأ
+  if (/✖|⚠|تعذر|فشل/.test(String(msg))) buzz([40, 50, 40]);
+  else buzz(15);
   clearTimeout(toastTimer);
   toastTimer = setTimeout(function() { el.classList.add('hidden'); }, 2800);
 }
@@ -2860,6 +2876,15 @@ document.addEventListener('click', function(e) {
   const o = e.target.closest('.swap-option');
   if (o) doSwap(o.getAttribute('data-swap-to'));
 });
+
+// ===== استجابة حسية: اهتزاز خفيف عند ضغط أي زر (يعمل على أندرويد) =====
+function buzz(pattern) {
+  try { if (navigator.vibrate) navigator.vibrate(pattern); } catch (e) {}
+}
+document.addEventListener('click', function(e) {
+  const t = e.target.closest ? e.target.closest('button, .rule-chip, .st-swatch, .su-copy, .su-dice, .su-del, .su-rst, .su-summary') : null;
+  if (t && !t.disabled) buzz(8);
+}, true);
 
 window.addEventListener('load', async function() {
   applySignupFlag();
