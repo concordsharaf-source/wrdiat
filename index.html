@@ -272,7 +272,10 @@ input::placeholder, textarea::placeholder { color: #9a3412 !important; opacity: 
 
 <script>
 firebase.initializeApp(APP_CONFIG.firebaseConfig);
-const db = firebase.database();
+// تهيئة آمنة: لو كان databaseURL ناقصاً في config.js لا تنهار الصفحة
+let db = null;
+try { db = firebase.database(); } catch (e) { db = null; }
+function firebaseConfigBroken() { return !db; }
 const ORG = (APP_CONFIG.org && APP_CONFIG.org.id) || 'wrdiat';
 function path(k) { return 'sessions/_wrdiat_org/' + k; }
 function emailKey(e) { return String(e || '').trim().toLowerCase().replace(/[.#$\[\]]/g, '_'); }
@@ -1141,7 +1144,7 @@ function enterApp() {
   const adminBtn = document.getElementById('adminBtn');
   if (adminBtn) adminBtn.title = isAdm ? 'الإعدادات' : 'دخول الأدمن';
   renderAll();
-  if (!window.__dataStarted) { window.__dataStarted = true; listenData(); }
+  if (!window.__dataStarted && db) { window.__dataStarted = true; listenData(); }
   if (!document.querySelector('.page:not(.hidden)')) showPage('day');
 }
 // زر ⚙️ في الهيدر: أدمن → الإعدادات، زائر → نافذة دخول الأدمن
@@ -1539,6 +1542,13 @@ window.addEventListener('load', async function() {
   restoreOfflineData();
   enterApp(); // وضع الاطلاع: التطبيق ظاهر والبيانات تظهر لأي زائر
   // 2) جلسة الأدمن الدائمة (إن وجدت): استعادة فورية من الجهاز
+  // تحذير إن كانت إعدادات Firebase ناقصة (مثلاً databaseURL مفقود في المشروع الجديد)
+  if (firebaseConfigBroken()) {
+    const warn = document.createElement('div');
+    warn.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:9999;background:#b91c1c;color:#fff;font:bold 13px/1.6 sans-serif;padding:10px 14px;text-align:center';
+    warn.textContent = '⚠️ إعدادات Firebase غير مكتملة (databaseURL مفقود في config.js) — التطبيق يعمل محلياً على هذا الجهاز، وللمزامنة أضف رابط القاعدة من مشروع wrdiat.';
+    document.body.appendChild(warn);
+  }
   // مزامنة تلقائية: عند عودة الاتصال أو دورياً يُدفع المحلي المعلَّق للخادم
   window.addEventListener('online', function() { syncDirtyAll(); });
   setInterval(function() { if (isAdmin()) syncDirtyAll(); }, 60000);
