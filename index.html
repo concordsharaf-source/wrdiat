@@ -310,6 +310,12 @@ button:focus-visible { outline: 3px solid #0f766e; outline-offset: 2px; }
           <h3 class="font-bold text-lg mb-2">🏢 الأقسام — أضف بلا حد</h3>
           <p class="text-sm text-slate-500 mb-3">صوت، تصوير، إخراج، مطبخ، كاشير… أي قسم تريده.</p>
           <input id="newDeptName" class="w-full border rounded-xl p-3 mb-2" placeholder="اسم القسم">
+          <div class="text-sm font-bold text-slate-600 mb-1">🎨 لون القسم — يتلون به كل موظفيه:</div>
+          <div class="flex items-center gap-2 mb-2 flex-wrap">
+            <div id="deptColorPalette" class="st-palette"></div>
+            <input id="deptColor" type="color" value="#0f766e" title="لون مخصص" class="st-color-input">
+          </div>
+          <label class="flex items-center gap-2 mb-2 text-xs text-slate-500"><input type="checkbox" id="deptNoColor"> بدون لون موحد — يبقى لون كل موظف كما هو</label>
           <button onclick="addDepartment()" class="w-full btn-teal py-2 rounded-xl">إضافة قسم</button>
           <div id="deptList" class="mt-3 space-y-2"></div>
         </section>
@@ -402,10 +408,11 @@ button:focus-visible { outline: 3px solid #0f766e; outline-offset: 2px; }
             <select id="stDept" class="w-full border rounded-xl p-3 mb-2 bg-white"></select>
             <div class="text-sm text-slate-600 mb-1">🎨 اللون</div>
             <div id="stColorPalette" class="st-palette mb-2"></div>
-            <div class="flex items-center gap-2 mb-3">
+            <div class="flex items-center gap-2 mb-1">
               <input id="stColor" type="color" value="#0f766e" title="لون مخصص" class="st-color-input">
               <span class="text-xs text-slate-500">لون مخصص</span>
             </div>
+            <p class="text-xs text-slate-400 mb-3">💡 إن كان للموظف قسم له لون موحد، يظهر بلون القسم تلقائياً.</p>
             <div id="stRecentBox" class="hidden mb-3">
               <div class="text-xs text-slate-500 mb-1">🕘 الألوان المختارة حديثاً</div>
               <div id="stRecentColors" class="st-palette"></div>
@@ -620,6 +627,13 @@ function staffById(id) {
   return staffList().find(function(s) { return Number(s.id) === Number(id); });
 }
 function deptName(id) { return (departments[id] && departments[id].name) || ''; }
+// اللون الفعلي للموظف: إن كان قسمه له لون موحد يؤخذ لون القسم، وإلا لونه الشخصي
+function staffColor(s) {
+  if (s && s.deptId && departments[s.deptId] && departments[s.deptId].hex) {
+    return departments[s.deptId].hex;
+  }
+  return (s && s.hex) || '#0f766e';
+}
 // ===== ترتيب الأقسام أبجدياً (بالاسم) بدل ترتيب الإضافة/التعديل =====
 function sortedDeptIds() {
   return Object.keys(departments).sort(function(a, b) {
@@ -2562,7 +2576,7 @@ function renderDay() {
     const nm = can('slots')
       ? '<button type="button" data-key="' + formatKey(viewDate) + '" data-slot="' + sl.id + '" class="swap-trigger" title="اضغط على الاسم للتبديل في حال الغياب">' + (st.mgr ? '👔 ' : '') + displayName(st) + ' ⇄</button>'
       : '<span>' + (st.mgr ? '👔 ' : '') + displayName(st) + '</span>';
-    return '<div class="slot shadow" style="background:' + (st.hex || '#0f766e') + '">' + del +
+    return '<div class="slot shadow" style="background:' + staffColor(st) + '">' + del +
       '<div class="slot-emp">' + nm + '</div>' +
       (info ? '<div class="slot-info">' + info + '</div>' : '') +
       '<div class="slot-time">⏰ ' + (sl.start || '') + ' — ' + (sl.end || '') + '</div></div>';
@@ -2584,7 +2598,7 @@ function renderCal() {
     const cell = document.createElement('div');
     const firstEmp = slots[0] ? staffById(slots[0].employeeId) : null;
     cell.className = 'cal-cell' + (slots.length ? ' has' : '');
-    if (firstEmp) cell.style.background = firstEmp.hex || '#0f766e';
+    if (firstEmp) cell.style.background = staffColor(firstEmp);
     const hasAuto = slots.some(function(s) { return s.auto; });
     cell.innerHTML = '<div class="font-bold">' + d + '</div>' + (slots.length ? '<div class="text-xs mt-1">' + (hasAuto ? '⚡' : '') + ' ' + slots.length + ' شفت</div>' : '');
     if (today.toDateString() === date.toDateString()) cell.style.boxShadow = 'inset 0 0 0 3px #000';
@@ -2604,7 +2618,7 @@ function renderStats() {
     });
   }
   document.getElementById('statsBox').innerHTML = sortedStaffForList(staffList()).map(function(s) {
-    return '<div class="p-4 rounded-2xl text-white" style="background:' + (s.hex||'#0f766e') + '"><div class="flex justify-between"><span class="font-bold">' + (s.pinned ? '📌 ' : '') + displayName(s) + (s.mgr ? ' 👔' : '') + '</span><span>' + (counts[s.id]||0) + ' وردية</span></div><div class="text-xs opacity-80">' + (s.title||'') + ' · ' + deptName(s.deptId) + '</div></div>';
+    return '<div class="p-4 rounded-2xl text-white" style="background:' + staffColor(s) + '"><div class="flex justify-between"><span class="font-bold">' + (s.pinned ? '📌 ' : '') + displayName(s) + (s.mgr ? ' 👔' : '') + '</span><span>' + (counts[s.id]||0) + ' وردية</span></div><div class="text-xs opacity-80">' + (s.title||'') + ' · ' + deptName(s.deptId) + '</div></div>';
   }).join('') || '<p class="text-slate-400">لا يوجد موظفون</p>';
 }
 
@@ -2615,8 +2629,10 @@ function renderSettingsLists() {
     const membersHtml = members.length
       ? '<div class="text-xs text-slate-500 mt-1">' + members.map(function(s) { return '<span class="inline-block bg-slate-100 rounded-full px-2 py-0.5 ml-1 mt-1">' + escapeHtml(displayName(s)) + '</span>'; }).join('') + '</div>'
       : '<div class="text-xs text-red-500 mt-1">⚠️ لا موظفون في هذا القسم بعد — أضفهم من تبويب «👥 الموظفون»</div>';
-    return '<div class="border rounded-xl p-2"><div class="flex justify-between items-center"><span class="font-bold">' + departments[id].name + '</span>' +
-      (can('depts') ? '<span class="flex gap-2"><button onclick="openRenameDept(\'' + id + '\')\" title="تعديل اسم القسم" class="text-teal-700 text-lg px-2">✏️</button><button onclick="removeDept(\'' + id + '\')\" title="حذف القسم" class="text-red-500 text-lg px-2">✕</button></span>' : '') + '</div>' + membersHtml + '</div>';
+    return '<div class="border rounded-xl p-2"><div class="flex justify-between items-center"><span class="font-bold flex items-center gap-2 min-w-0">' +
+      '<span class="inline-block rounded-full shrink-0" style="width:16px;height:16px;background:' + (departments[id].hex || '#e2e8f0') + ';box-shadow:0 0 0 1px rgba(0,0,0,.15)"></span>' +
+      '<span class="truncate">' + escapeHtml(departments[id].name) + '</span></span>' +
+      (can('depts') ? '<span class="flex items-center gap-2 shrink-0">' + '<input type="color" value="' + (departments[id].hex || '#0f766e') + '" onchange="setDeptColor(\'' + id + '\', this.value)" title="🎨 لون القسم — يسري على كل موظفيه" class="st-color-input">' + '<button onclick="openRenameDept(\'' + id + '\')" title="تعديل اسم القسم" class="text-teal-700 text-lg px-2">✏️</button><button onclick="removeDept(\'' + id + '\')" title="حذف القسم" class="text-red-500 text-lg px-2">✕</button></span>' : '') + '</div>' + membersHtml + '</div>';
   }).join('') || '<p class="text-slate-400 text-sm">لا أقسام بعد</p>';
   const sel = document.getElementById('stDept');
   if (sel) sel.innerHTML = '<option value="">بدون قسم</option>' + sortedDeptIds().map(function(id) {
@@ -2641,6 +2657,7 @@ function renderSettingsLists() {
       (s.disabled ? '<div class="text-xs bg-red-50 text-red-600 font-bold px-2 py-1 rounded-lg mt-1 inline-block">⛔ موقوف — لا يدخل التوزيع ولا يسجّل الدخول</div>' : '') +
     '</div>';
   }).join('') || '<p class="text-slate-400 text-sm">لا موظفون بعد</p>';
+  refreshDeptColorPalette();
   fbConnectRefresh();
   renderScheduleRules();
 }
@@ -2671,8 +2688,48 @@ function addDepartment() {
   if (!can('depts')) return;
   const name = document.getElementById('newDeptName').value.trim();
   if (!name) return;
-  db.ref(path('departments')).push({ name: name, createdAt: Date.now() });
+  const noColor = !!(document.getElementById('deptNoColor') || {}).checked;
+  const colorInput = document.getElementById('deptColor');
+  const hex = noColor ? '' : ((colorInput && colorInput.value) || '');
+  db.ref(path('departments')).push({ name: name, hex: hex, createdAt: Date.now() });
   document.getElementById('newDeptName').value = '';
+  if (colorInput) colorInput.__touched = false; // يقترح لوناً جديداً غير مستخدم للإضافة التالية
+}
+// ===== لون القسم: لوحة الألوان + منتقي مخصص =====
+function refreshDeptColorPalette() {
+  const box = document.getElementById('deptColorPalette');
+  if (!box) return;
+  const input = document.getElementById('deptColor');
+  if (input && !input.__touched) {
+    // اقتراح لون غير مستخدم بعد من الأقسام الحالية
+    const used = {};
+    Object.keys(departments).forEach(function(id) {
+      const h = departments[id] && departments[id].hex;
+      if (h) used[String(h).toLowerCase()] = true;
+    });
+    const free = STAFF_COLORS.find(function(c) { return !used[c]; }) || STAFF_COLORS[0];
+    input.value = free;
+  }
+  const cur = (input && input.value) || '#0f766e';
+  box.innerHTML = STAFF_COLORS.map(function(c) {
+    return '<button type="button" class="st-swatch' + (c === cur ? ' sel' : '') + '" style="background:' + c + '" title="' + c + '" onclick="pickDeptColor(\'' + c + '\')"></button>';
+  }).join('');
+}
+function pickDeptColor(hex) {
+  const el = document.getElementById('deptColor');
+  if (el && /^#[0-9a-f]{6}$/i.test(hex)) { el.value = hex.toLowerCase(); el.__touched = true; }
+  const chk = document.getElementById('deptNoColor');
+  if (chk) chk.checked = false;
+  refreshDeptColorPalette();
+}
+// تغيير لون قسم موجود — يسري فوراً على كل موظفيه
+async function setDeptColor(id, hex) {
+  if (!can('depts')) return;
+  const v = /^#[0-9a-f]{6}$/i.test(String(hex || '')) ? String(hex).toLowerCase() : '';
+  if (departments[id]) departments[id].hex = v;
+  try { await db.ref(path('departments/' + id + '/hex')).set(v); } catch (e) {}
+  renderAll();
+  toast(v ? '✔ تم تعيين لون القسم' : '✔ أُلغي اللون الموحد — يرجع كل موظف للونه');
 }
 function removeDept(id) { if (!can('depts')) return; if (confirm('حذف القسم؟')) db.ref(path('departments/' + id)).remove(); }
 
@@ -2981,7 +3038,7 @@ function openSwapModal(key, slotId) {
 }
 function swapOptionHtml(s) {
   return '<button type="button" data-swap-to="' + Number(s.id) + '" class="swap-option w-full flex items-center gap-2 border rounded-xl p-3 text-right bg-white" style="margin-bottom:6px">' +
-    '<span class="inline-block rounded-full" style="width:14px;height:14px;background:' + (s.hex || '#0f766e') + '"></span>' +
+    '<span class="inline-block rounded-full" style="width:14px;height:14px;background:' + staffColor(s) + '"></span>' +
     '<span class="flex-1"><span class="font-bold block">' + escapeHtml(displayName(s)) + '</span>' +
     '<span class="text-xs text-slate-500">' + escapeHtml(s.title || '') + (deptName(s.deptId) ? ' · ' + escapeHtml(deptName(s.deptId)) : '') + '</span></span>' +
     '<span class="text-teal-700 text-sm font-bold">⇄ تبديل</span></button>';
@@ -3022,6 +3079,7 @@ function closeSwapModal() {
 // مستمع نقرة واحد على مستوى الصفحة (اسم الموظف في البطاقة أو خيار التبديل في النافذة)
 document.addEventListener('input', function(e) {
   if (e.target && e.target.id === 'stColor') { e.target.__touched = true; refreshColorPalette(); }
+  if (e.target && e.target.id === 'deptColor') { e.target.__touched = true; refreshDeptColorPalette(); }
 });
 document.addEventListener('click', function(e) {
   const t = e.target.closest('.swap-trigger');
