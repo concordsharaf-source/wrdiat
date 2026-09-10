@@ -445,7 +445,8 @@ select:focus, textarea:focus {
         <li><b>🏢 الأقسام:</b> أضف أقساماً بلا حد (صوت، تصوير، مطبخ…)، واختر <b>لوناً لكل قسم</b> فيتلوّن به كل موظفيه تلقائياً. زر ✏️ يعدّل الاسم، و✕ يحذف.</li>
         <li><b>👥 الموظفون:</b> زر «➕ إضافة موظف» يفتح نموذجاً (اسم، مسمى، قسم، تثبيت، مدير قسم). بجانب كل موظف: ✏️ تعديل · ⛔ إيقاف · ✅ تفعيل · ✕ حذف.</li>
         <li><b>🗓️ الورديات:</b> التوزيع الأسبوعي التلقائي — ثابت (نفس الموظفين كل أسبوع) أو تناوب (دور أسبوعي). زر الحفظ يطبّق على 5 سنوات قادمة.</li>
-        <li><b>🔐 الأمان:</b> كلمة مرور الموظفين، تغيير كلمة مرور الأدمن، وإضافة أدمن مساعد بصلاحيات محددة.</li>
+        <li><b>🔐 الأمان:</b> كلمة مرور الموظفين وتغيير كلمة مرور الأدمن.</li>
+        <li><b>🤝 أدمن مساعد:</b> عرض حساب المساعد وتعديله (الاسم، الإيميل، كلمة المرور، الصلاحيات) أو إزالته.</li>
         <li><b>🚫 الغياب:</b> سجل كل الموظفين الذين حُذفت وردياتهم، مع إمكانية حذف السجل.</li>
       </ul>
     </section>
@@ -468,6 +469,7 @@ select:focus, textarea:focus {
         <button id="tabBtn-staff" onclick="showSettingsTab('staff')" class="py-2 rounded-xl font-bold text-sm">👥 الموظفون</button>
         <button id="tabBtn-shifts" onclick="showSettingsTab('shifts')" class="py-2 rounded-xl font-bold text-sm">🗓️ الورديات</button>
         <button id="tabBtn-security" onclick="showSettingsTab('security')" class="py-2 rounded-xl font-bold text-sm">🔐 الأمان</button>
+        <button id="tabBtn-assistant" onclick="showSettingsTab('assistant')" class="py-2 rounded-xl font-bold text-sm">🤝 أدمن مساعد</button>
         <button id="tabBtn-absences" onclick="showSettingsTab('absences')" class="py-2 rounded-xl font-bold text-sm">🚫 الغياب</button>
         <button id="tabBtn-signups" onclick="showSettingsTab('signups')" class="py-2 rounded-xl font-bold text-sm hidden">📋 الطلبات</button>
       </div>
@@ -516,25 +518,33 @@ select:focus, textarea:focus {
           <button type="button" onclick="changeAdminPassword()" class="btn-dark w-full py-2 rounded-xl">💾 تغيير كلمة المرور</button>
           <div id="admPassMsg" class="text-xs mt-2"></div>
         </div>
-        <div class="sec-card">
-          <h3 class="font-bold text-lg mb-1">🤝 أدمن مساعد</h3>
+      </div>
+
+      <div id="tab-assistant" class="tab-panel hidden">
+        <section class="bg-white rounded-2xl p-4 shadow">
+          <h3 class="font-bold text-lg mb-1">🤝 حساب الأدمن المساعد</h3>
           <p class="text-sm text-slate-500 mb-3">أضف مساعداً يدير ما تسمح له به فقط — الصلاحيات تتحكم بها أنت من هنا، وتغييرها يسري عليه فوراً (حتى وهو داخل).</p>
-          <div id="assistantsList" class="mb-3"></div>
-          <input id="asName" class="w-full border rounded-xl p-3 mb-2" placeholder="اسم المساعد">
-          <input id="asEmail" class="w-full border rounded-xl p-3 mb-2 text-center" placeholder="إيميل المساعد (يدخل به)" dir="ltr">
-          <input id="asPass" type="password" class="w-full border rounded-xl p-3 mb-2" placeholder="كلمة مرور المساعد (فارغة = توليد تلقائي)">
-          <div class="text-xs font-bold text-slate-600 mb-1">صلاحيات المساعد:</div>
-          <label class="flex items-center gap-2 mb-1 text-sm"><input type="checkbox" id="asPermDepts" checked> 🏢 إدارة الأقسام</label>
-          <label class="flex items-center gap-2 mb-1 text-sm"><input type="checkbox" id="asPermStaff" checked> 👥 إدارة الموظفين</label>
-          <label class="flex items-center gap-2 mb-1 text-sm"><input type="checkbox" id="asPermRules"> 🗓️ الورديات والقواعد</label>
-          <label class="flex items-center gap-2 mb-1 text-sm"><input type="checkbox" id="asPermSlots"> ➕ ورديات اليوم (إضافة/حذف/تبديل)</label>
-          <label class="flex items-center gap-2 mb-3 text-sm"><input type="checkbox" id="asPermAbsences"> 🚫 سجل الغياب</label>
-          <div class="flex gap-2">
-            <button type="button" onclick="addAssistant()" id="asSaveBtn" class="flex-1 btn-teal py-2 rounded-xl">➕ إضافة مساعد</button>
-            <button type="button" onclick="cancelAssistantEdit()" id="asCancelEdit" class="btn-amber px-4 py-2 rounded-xl hidden">إلغاء</button>
+          <div id="assistantsList" class="mb-3 space-y-2"></div>
+          <div class="border-t border-slate-100 pt-3">
+            <div class="flex items-center justify-between mb-2">
+              <span class="font-bold text-sm" id="assistantFormTitle">➕ مساعد جديد</span>
+              <button type="button" onclick="cancelAssistantEdit()" id="asCancelEdit" class="btn-amber px-3 py-1 rounded-xl text-sm hidden">إلغاء التعديل</button>
+            </div>
+            <input id="asName" class="w-full border rounded-xl p-3 mb-2" placeholder="اسم المساعد">
+            <input id="asEmail" class="w-full border rounded-xl p-3 mb-2 text-center" placeholder="إيميل المساعد (يدخل به)" dir="ltr">
+            <input id="asPass" type="password" class="w-full border rounded-xl p-3 mb-2" placeholder="كلمة مرور المساعد (فارغة = توليد تلقائي)">
+            <div class="text-xs font-bold text-slate-600 mb-1">صلاحيات المساعد:</div>
+            <label class="flex items-center gap-2 mb-1 text-sm"><input type="checkbox" id="asPermDepts" checked> 🏢 إدارة الأقسام</label>
+            <label class="flex items-center gap-2 mb-1 text-sm"><input type="checkbox" id="asPermStaff" checked> 👥 إدارة الموظفين</label>
+            <label class="flex items-center gap-2 mb-1 text-sm"><input type="checkbox" id="asPermRules"> 🗓️ الورديات والقواعد</label>
+            <label class="flex items-center gap-2 mb-1 text-sm"><input type="checkbox" id="asPermSlots"> ➕ ورديات اليوم (إضافة/حذف/تبديل)</label>
+            <label class="flex items-center gap-2 mb-3 text-sm"><input type="checkbox" id="asPermAbsences"> 🚫 سجل الغياب</label>
+            <div class="flex gap-2">
+              <button type="button" onclick="addAssistant()" id="asSaveBtn" class="flex-1 btn-teal py-2 rounded-xl">➕ إضافة مساعد</button>
+            </div>
+            <div id="asMsg" class="text-xs mt-2"></div>
           </div>
-          <div id="asMsg" class="text-xs mt-2"></div>
-        </div>
+        </section>
       </div>
 
       <div id="tab-absences" class="tab-panel hidden">
@@ -2209,7 +2219,7 @@ function enterApp() {
   document.getElementById('adminSettings').classList.toggle('hidden', !(isAdm || isAsst));
   document.getElementById('logoutBtn').classList.toggle('hidden', !(isAdm || isAsst));
   // تبويبات الإعدادات: الأدمن يرى الكل، والمساعد يرى ما يملك صلاحيته فقط
-  const tabsVis = { depts: can('depts'), staff: can('staff'), shifts: can('rules'), security: isAdm, absences: can('absences'), signups: isSuperAdmin() };
+  const tabsVis = { depts: can('depts'), staff: can('staff'), shifts: can('rules'), security: isAdm, assistant: isAdm, absences: can('absences'), signups: isSuperAdmin() };
   Object.keys(tabsVis).forEach(function(n) {
     const b = document.getElementById('tabBtn-' + n);
     if (b) b.classList.toggle('hidden', !tabsVis[n]);
@@ -2403,7 +2413,6 @@ function securityRefresh() {
       else if (hashVal) { cur.textContent = '•••• أعد حفظ الكلمة من الأسفل لتظهر هنا'; box.classList.remove('hidden'); }
       else box.classList.add('hidden');
     }
-    if (isAdmin()) assistantsRefresh();
   });
 }
 function staffPassMsg(text, ok) {
@@ -2541,22 +2550,28 @@ function assistantsRefresh() {
     box.innerHTML = keys.length ? keys.map(function(k) {
       const a = all[k] || {};
       const perms = a.perms || {};
-      const chips = ['🏢 الأقسام', '👥 الموظفون', '🗓️ الورديات', '➕ ورديات اليوم', '🚫 الغياب'].filter(function(_, i) {
+      const permList = ['🏢 الأقسام', '👥 الموظفون', '🗓️ الورديات', '➕ ورديات اليوم', '🚫 الغياب'];
+      const badges = permList.filter(function(_, i) {
         return [perms.depts, perms.staff, perms.rules, perms.slots, perms.absences][i];
-      }).join(' · ') || 'لا شيء — عرض فقط';
-      return '<div class="border rounded-xl p-2 mb-2">'
-        + '<div class="flex justify-between items-center gap-2">'
-        + '<div><div class="font-bold text-sm">' + escapeHtml(a.name || '') + '</div>'
-        + '<div class="text-xs text-slate-500" dir="ltr">' + escapeHtml(a.email || '') + '</div></div>'
-        + '<div class="flex gap-1">'
-        + '<button type="button" title="تعديل البيانات والصلاحيات" onclick="loadAssistantToForm(' + "'" + k + "'" + ')" class="text-lg px-2">✏️</button>'
-        + '<button type="button" title="كلمة مرور جديدة" onclick="resetAssistantPassword(' + "'" + k + "'" + ')" class="text-lg px-2">🔑</button>'
-        + '<button type="button" title="إزالة المساعد" onclick="removeAssistant(' + "'" + k + "'" + ')" class="text-red-500 text-lg px-2">✕</button>'
+      }).map(function(label) {
+        return '<span class="inline-block bg-teal-50 text-teal-800 border border-teal-200 rounded-full px-2 py-0.5 ml-1 mt-1 text-xs font-bold">' + label + '</span>';
+      }).join('');
+      return '<div class="border rounded-xl p-3">'
+        + '<div class="flex items-center justify-between gap-2 mb-2">'
+        + '<div class="min-w-0">'
+        + '<div class="flex items-center gap-2"><span class="font-bold">' + escapeHtml(a.name || '—') + '</span>'
+        + '<span class="text-xs bg-amber-100 text-amber-800 rounded-full px-2 py-0.5 font-bold">🤝 أدمن مساعد</span></div>'
+        + '<div class="text-xs text-slate-500 mt-0.5" dir="ltr">' + escapeHtml(a.email || '') + '</div>'
+        + '</div>'
+        + '<div class="flex gap-1 shrink-0">'
+        + '<button type="button" title="تعديل الحساب والصلاحيات" onclick="loadAssistantToForm(' + "'" + k + "'" + ')" class="btn-teal text-xs px-3 py-1.5 rounded-lg">✏️ تعديل</button>'
+        + '<button type="button" title="كلمة مرور جديدة" onclick="resetAssistantPassword(' + "'" + k + "'" + ')" class="bg-slate-200 text-slate-700 text-lg px-2 rounded-lg leading-none">🔑</button>'
+        + '<button type="button" title="إزالة المساعد" onclick="removeAssistant(' + "'" + k + "'" + ')" class="text-red-500 text-lg px-2 rounded-lg leading-none">✕</button>'
         + '</div></div>'
-        + '<div class="text-xs text-slate-600 mt-1">الصلاحيات: ' + chips + '</div>'
+        + '<div class="text-xs text-slate-600">الصلاحيات: ' + (badges || '<span class="text-slate-400">لا شيء — عرض فقط</span>') + '</div>'
         + '<div id="arst-' + k + '"></div>'
         + '</div>';
-    }).join('') : '<p class="text-sm text-slate-500">لا مساعدين بعد — أضف واحداً من الأسفل.</p>';
+    }).join('') : '<p class="text-sm text-slate-500 text-center py-4">لا يوجد أدمن مساعد بعد — أضف واحداً من الأسفل.</p>';
   }).catch(function() { box.innerHTML = '<p class="text-xs text-red-500">تعذر تحميل المساعدين — تحقق من الإنترنت</p>'; });
 }
 function loadAssistantToForm(key) {
@@ -2568,8 +2583,11 @@ function loadAssistantToForm(key) {
     const em = document.getElementById('asEmail'); if (em) em.value = a.email || '';
     const ps = document.getElementById('asPass'); if (ps) ps.value = '';
     setAssistantPermChecks(a.perms || {});
+    const title = document.getElementById('assistantFormTitle');
+    if (title) title.textContent = '✏️ تعديل: ' + (a.name || a.email || 'المساعد');
     const btn = document.getElementById('asSaveBtn'); if (btn) btn.textContent = '💾 حفظ التعديلات';
     const c = document.getElementById('asCancelEdit'); if (c) c.classList.remove('hidden');
+    try { nm.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) {}
   });
 }
 function cancelAssistantEdit() {
@@ -2578,6 +2596,8 @@ function cancelAssistantEdit() {
   const em = document.getElementById('asEmail'); if (em) em.value = '';
   const ps = document.getElementById('asPass'); if (ps) ps.value = '';
   setAssistantPermChecks({});
+  const title = document.getElementById('assistantFormTitle');
+  if (title) title.textContent = '➕ مساعد جديد';
   const btn = document.getElementById('asSaveBtn'); if (btn) btn.textContent = '➕ إضافة مساعد';
   const c = document.getElementById('asCancelEdit'); if (c) c.classList.add('hidden');
 }
@@ -2649,13 +2669,14 @@ async function resetAssistantPassword(key) {
 function showSettingsTab(name) {
   if (name === 'signups' && !isSuperAdmin()) name = 'depts'; // تبويب الطلبات لمالك النظام فقط
   if (name === 'security' && !isAdmin()) name = 'depts'; // الأمان للأدمن الرئيسي فقط
+  if (name === 'assistant' && !isAdmin()) name = 'depts'; // أدمن مساعد للأدمن الرئيسي فقط
   if (name === 'absences' && !can('absences')) name = 'depts'; // سجل الغياب لمن يملك صلاحيته (الأدمن أو المساعد)
   if (isAssistant()) { // المساعد: لا يفتح إلا تبويبات صلاحياته
     const okTabs = { depts: can('depts'), staff: can('staff'), shifts: can('rules'), absences: can('absences') };
     if (!okTabs[name]) name = okTabs.depts ? 'depts' : (okTabs.staff ? 'staff' : (okTabs.shifts ? 'shifts' : (okTabs.absences ? 'absences' : '')));
     if (!name) { showPage('day'); return; }
   }
-  ['depts', 'staff', 'shifts', 'security', 'absences', 'signups'].forEach(function(n) {
+  ['depts', 'staff', 'shifts', 'security', 'assistant', 'absences', 'signups'].forEach(function(n) {
     const panel = document.getElementById('tab-' + n);
     const btn = document.getElementById('tabBtn-' + n);
     if (panel) panel.classList.toggle('hidden', n !== name);
@@ -2666,6 +2687,7 @@ function showSettingsTab(name) {
   if (name === 'staff') renderSettingsLists();
   if (name === 'shifts') renderScheduleRules();
   if (name === 'security') securityRefresh();
+  if (name === 'assistant') assistantsRefresh();
   if (name === 'absences') renderAbsences();
   if (name === 'signups') signupsRefresh();
 }
