@@ -114,6 +114,10 @@ body.start-mode { background: linear-gradient(160deg, #0f766e, #115e59, #134e4a)
 .su-del { color:#dc2626; font-size:.72rem; font-weight:800; margin-top:8px; background:none; border:none; cursor:pointer; padding:0; }
 .su-summary { font-size:.8rem; font-weight:800; color:#475569; cursor:pointer; margin-top:14px; }
 .su-done { font-size:.72rem; color:#64748b; margin-top:4px; }
+.su-rst { color:#b45309; font-size:.72rem; font-weight:800; margin-top:8px; background:none; border:none; cursor:pointer; padding:0; text-align:right; }
+.su-temp { margin-top:8px; background:#fffbeb; border:1px solid #fcd34d; border-radius:10px; padding:8px; font-size:.78rem; word-break:break-all; }
+.su-temp a { color:#0f766e; font-weight:800; text-decoration:none; }
+.su-copy { background:none; border:none; cursor:pointer; color:#0f766e; font-size:.75rem; font-weight:800; padding:0; }
 
 #toast { background: #111827; color: #fde047; padding: 10px 18px; border-radius: 14px; font-weight: 800; box-shadow: 0 10px 25px rgba(0,0,0,.35); max-width: 90%; width: max-content; text-align: center; }
 </style>
@@ -149,6 +153,9 @@ body.start-mode { background: linear-gradient(160deg, #0f766e, #115e59, #134e4a)
       <div class="border-t mt-3 pt-3 text-center">
         <button type="button" id="signupLink" onclick="showSignupPanel()" class="text-teal-700 text-sm font-bold">➕ تسجيل جديد (أدمن مؤسسة)</button>
       </div>
+      <div class="text-center mt-2">
+        <button type="button" onclick="showForgotPanel()" class="text-slate-500 text-xs font-bold">❓ نسيت كلمة المرور؟</button>
+      </div>
     </div>
 
     <div id="signupPanel" class="hidden">
@@ -170,6 +177,16 @@ body.start-mode { background: linear-gradient(160deg, #0f766e, #115e59, #134e4a)
         <button type="button" onclick="showLoginPanel()" class="text-teal-700 text-sm w-full font-bold">→ رجوع لتسجيل الدخول</button>
       </div>
       <div id="signupError" class="text-red-600 text-sm hidden mb-2 text-center"></div>
+    </div>
+
+    <div id="forgotPanel" class="hidden">
+      <h3 class="font-bold text-lg mb-2">🔑 استعادة كلمة المرور</h3>
+      <p class="text-xs text-slate-500 mb-3">اكتب إيميلك — كلمة المرور يعيد تعيينها <b>مالك النظام</b> فقط ثم يرسلها إلى بريدك.</p>
+      <input id="fpEmail" class="w-full border rounded-xl p-3 mb-2 text-center" placeholder="الإيميل">
+      <div id="fpError" class="text-red-600 text-sm hidden mb-2 text-center"></div>
+      <div id="fpResult" class="hidden mb-2"></div>
+      <button type="button" id="fpBtn" onclick="forgotPasswordSubmit()" class="btn-amber w-full py-3 rounded-xl mb-2 font-bold">إرسال الطلب</button>
+      <button type="button" onclick="showLoginPanel()" class="text-teal-700 text-sm w-full font-bold">→ رجوع لتسجيل الدخول</button>
     </div>
   </div>
 </div>
@@ -240,21 +257,6 @@ body.start-mode { background: linear-gradient(160deg, #0f766e, #115e59, #134e4a)
           <input id="newDeptName" class="w-full border rounded-xl p-3 mb-2" placeholder="اسم القسم">
           <button onclick="addDepartment()" class="w-full btn-teal py-2 rounded-xl">إضافة قسم</button>
           <div id="deptList" class="mt-3 space-y-2"></div>
-          <div id="fbConnectBox" class="mt-4 border-t pt-3 hidden">
-            <h4 class="font-bold text-sm mb-2">🔗 قاعدة Firebase</h4>
-            <button type="button" onclick="pushAllLocalToFirebase(this)" class="w-full btn-teal py-2 rounded-xl text-sm mb-2">☁️ رفع البيانات المحفوظة على هذا الجهاز إلى Firebase</button>
-            <div id="pushAllMsg" class="text-xs hidden mb-2"></div>
-            <details class="border rounded-xl p-2">
-              <summary class="cursor-pointer font-bold text-sm">🔌 إعداد الاتصال بقاعدة جديدة (متقدم)</summary>
-              <p class="text-xs text-slate-500 mt-2 mb-1">المشروع الحالي: <b id="fbCurrentProject">—</b></p>
-              <textarea id="fbConfigInput" rows="6" class="w-full border rounded-xl p-2 text-xs mb-2" placeholder="الصق هنا كائن firebaseConfig من مشروعك الجديد..."></textarea>
-              <div class="flex gap-2 items-center">
-                <button type="button" onclick="saveFirebaseConfigFromInput()" class="flex-1 btn-dark py-2 rounded-xl text-sm">💾 حفظ وربط بالقاعدة</button>
-                <button type="button" onclick="resetFirebaseConfig()" class="text-red-500 text-sm px-2">استعادة الأصلية</button>
-              </div>
-              <p class="text-xs text-slate-500 mt-2">بعد الحفظ يُعاد تحميل التطبيق ويتصل بالقاعدة الجديدة فوراً، ويبدأ برفع بيانات هذا الجهاز إليها تلقائياً.</p>
-            </details>
-          </div>
         </section>
       </div>
 
@@ -263,6 +265,13 @@ body.start-mode { background: linear-gradient(160deg, #0f766e, #115e59, #134e4a)
           <h3 class="font-bold text-lg mb-1">🔑 كلمة مرور الموظفين</h3>
           <p class="text-sm text-slate-500 mb-3">الموظف يفتح التطبيق بـ<b>إيميلك (إيميل الأدمن)</b> + هذه الكلمة — ويدخل <b>للعرض فقط</b> على ورديات مؤسسته. كل ما تحتاجه من إدارة يبقى لك وحدك.</p>
           <div id="staffPassStatus" class="text-sm font-bold mb-2">—</div>
+          <div id="staffPassCurBox" class="mb-3 bg-teal-50 border border-teal-200 rounded-xl p-3 hidden">
+            <div class="text-xs text-slate-500 mb-1">🔑 كلمة المرور الحالية (حتى لا تنساها):</div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <b id="staffPassCur" dir="ltr" class="text-lg tracking-wider text-teal-800"></b>
+              <button type="button" onclick="copyText(document.getElementById('staffPassCur').textContent)" class="su-copy">📋 نسخ</button>
+            </div>
+          </div>
           <input id="staffPassInput" type="password" class="w-full border rounded-xl p-3 mb-2" placeholder="كلمة مرور الموظفين">
           <div class="flex gap-2 items-center">
             <button type="button" onclick="saveStaffPassword()" class="flex-1 btn-teal py-2 rounded-xl">💾 حفظ الكلمة</button>
@@ -271,10 +280,13 @@ body.start-mode { background: linear-gradient(160deg, #0f766e, #115e59, #134e4a)
           <div id="staffPassMsg" class="text-xs mt-2"></div>
         </div>
         <div class="sec-card">
-          <h3 class="font-bold text-lg mb-2">ℹ️ بيانات المؤسسة</h3>
-          <p class="text-sm text-slate-500 mb-1">إيميل الأدمن (اسم الدخول): <b id="orgEmailLabel">—</b></p>
-          <p class="text-sm text-slate-500">مسار بيانات المؤسسة: <b id="orgPathLabel">—</b></p>
-          <p class="text-xs text-slate-400 mt-2">كل إيميل أدمن له مسار مستقل ⇒ بيانات كل مؤسسة معزولة عن غيرها.</p>
+          <h3 class="font-bold text-lg mb-1">👤 كلمة مرور الأدمن</h3>
+          <p class="text-sm text-slate-500 mb-3">غيّر كلمة مرورك من هنا — بعد التغيير استخدم الكلمة الجديدة في الدخول القادم (جلستك الحالية تبقى مفتوحة).</p>
+          <input id="admOldPass" type="password" class="w-full border rounded-xl p-3 mb-2" placeholder="كلمة المرور الحالية">
+          <input id="admNewPass" type="password" class="w-full border rounded-xl p-3 mb-2" placeholder="كلمة المرور الجديدة">
+          <input id="admNewPass2" type="password" class="w-full border rounded-xl p-3 mb-2" placeholder="تأكيد كلمة المرور الجديدة">
+          <button type="button" onclick="changeAdminPassword()" class="btn-dark w-full py-2 rounded-xl">💾 تغيير كلمة المرور</button>
+          <div id="admPassMsg" class="text-xs mt-2"></div>
         </div>
       </div>
 
@@ -326,6 +338,12 @@ body.start-mode { background: linear-gradient(160deg, #0f766e, #115e59, #134e4a)
 
           <div id="rulesContainer"></div>
         </section>
+        <div class="sec-card">
+          <h3 class="font-bold text-lg mb-1">🗑 حذف جميع الورديات</h3>
+          <p class="text-sm text-slate-500 mb-3">يمسح <b>كل الورديات في كل الأيام</b> (صفحة اليوم والتقويم والإحصائيات تفرغ) — الأقسام والموظفون والقواعد الأسبوعية تبقى كما هي، وتستطيع إعادة توليد الورديات من القواعد في أي وقت.</p>
+          <button type="button" onclick="deleteAllShifts()" class="w-full bg-red-600 text-white font-bold py-3 rounded-xl">🗑 حذف جميع الورديات نهائياً</button>
+          <p class="text-xs text-red-500 mt-2 text-center font-bold">⚠️ تأكيد مزدوج قبل التنفيذ — لا يمكن التراجع</p>
+        </div>
       </div>
 
     </div>
@@ -441,10 +459,27 @@ function staffById(id) {
 }
 function deptName(id) { return (departments[id] && departments[id].name) || ''; }
 function formatKey(d) { return d.getFullYear() + '-' + (d.getMonth()+1) + '-' + d.getDate(); }
+// منع تكرار الموظف في اليوم الواحد مهما أُضيف من عدة أماكن (يدوي/عام/قسم) — يُعتمد واحد فقط
+// الأولوية: الوردية اليدوية (إضافة/تبديل) ثم الأبكر وقتاً.
+function dedupeSlots(list) {
+  const seen = {};
+  const ordered = list.slice().sort(function(a, b) {
+    const aa = a.auto ? 1 : 0, bb = b.auto ? 1 : 0;
+    if (aa !== bb) return aa - bb;
+    return String(a.start || '').localeCompare(String(b.start || ''));
+  });
+  return ordered.filter(function(sl) {
+    const k = String(sl.employeeId == null ? '' : sl.employeeId);
+    if (k === '') return true;
+    if (seen[k]) return false;
+    seen[k] = true;
+    return true;
+  });
+}
 function daySlots(d) {
   const v = shifts[formatKey(d)];
   const arr = Array.isArray(v) ? v : [];
-  return arr.slice().sort(function(a,b) { return String(a.start).localeCompare(String(b.start)); });
+  return dedupeSlots(arr).sort(function(a,b) { return String(a.start).localeCompare(String(b.start)); });
 }
 
 // =====================================================================
@@ -682,7 +717,7 @@ function autoSlotsForDate(date) {
   const scopes = ruleScopes();
   const out = [];
   scopes.forEach(function(scope) { out.push.apply(out, scopeAutoSlotsForDate(scope, date)); });
-  return out;
+  return dedupeSlots(out); // نفس الموظف في قاعدة عامة + قاعدة قسم → وردية واحدة فقط
 }
 function autoSlotForDate(date, scope, row, rowIndex) { // توافق قديم: أول وردية للشفت
   return rowSlotsForDate(date, scope, row, rowIndex)[0] || null;
@@ -1343,6 +1378,8 @@ function openLoginModal() {
   document.getElementById('signupPanel').classList.add('hidden');
   document.getElementById('loginError').classList.add('hidden');
   hideLoginCodeRow();
+  const fp0 = document.getElementById('forgotPanel');
+  if (fp0) fp0.classList.add('hidden');
   logoutNote('');
   const id = document.getElementById('loginId');
   if (id) id.focus();
@@ -1357,6 +1394,8 @@ function showLoginPanel() {
   hideLoginCodeRow();
   document.getElementById('loginEmailPanel').classList.remove('hidden');
   document.getElementById('signupPanel').classList.add('hidden');
+  const fp = document.getElementById('forgotPanel');
+  if (fp) fp.classList.add('hidden');
 }
 function showSignupPanel() {
   if (!signupAllowed()) {
@@ -1585,6 +1624,60 @@ async function handleLogin() {
     if (btn) { btn.disabled = false; btn.textContent = 'دخول'; }
   }
 }
+// ===== نسيت كلمة المرور: التعيين عبر مالك النظام فقط =====
+function showForgotPanel() {
+  logoutNote('');
+  document.getElementById('loginEmailPanel').classList.add('hidden');
+  document.getElementById('signupPanel').classList.add('hidden');
+  const panel = document.getElementById('forgotPanel');
+  const err = document.getElementById('fpError');
+  const res = document.getElementById('fpResult');
+  if (panel) panel.classList.remove('hidden');
+  if (err) { err.textContent = ''; err.classList.add('hidden'); }
+  if (res) { res.innerHTML = ''; res.classList.add('hidden'); }
+  const inp = document.getElementById('fpEmail');
+  if (inp) inp.focus();
+}
+async function forgotPasswordSubmit() {
+  const email = ((document.getElementById('fpEmail') || {}).value || '').trim();
+  const err = document.getElementById('fpError');
+  const res = document.getElementById('fpResult');
+  if (err) { err.textContent = ''; err.classList.add('hidden'); }
+  if (res) { res.innerHTML = ''; res.classList.add('hidden'); }
+  if (email.indexOf('@') < 0) {
+    if (err) { err.textContent = 'أدخل إيميل صحيح'; err.classList.remove('hidden'); }
+    return;
+  }
+  const btn = document.getElementById('fpBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ جارٍ التحقق…'; }
+  try {
+    let rec = null;
+    try { rec = await fetchOrgRecord(emailKey(email)); }
+    catch (e) {
+      if (err) { err.textContent = 'تعذر الاتصال بالخادم — تحقق من الإنترنت'; err.classList.remove('hidden'); }
+      return;
+    }
+    if (!rec) {
+      if (err) { err.textContent = 'لا يوجد حساب بهذا الإيميل — تأكد من الإيميل أو سلّم طلب تسجيل جديد'; err.classList.remove('hidden'); }
+      return;
+    }
+    const support = (APP_CONFIG && APP_CONFIG.supportEmail) || '';
+    let html = '<div class="bg-amber-50 border border-amber-200 text-amber-900 rounded-xl p-3 text-xs leading-relaxed text-right">'
+      + '👤 الحساب: <b>' + escapeHtml(rec.name || email) + '</b><br>'
+      + 'كلمة المرور لا تُرسل تلقائياً — <b>مالك النظام</b> يعيد تعيينها ويرسلها إلى بريدك.<br>';
+    if (support) {
+      const subject = encodeURIComponent('طلب إعادة تعيين كلمة المرور — ' + (rec.name || email));
+      const body = encodeURIComponent('الإيميل: ' + email + '\nأرجو إعادة تعيين كلمة المرور وإرسال الكلمة الجديدة على هذا البريد.');
+      html += '<a href="mailto:' + encodeURIComponent(support) + '?subject=' + subject + '&body=' + body + '" class="btn-teal inline-block px-3 py-2 rounded-xl font-bold mt-2">📧 إرسال طلب بالبريد لمالك النظام</a>';
+    } else {
+      html += 'راسل مالك النظام مباشرة ليصفّرها لك من لوحة الطلبات.';
+    }
+    html += '</div>';
+    if (res) { res.innerHTML = html; res.classList.remove('hidden'); }
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'إرسال الطلب'; }
+  }
+}
 // حالة طلب التسجيل لبريد معيّن: null / 'pending' / 'pending-code'
 async function pendingSignupState(id) {
   try {
@@ -1719,24 +1812,77 @@ async function signupsRefresh() {
   let all = null;
   try { all = (await db.ref('signups').once('value')).val() || {}; }
   catch (e) { box.innerHTML = '<p class="su-state-wait">تعذر تحميل الطلبات — تحقق من الإنترنت</p>'; return; }
-  const pend = [], done = [];
+  const pend = [];
   Object.keys(all).forEach(function(k) {
     const rec = Object.assign({ key: k }, all[k] || {});
-    (rec.status === 'active' ? done : pend).push(rec);
+    if (rec.status !== 'active') pend.push(rec);
   });
   pend.sort(function(a, b) { return (b.createdAt || 0) - (a.createdAt || 0); });
-  done.sort(function(a, b) { return (b.activatedAt || b.createdAt || 0) - (a.activatedAt || a.createdAt || 0); });
   let html = '';
   if (!pend.length) html += '<p class="text-sm text-slate-500">لا توجد طلبات جديدة الآن.</p>';
   pend.forEach(function(rec) { html += signupCardHtml(rec); });
-  if (done.length) {
-    html += '<details><summary class="su-summary">✅ مؤسسات مفعّلة (' + done.length + ')</summary>';
-    done.forEach(function(rec) {
-      html += '<p class="su-done">• ' + escapeHtml(rec.name || '') + ' — <span dir="ltr">' + escapeHtml(rec.email || '') + '</span> (' + new Date(rec.activatedAt || rec.createdAt || Date.now()).toLocaleDateString('ar') + ')</p>';
+  // المؤسسات المسجّلة (من orgs): هنا يصفّر المالك كلمة مرور أي أدمن نسيها
+  let orgs = {};
+  try { orgs = (await db.ref('orgs').once('value')).val() || {}; } catch (e) {}
+  const orgKeys = Object.keys(orgs).sort();
+  if (orgKeys.length) {
+    html += '<details><summary class="su-summary">🏢 المؤسسات المسجّلة (' + orgKeys.length + ') — تصفير كلمة المرور</summary>';
+    orgKeys.forEach(function(k) {
+      const rec = orgs[k] || {};
+      const isSelf = String(rec.orgId || k) === String(DEFAULT_ORG_ID);
+      const digits = String(rec.phone || '').replace(/\D/g, '');
+      html += '<div class="su-req">'
+        + '<div class="su-head">' + escapeHtml(rec.name || k) + ' <span class="su-mail" dir="ltr">' + escapeHtml(rec.email || '') + '</span></div>';
+      if (digits) html += '<div class="su-phone" dir="ltr">📱 ' + escapeHtml(rec.phone) + ' · <a href="https://wa.me/' + digits.replace(/^0+/, '') + '" target="_blank" rel="noopener">💬 واتساب</a></div>';
+      if (isSelf) html += '<div class="su-state-ok">👤 أنت (مالك النظام) — كلمة مرورك تغيّرها من تبويب 🔐 الأمان</div>';
+      else html += '<button type="button" class="su-rst" onclick="resetOrgPassword(\'' + k + '\')">🔑 تصفير كلمة المرور وإرسالها له بالبريد</button><div id="rst-' + k + '"></div>';
+      html += '</div>';
     });
     html += '</details>';
   }
   box.innerHTML = html;
+}
+// المالك يصفّر كلمة مرور أدمن مؤسسة (نسيها): كلمة مؤقتة تُكتب في سجله وتُعرض للمالك ليرسلها بالبريد
+async function resetOrgPassword(key) {
+  if (!isSuperAdmin()) return;
+  let rec = null;
+  try { rec = await fetchOrgRecord(key); }
+  catch (e) { toast('تعذر الاتصال — تحقق من الإنترنت'); return; }
+  if (!rec || !rec.email) { toast('لا يوجد سجل بهذا المفتاح'); return; }
+  if (String(rec.orgId || key) === String(DEFAULT_ORG_ID)) { toast('كلمة مرورك أنت تغيّرها من تبويب 🔐 الأمان'); return; }
+  if (!confirm('توليد كلمة مرور جديدة لـ ' + (rec.name || rec.email) + '؟\nكلمة المرور القديمة تتوقف فوراً.')) return;
+  const temp = genTempPassword();
+  try {
+    await db.ref('orgs/' + key + '/passwordHash').set(await hashPassword(temp));
+    const line = document.getElementById('rst-' + key);
+    if (line) {
+      const mailBody = encodeURIComponent('كلمة المرور الجديدة: ' + temp + '\nادخل بإيميلك (' + rec.email + ') وهذه الكلمة، ثم غيّرها من: الإعدادات ← 🔐 الأمان');
+      line.innerHTML = '<div class="su-temp">🔑 كلمة المرور الجديدة: <b dir="ltr">' + temp + '</b> '
+        + '<button type="button" class="su-copy" onclick="copyText(\'' + temp + '\')">📋 نسخ</button> '
+        + '<a href="mailto:' + encodeURIComponent(rec.email) + '?subject=' + encodeURIComponent('كلمة مرور جديدة — نظام الورديات') + '&body=' + mailBody + '">📧 إرسال بالبريد</a></div>';
+    }
+    toast('✔ تم التصفير — أرسل الكلمة الجديدة لصاحب المؤسسة');
+  } catch (e) {
+    toast('تعذر التصفير — تأكد من الإنترنت ومن نشر قواعد orgs (passwordHash)');
+  }
+}
+function genTempPassword() {
+  const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
+  let out = '';
+  try {
+    const arr = new Uint8Array(8);
+    crypto.getRandomValues(arr);
+    for (let i = 0; i < 8; i++) out += chars.charAt(arr[i] % chars.length);
+  } catch (e) {
+    for (let i = 0; i < 8; i++) out += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return out;
+}
+function copyText(t) {
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(t); toast('📋 تم النسخ'); return; }
+  } catch (e) {}
+  toast(t);
 }
 function signupCardHtml(rec) {
   const digits = String(rec.phone || '').replace(/\D/g, '');
@@ -1797,16 +1943,25 @@ async function deleteSignup(key) {
 // أزرار تبويب الإعدادات: الأقسام / الموظفين / الورديات
 function securityRefresh() {
   const st = document.getElementById('staffPassStatus');
-  const em = document.getElementById('orgEmailLabel');
-  const pa = document.getElementById('orgPathLabel');
-  if (em) em.textContent = (currentUser && currentUser.email) || '—';
-  if (pa) pa.textContent = orgPathFor(ORG_ID);
+  const box = document.getElementById('staffPassCurBox');
+  const cur = document.getElementById('staffPassCur');
   if (st) st.textContent = '⏳ جارٍ التحقق…';
-  db.ref(path('settings/staffPasswordHash')).once('value').then(function(s) {
-    if (!st) return;
-    st.textContent = s.val() ? '✅ كلمة مرور الموظفين مضبوطة' : '⚠️ غير مضبوطة — الموظفون لا يستطيعون الدخول بعد';
-    st.className = 'text-sm font-bold mb-2 ' + (s.val() ? 'text-teal-700' : 'text-amber-700');
-  }).catch(function() { if (st) st.textContent = 'تعذر التحقق (لا إنترنت)'; });
+  const safe = function(p) { return p.catch(function() { return { val: function() { return undefined; } }; }); };
+  return Promise.all([
+    safe(db.ref(path('settings/staffPasswordHash')).once('value')),
+    safe(db.ref(path('settings/staffPassword')).once('value'))
+  ]).then(function(r) {
+    const hashVal = r[0].val(), plainVal = r[1].val();
+    if (st) {
+      if (hashVal) { st.textContent = '✅ كلمة مرور الموظفين مضبوطة'; st.className = 'text-sm font-bold mb-2 text-teal-700'; }
+      else { st.textContent = '⚠️ غير مضبوطة — الموظفون لا يستطيعون الدخول بعد'; st.className = 'text-sm font-bold mb-2 text-amber-700'; }
+    }
+    if (box && cur) {
+      if (plainVal) { cur.textContent = plainVal; box.classList.remove('hidden'); }
+      else if (hashVal) { cur.textContent = '•••• أعد حفظ الكلمة من الأسفل لتظهر هنا'; box.classList.remove('hidden'); }
+      else box.classList.add('hidden');
+    }
+  });
 }
 function staffPassMsg(text, ok) {
   const el = document.getElementById('staffPassMsg');
@@ -1836,6 +1991,7 @@ async function saveStaffPassword() {
       }
     }
     await db.ref(path('settings/staffPasswordHash')).set(hash);
+    await db.ref(path('settings/staffPassword')).set(pass); // تُحفظ ظاهرة ليعرضها تبويب الأمان للأدمن (حتى لا ينساها)
     if (el) el.value = '';
     staffPassMsg('✔ تم حفظ كلمة مرور الموظفين — أعطها لموظفيك', true);
     securityRefresh();
@@ -1848,10 +2004,66 @@ async function clearStaffPassword() {
   if (!confirm('إزالة كلمة مرور الموظفين؟ لن يستطيع الموظفون الدخول بعدها.')) return;
   try {
     await db.ref(path('settings/staffPasswordHash')).remove();
+    await db.ref(path('settings/staffPassword')).remove();
     staffPassMsg('تمت الإزالة — الموظفون لن يستطيعوا الدخول', true);
     securityRefresh();
   } catch (e) {
     staffPassMsg('تعذر الإزالة: ' + ((e && (e.code || e.message)) || 'خطأ'), false);
+  }
+}
+function admPassMsg(text, ok) {
+  const el = document.getElementById('admPassMsg');
+  if (!el) return;
+  el.textContent = text;
+  el.className = 'text-xs mt-2 font-bold ' + (ok ? 'text-teal-700' : 'text-red-600');
+}
+// تغيير كلمة مرور الأدمن: تتحقق من الكلمة الحالية وتكتب الهاش الجديد في سجل المؤسسة
+async function changeAdminPassword() {
+  if (!isAdmin() || !currentUser || !currentUser.email) { admPassMsg('هذه الصفحة للأدمن فقط', false); return; }
+  const oldP = (document.getElementById('admOldPass') || {}).value || '';
+  const newP = (document.getElementById('admNewPass') || {}).value || '';
+  const newP2 = (document.getElementById('admNewPass2') || {}).value || '';
+  if (!oldP || !newP) { admPassMsg('ادخل كلمة المرور الحالية والجديدة', false); return; }
+  if (newP.length < 4) { admPassMsg('كلمة المرور الجديدة قصيرة (4 أحرف على الأقل)', false); return; }
+  if (newP !== newP2) { admPassMsg('تأكيد كلمة المرور غير مطابق', false); return; }
+  let rec = null;
+  try { rec = await fetchOrgRecord(emailKey(currentUser.email)); }
+  catch (e) { admPassMsg('تعذر الاتصال بالخادم — تحقق من الإنترنت', false); return; }
+  if (!rec) { admPassMsg('لا يوجد سجل أدمن لهذا الإيميل — راجع مالك النظام', false); return; }
+  const oldH = await hashPassword(oldP);
+  if (rec.passwordHash !== oldH) { admPassMsg('كلمة المرور الحالية غير صحيحة', false); return; }
+  const newH = await hashPassword(newP);
+  if (newH === oldH) { admPassMsg('الكلمة الجديدة نفس القديمة — اكتب كلمة مختلفة', false); return; }
+  // حماية معاكسة: لا تجعل كلمة الأدمن نفس كلمة الموظفين (وإلا دخل الموظف كأدمن)
+  let staffHash = null;
+  try { staffHash = (await db.ref(path('settings/staffPasswordHash')).once('value')).val(); } catch (e) {}
+  if (staffHash && staffHash === newH) { admPassMsg('اختر كلمة مختلفة عن كلمة مرور الموظفين — وإلا صار الموظف أدمن', false); return; }
+  try {
+    await db.ref('orgs/' + emailKey(currentUser.email) + '/passwordHash').set(newH);
+    // تحديث الجلسة المحفوظة على هذا الجهاز بالهاش الجديد
+    try {
+      const u = JSON.parse(localStorage.getItem('wrdiatUser') || 'null');
+      if (u && u.loginType === 'admin') { u.passwordHash = newH; localStorage.setItem('wrdiatUser', JSON.stringify(u)); }
+    } catch (e) {}
+    ['admOldPass', 'admNewPass', 'admNewPass2'].forEach(function(id) { const el = document.getElementById(id); if (el) el.value = ''; });
+    admPassMsg('✔ تم تغيير كلمة المرور — استخدم الكلمة الجديدة في الدخول القادم', true);
+    securityRefresh();
+  } catch (e) {
+    admPassMsg('تعذر التغيير — تأكد من الإنترنت ومن نشر قواعد orgs الجديدة (passwordHash)', false);
+  }
+}
+// حذف جميع الورديات: تأكيد مزدوج ثم مسح عقدة shifts في مسار المؤسسة
+async function deleteAllShifts() {
+  if (!isAdmin()) return;
+  if (!confirm('⚠️ حذف جميع الورديات نهائياً؟\nسيتم مسح كل ورديات المؤسسة في كل الأيام — الأقسام والموظفون والقواعد الأسبوعية تبقى كما هي.')) return;
+  if (!confirm('تأكيد أخير: لا يمكن التراجع بعد الحذف. متابعة؟')) return;
+  try {
+    await db.ref(path('shifts')).remove();
+    shifts = {}; saveOfflineShifts(shifts); clearShiftsDirty();
+    renderAll();
+    toast('✔ تم حذف جميع الورديات');
+  } catch (e) {
+    toast('تعذر الحذف — تحقق من الإنترنت وحاول مرة أخرى');
   }
 }
 function showSettingsTab(name) {
@@ -2242,7 +2454,7 @@ window.addEventListener('load', async function() {
   if (firebaseConfigBroken()) {
     const warn = document.createElement('div');
     warn.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:9999;background:#b91c1c;color:#fff;font:bold 13px/1.6 sans-serif;padding:10px 14px;text-align:center';
-    warn.textContent = '⚠️ إعدادات Firebase غير مكتملة (databaseURL مفقود في config.js) — التطبيق يعمل محلياً على هذا الجهاز، وللمزامنة أضف رابط القاعدة من: الإعدادات ← الأقسام ← 🔗 قاعدة Firebase.';
+    warn.textContent = '⚠️ إعدادات Firebase غير مكتملة (databaseURL مفقود في config.js) — التطبيق يعمل محلياً على هذا الجهاز، وللمزامنة أضف رابط القاعدة في ملف config.js (firebaseConfig).';
     document.body.appendChild(warn);
   }
   // مزامنة تلقائية: عند عودة الاتصال أو دورياً يُدفع المحلي المعلَّق للخادم
