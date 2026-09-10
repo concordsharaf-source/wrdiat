@@ -32,7 +32,7 @@ input::placeholder, textarea::placeholder { color: #9a3412 !important; opacity: 
 .save-flash { animation: savePulse .45s ease; }
 .btn-teal { background: #115e59; color: #fef3c7; font-weight: 800; }
 .home-card { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25); }
-.slot { border-radius: 16px; color: #fff; padding: 12px 14px; margin-bottom: 8px; position: relative; overflow: hidden; }
+.slot { border-radius: 14px; color: #fff; padding: 8px 10px; margin-bottom: 0; position: relative; overflow: hidden; }
 .slot::after { content: ''; position: absolute; inset: 0; background: linear-gradient(115deg, rgba(255,255,255,.28), transparent 55%); pointer-events: none; }
 .dept-chip { display: inline-block; background: #ecfeff; color: #0f766e; border-radius: 999px; padding: 2px 10px; font-size: 12px; }
 .cal-cell { min-height: 78px; padding: 6px; background: #fff; }
@@ -81,6 +81,18 @@ input::placeholder, textarea::placeholder { color: #9a3412 !important; opacity: 
 .order-chip button { padding: 0 5px; cursor: pointer; color: inherit; }
 .order-chip button:disabled { opacity: .35; cursor: default; }
 .auto-badge { display: inline-block; background: rgba(255,255,255,.28); border: 1px solid rgba(255,255,255,.45); border-radius: 999px; padding: 0 9px; font-size: 11px; font-weight: 700; margin-inline-start: 7px; vertical-align: middle; }
+/* ===== صفحة اليوم: فلتر منسدل + بطاقتان بجوار بعض (بلا الاعتماد على أصناف غير موجودة في tw.css) ===== */
+.day-filter-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.day-filter-label { font-size: 12px; font-weight: 700; color: #64748b; white-space: nowrap; }
+#deptFilter { flex: 1; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 8px 12px; font-size: 14px; font-weight: 700; color: #0f172a; box-shadow: 0 1px 2px rgba(15,23,42,.06); font-family: inherit; }
+#slotsList { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; align-content: start; }
+#slotsList .slot { margin-bottom: 0; }
+.slot-emp { font-weight: 800; font-size: 16px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-left: 14px; }
+.slot-emp .swap-trigger { font-weight: 800; font-size: 16px; color: #fff; }
+.slot-info { font-size: 11px; opacity: .92; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.slot-time { margin-top: 3px; font-weight: 700; font-size: 13px; white-space: nowrap; }
+.slot-del { position: absolute; left: 5px; top: 4px; color: rgba(255,255,255,.85); line-height: 1; z-index: 2; }
+@media (max-width: 360px) { .slot-emp, .slot-emp .swap-trigger { font-size: 14px; } .slot-time { font-size: 12px; } }
 #toast { background: #111827; color: #fde047; padding: 10px 18px; border-radius: 14px; font-weight: 800; box-shadow: 0 10px 25px rgba(0,0,0,.35); max-width: 90%; width: max-content; text-align: center; }
 </style>
 </head>
@@ -140,8 +152,11 @@ input::placeholder, textarea::placeholder { color: #9a3412 !important; opacity: 
       </div>
       <button onclick="shiftDay(1)" class="bg-white px-3 py-2 rounded-xl shadow">▶</button>
     </div>
-    <div id="deptFilter" class="flex flex-wrap gap-2 mb-4"></div>
-    <div id="slotsList"></div>
+    <div class="day-filter-row">
+      <span class="day-filter-label">🏢 القسم</span>
+      <select id="deptFilter" onchange="filterDept=this.value;renderDay()"></select>
+    </div>
+    <div id="slotsList" class="slots-2col"></div>
     <button id="addSlotBtn" onclick="openSlotModal()" class="hidden w-full mt-4 btn-amber py-3 rounded-2xl">➕ إضافة وردية في هذا اليوم</button>
   </div>
 
@@ -1429,10 +1444,15 @@ function renderDay() {
   document.getElementById('dayLabel').textContent = arabicDays[viewDate.getDay()] + ' — ' + arabicMonths[viewDate.getMonth()] + ' ' + viewDate.getFullYear();
   const f = document.getElementById('deptFilter');
   const deptIds = Object.keys(departments);
-  f.innerHTML = '<button onclick="filterDept=\'\';renderDay()" class="dept-chip ' + (!filterDept ? 'ring-2 ring-teal-700' : '') + '">الكل</button>' +
-    deptIds.map(function(id) {
-      return '<button onclick="filterDept=\'' + id + '\';renderDay()" class="dept-chip ' + (filterDept===id ? 'ring-2 ring-teal-700' : '') + '">' + departments[id].name + '</button>';
-    }).join('');
+  if (f) {
+    f.innerHTML = '<option value="">كل الأقسام</option>' +
+      deptIds.map(function(id) {
+        return '<option value="' + escapeHtml(id) + '">' + escapeHtml(departments[id].name) + '</option>';
+      }).join('');
+    // حالة التطبيق هي المرجع (لو حُذف القسم المفلتَر يعود «كل الأقسام» تلقائياً)
+    f.value = (filterDept && deptIds.indexOf(String(filterDept)) >= 0) ? String(filterDept) : '';
+    filterDept = f.value || '';
+  }
   let slots = daySlots(viewDate);
   if (filterDept) slots = slots.filter(function(sl) {
     const st = staffById(sl.employeeId);
@@ -1443,15 +1463,18 @@ function renderDay() {
     box.innerHTML = '<p class="text-center text-slate-400 py-8">لا توجد ورديات في هذا اليوم</p>';
     return;
   }
+  // بطاقتان بجوار بعض: عرض أكبر قدر من المعلومات بأقل مساحة (بلا شارة «تلقائي»)
   box.innerHTML = slots.map(function(sl) {
     const st = staffById(sl.employeeId) || { name: 'موظف', hex: '#0f766e', title: '' };
-    const del = isAdmin() ? '<button onclick="deleteSlot(\'' + sl.id + '\')" class="absolute left-3 top-3 text-white/80">✕</button>' : '';
+    const del = isAdmin() ? '<button onclick="deleteSlot(\'' + sl.id + '\')" class="slot-del">✕</button>' : '';
+    const info = (st.title || '') + (deptName(st.deptId) ? (st.title ? ' · ' : '') + deptName(st.deptId) : '');
+    const nm = isAdmin()
+      ? '<button type="button" data-key="' + formatKey(viewDate) + '" data-slot="' + sl.id + '" class="swap-trigger" title="اضغط على الاسم للتبديل في حال الغياب">' + displayName(st) + ' ⇄</button>'
+      : '<span>' + displayName(st) + '</span>';
     return '<div class="slot shadow" style="background:' + (st.hex || '#0f766e') + '">' + del +
-      '<div class="flex items-center gap-2 flex-wrap">' + (isAdmin()
-        ? '<button type="button" data-key="' + formatKey(viewDate) + '" data-slot="' + sl.id + '" class="swap-trigger font-extrabold text-xl text-left" title="اضغط على الاسم للتبديل في حال الغياب">' + displayName(st) + ' ⇄</button>'
-        : '<span class="font-extrabold text-xl text-left">' + displayName(st) + '</span>') + (sl.auto ? '<span class="auto-badge">تلقائي ⚡</span>' : '') + '</div>' +
-      '<div class="text-sm opacity-90">' + (st.title || '') + (deptName(st.deptId) ? ' · ' + deptName(st.deptId) : '') + '</div>' +
-      '<div class="mt-1 font-bold">⏰ ' + (sl.start || '') + ' — ' + (sl.end || '') + '</div></div>';
+      '<div class="slot-emp">' + nm + '</div>' +
+      (info ? '<div class="slot-info">' + info + '</div>' : '') +
+      '<div class="slot-time">⏰ ' + (sl.start || '') + ' — ' + (sl.end || '') + '</div></div>';
   }).join('');
 }
 
