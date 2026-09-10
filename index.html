@@ -389,6 +389,20 @@ function sanitizeRuleRow(r) {
     end: String(r.end || '')
   };
 }
+// فايربيس لا يسمح بمفتاح فارغ ولا برموز . # $ / [ ] — النطاق العام '' يُخزَّن باسم _all
+const RULES_GLOBAL_SCOPE_KEY = '_all';
+function firebaseSafeScopeKey(k) {
+  const v = String(k == null ? '' : k);
+  if (!v) return RULES_GLOBAL_SCOPE_KEY;
+  return v.replace(/[.#$/\[\]]/g, '_');
+}
+// يحوّل صيغة الذاكرة (مفتاح عام '') إلى صيغة صالحة لـ Firebase
+function rulesForFirebase(rules) {
+  const n = normalizeScheduleRules(rules);
+  const scopes = {};
+  Object.keys(n.scopes).forEach(function(k) { scopes[firebaseSafeScopeKey(k)] = n.scopes[k]; });
+  return { anchor: n.anchor, scopes: scopes };
+}
 // يهيّئ القواعد من أي صيغة: الجديدة {scopes} أو القديمة {days} ويُرحِّل القديم تلقائياً
 function normalizeScheduleRules(value) {
   const def = defaultScheduleRulesData();
@@ -397,7 +411,10 @@ function normalizeScheduleRules(value) {
   if (typeof value.anchor === 'string' && /^\d{4}-\d{1,2}-\d{1,2}$/.test(value.anchor)) out.anchor = value.anchor;
   const scopeSource = {};
   if (value.scopes && typeof value.scopes === 'object') {
-    Object.keys(value.scopes).forEach(function(scope) { scopeSource[String(scope)] = value.scopes[scope]; });
+    Object.keys(value.scopes).forEach(function(scope) {
+      const key = (String(scope) === RULES_GLOBAL_SCOPE_KEY) ? '' : String(scope);
+      scopeSource[key] = value.scopes[scope];
+    });
   } else if (value.days && typeof value.days === 'object' && !Array.isArray(value.days)) {
     // ترحيل من الصيغة القديمة {days:{weekday:{rows:[{deptId,...}]}}} — deptId يحدد النطاق
     const byScope = {};
@@ -453,7 +470,7 @@ function clearShiftsDirty() { shiftsDirty = false; try { localStorage.removeItem
 async function pushRulesLocal() {
   if (rulesPushing || !rulesDirty) return;
   rulesPushing = true;
-  try { await db.ref(path('scheduleRules')).set(normalizeScheduleRules(scheduleRules)); clearRulesDirty(); } catch (e) {}
+  try { await db.ref(path('scheduleRules')).set(rulesForFirebase(scheduleRules)); clearRulesDirty(); } catch (e) {}
   rulesPushing = false;
 }
 async function pushShiftsLocal() {
@@ -708,7 +725,7 @@ async function pushAllLocalToFirebase(btn) {
   try {
     await db.ref(path('departments')).set(departments || {});
     await db.ref(path('staff')).set(staff || {});
-    await db.ref(path('scheduleRules')).set(normalizeScheduleRules(scheduleRules));
+    await db.ref(path('scheduleRules')).set(rulesForFirebase(scheduleRules));
     if (n.days) await db.ref(path('shifts')).set(shifts || {});
     clearRulesDirty(); clearShiftsDirty();
     try { localStorage.setItem(MIGRATE_PUSH_KEY, '1'); } catch (e) {}
@@ -733,7 +750,7 @@ async function autoMigrateLocalToServer() {
   try {
     await db.ref(path('departments')).set(departments || {});
     await db.ref(path('staff')).set(staff || {});
-    await db.ref(path('scheduleRules')).set(normalizeScheduleRules(scheduleRules));
+    await db.ref(path('scheduleRules')).set(rulesForFirebase(scheduleRules));
     if (n.days) await db.ref(path('shifts')).set(shifts || {});
     clearRulesDirty(); clearShiftsDirty();
     try { localStorage.setItem(MIGRATE_PUSH_KEY, '1'); } catch (e) {}
@@ -747,6 +764,44 @@ function onDepartmentsValue(val) {
   if (Object.keys(val).length) { departments = val; saveOfflineDepartments(departments); renderAll(); return; }
   if (Object.keys(departments).length) { autoMigrateLocalToServer(); return; }
   departments = {}; saveOfflineDepartments(departments); renderAll();
+}
+// هل في جهاز المستخدم قواعد فعلية (غير الفارغة الافتراضية)؟ — للحماية من المسح عند قاعدة فارغة
+function localRulesHaveContent(rules) {
+  const n = rules || scheduleRules;
+  if (!n || !n.scopes) return false;
+  return Object.keys(n.scopes).some(function(scope) {
+    const days = (n.scopes[scope] && n.scopes[scope].days) || {};
+    return Object.keys(days).some(function(d) { return ((days[d] && days[d].rows) || []).length > 0; });
+  });
+}
+function onRulesValue(val) {
+  if (rulesDirty) {
+    const ls = normalizeScheduleRules(scheduleRules);
+    const vs = normalizeScheduleRules(val || {});
+    if (JSON.stringify(ls) !== JSON.stringify(vs)) pushRulesLocal();
+    return;
+  }
+  const serverHas = val && (val.scopes || val.days);
+  if (serverHas) {
+    scheduleRules = normalizeScheduleRules(val);
+    saveOfflineRules(scheduleRules);
+    if (document.getElementById('rulesAnchor')) document.getElementById('rulesAnchor').value = anchorInputValue();
+    if (document.getElementById('rulesContainer')) renderScheduleRules();
+    return;
+  }
+  // الخادم فارغ: لا نمحو قواعد هذا الجهاز — نرفعها
+  if (localRulesHaveContent()) { autoMigrateLocalToServer(); return; }
+  scheduleRules = normalizeScheduleRules(val || {});
+  saveOfflineRules(scheduleRules);
+  if (document.getElementById('rulesAnchor')) document.getElementById('rulesAnchor').value = anchorInputValue();
+  if (document.getElementById('rulesContainer')) renderScheduleRules();
+}
+function onShiftsValue(val) {
+  val = val || {};
+  if (shiftsDirty) { if (JSON.stringify(val) !== JSON.stringify(shifts || {})) pushShiftsLocal(); return; }
+  const serverHas = Object.keys(val).some(function(k) { return (val[k] || []).length || (val[k] && typeof val[k] === 'object'); });
+  if (!serverHas && Object.keys(shifts || {}).length) { autoMigrateLocalToServer(); return; }
+  shifts = val; saveOfflineShifts(shifts); renderAll();
 }
 function onStaffValue(val) {
   val = val || {};
@@ -986,7 +1041,7 @@ async function saveDeptRules(scopeIdx, btn) {
   markShiftsDirty();
   let savedServer = false;
   try {
-    await db.ref(path('scheduleRules')).set(scheduleRules);
+    await db.ref(path('scheduleRules')).set(rulesForFirebase(scheduleRules));
     if (Object.keys(updates).length) await db.ref(path('shifts')).update(updates);
     savedServer = true;
   } catch (e) {
@@ -1029,7 +1084,7 @@ async function saveDayRules(scopeIdx, day) {
   const updates = regenerateScopeWeekday(scope, day);
   markShiftsDirty();
   try {
-    await db.ref(path('scheduleRules')).set(scheduleRules);
+    await db.ref(path('scheduleRules')).set(rulesForFirebase(scheduleRules));
     if (Object.keys(updates).length) await db.ref(path('shifts')).update(updates);
     clearRulesDirty(); clearShiftsDirty();
     toast('✔ تم حفظ وتطبيق ' + RULE_DAY_NAMES[day] + ' على ' + Object.keys(updates).length + ' يوماً (5 سنوات)');
@@ -1073,7 +1128,7 @@ async function saveScheduleRules() {
   scheduleRules = normalizeScheduleRules(next);
   saveOfflineRules(scheduleRules);
   try {
-    await db.ref(path('scheduleRules')).set(scheduleRules);
+    await db.ref(path('scheduleRules')).set(rulesForFirebase(scheduleRules));
     rulesMsg('✔ تم حفظ قواعد توزيع الورديات', true);
     renderAll();
   } catch (e) {
@@ -1302,23 +1357,8 @@ function listenData() {
   db.ref(path('staff')).on('value', function(s) { onStaffValue(s.val()); });
   // الورديات والقواعد: إن كان في الجهاز تعديلات لم تُزامَن بعد (علم «معدَّل»)
   // يبقى المحلي هو المعتمد ويُدفع للخادم تلقائياً — فلا تضيع المدخلات مع تحديث الصفحة.
-  db.ref(path('shifts')).on('value', function(s) {
-    const val = s.val() || {};
-    if (shiftsDirty) { if (JSON.stringify(val) !== JSON.stringify(shifts || {})) pushShiftsLocal(); return; }
-    shifts = val; saveOfflineShifts(shifts); renderAll();
-  });
-  db.ref(path('scheduleRules')).on('value', function(s) {
-    if (rulesDirty) {
-      const ls = normalizeScheduleRules(scheduleRules);
-      const vs = normalizeScheduleRules(s.val() || {});
-      if (JSON.stringify(ls) !== JSON.stringify(vs)) pushRulesLocal();
-      return;
-    }
-    scheduleRules = normalizeScheduleRules(s.val() || {});
-    saveOfflineRules(scheduleRules);
-    if (document.getElementById('rulesAnchor')) document.getElementById('rulesAnchor').value = anchorInputValue();
-    if (document.getElementById('rulesContainer')) renderScheduleRules();
-  });
+  db.ref(path('shifts')).on('value', function(s) { onShiftsValue(s.val() || {}); });
+  db.ref(path('scheduleRules')).on('value', function(s) { onRulesValue(s.val() || {}); });
 }
 
 function renderAll() {
