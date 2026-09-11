@@ -350,6 +350,26 @@ select:focus, textarea:focus {
   border: 2px solid rgba(245,158,11,.75);
   box-shadow: 0 0 0 1px rgba(245,158,11,.25), 0 2px 12px rgba(245,158,11,.30);
 }
+/* ===== تقويم شهر الموظف (وردياته بالأخضر وغيابه بالأحمر) ===== */
+.emp-row.clickable { cursor: pointer; }
+.empcal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.empcal-head { text-align: center; font-size: 12px; font-weight: 800; color: #475569; padding: 2px 0; }
+.empcal-cell {
+  aspect-ratio: 1 / 1;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 8px;
+  font-size: 14px; font-weight: 700;
+  background: #f1f5f9; color: #334155;
+  position: relative;
+}
+.empcal-cell.empty { background: transparent; }
+.empcal-cell.shift { background: #16a34a; color: #fff; }
+.empcal-cell.absent { background: #dc2626; color: #fff; }
+.empcal-cell.today { box-shadow: inset 0 0 0 2px #0f766e; }
+.empcal-dot { display: inline-block; width: 12px; height: 12px; border-radius: 4px; margin-inline-end: 2px; vertical-align: -1px; }
+.empcal-dot.shift { background: #16a34a; }
+.empcal-dot.absent { background: #dc2626; }
+
 </style>
 </head>
 <body class="bg-slate-100 min-h-screen">
@@ -644,7 +664,7 @@ select:focus, textarea:focus {
             <h3 class="font-bold text-lg">👥 الموظفون</h3>
             <button type="button" id="staffFormToggle" onclick="toggleStaffForm()" class="btn-teal px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap">➕ إضافة موظف</button>
           </div>
-          <p class="text-sm text-slate-500 mb-3">اضغط ✏️ بجانب أي موظف لتعديله، و⛔ لإيقافه أو ✅ لتفعيله، و⭐ لتعيينه <b>الموظف المثالي لهذا الشهر</b> — تظهر نجمته بجانب اسمه في صفحة اليوم طوال الشهر.</p>
+          <p class="text-sm text-slate-500 mb-3">اضغط ✏️ بجانب أي موظف لتعديله، و⛔ لإيقافه أو ✅ لتفعيله، و⭐ لتعيينه <b>الموظف المثالي لهذا الشهر</b> — واضغط على <b>بطاقة أي موظف</b> لعرض تقويم الشهر (أيام وردياته بالأخضر وأيام غيابه بالأحمر).</p>
           <div id="staffForm" class="hidden border rounded-2xl p-3 mb-4 bg-slate-50">
             <div class="flex items-center justify-between mb-2">
               <span class="font-bold text-sm" id="staffFormTitle">➕ موظف جديد</span>
@@ -733,6 +753,26 @@ select:focus, textarea:focus {
         <button onclick="saveDeptName()" class="flex-1 btn-teal py-2 rounded-xl">حفظ</button>
         <button onclick="closeRenameDept()" class="flex-1 btn-amber py-2 rounded-xl">إلغاء</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<div id="empMonthModal" class="fixed inset-0 z-50 hidden overflow-y-auto -webkit-overflow-scrolling-touch">
+  <div class="fixed inset-0 bg-black/50" onclick="closeEmpMonthModal()"></div>
+  <div class="relative min-h-full flex p-4 pointer-events-none">
+    <div class="m-auto pointer-events-auto bg-white rounded-2xl p-5 w-80 max-w-full">
+      <div class="flex items-center justify-between mb-1">
+        <h3 class="font-bold text-lg" id="empMonthTitle">الموظف</h3>
+        <button type="button" onclick="closeEmpMonthModal()" title="إغلاق" class="text-slate-400 text-xl leading-none">✕</button>
+      </div>
+      <div class="flex items-center justify-between mb-2">
+        <button type="button" onclick="empMonthShift(-1)" class="bg-white px-3 py-2 rounded-xl shadow font-bold">◀</button>
+        <div class="font-bold text-teal-800" id="empMonthLabel"></div>
+        <button type="button" onclick="empMonthShift(1)" class="bg-white px-3 py-2 rounded-xl shadow font-bold">▶</button>
+      </div>
+      <div id="empMonthSummary" class="text-sm text-slate-600 font-bold mb-2"></div>
+      <div id="empMonthGrid" class="empcal-grid"></div>
+      <button type="button" onclick="closeEmpMonthModal()" class="w-full btn-amber py-2 rounded-xl mt-3 font-bold">إغلاق</button>
     </div>
   </div>
 </div>
@@ -1611,6 +1651,74 @@ function clearStar() {
   renderAll();
   try { db.ref(path('settings/stars/' + month)).remove(); } catch (e) {}
   toast('⭐ أُزيل الموظف المثالي لهذا الشهر');
+}
+// ===== تقويم شهر الموظف: أيام وردياته بالأخضر وأيام غيابه بالأحمر =====
+let empMonthId = null;   // معرّف الموظف المعروض تقويمه
+let empMonthDate = null; // أول يوم في الشهر المعروض
+function empShiftDaysSet(empId, y, m) {
+  const set = {};
+  const last = new Date(y, m + 1, 0).getDate();
+  for (let d = 1; d <= last; d++) {
+    const has = daySlots(new Date(y, m, d)).some(function(sl) { return Number(sl.employeeId) === Number(empId); });
+    if (has) set[d] = true;
+  }
+  return set;
+}
+function empAbsenceDaysSet(empId, y, m) {
+  const set = {};
+  Object.keys(absences).forEach(function(k) {
+    const r = absences[k];
+    const d = parseDateKey(r && r.date);
+    if (d && d.getFullYear() === y && d.getMonth() === m && Number(r.employeeId) === Number(empId)) set[d.getDate()] = true;
+  });
+  return set;
+}
+function openEmpMonth(code) {
+  if (!can('staff')) return;
+  const s = staff[String(code)];
+  if (!s) return;
+  empMonthId = Number(s.id);
+  const now = new Date();
+  empMonthDate = new Date(now.getFullYear(), now.getMonth(), 1);
+  document.getElementById('empMonthModal').classList.remove('hidden');
+  renderEmpMonth();
+}
+function closeEmpMonthModal() {
+  document.getElementById('empMonthModal').classList.add('hidden');
+  empMonthId = null;
+  empMonthDate = null;
+}
+function empMonthShift(n) {
+  if (!empMonthDate) return;
+  empMonthDate = new Date(empMonthDate.getFullYear(), empMonthDate.getMonth() + n, 1);
+  renderEmpMonth();
+}
+function renderEmpMonth() {
+  const grid = document.getElementById('empMonthGrid');
+  if (!grid || !empMonthDate || empMonthId == null) return;
+  const y = empMonthDate.getFullYear(), m = empMonthDate.getMonth();
+  const emp = allStaffList().find(function(s) { return Number(s.id) === Number(empMonthId); });
+  document.getElementById('empMonthTitle').textContent = '📅 ' + (emp ? displayName(emp) : 'الموظف');
+  document.getElementById('empMonthLabel').textContent = arabicMonths[m] + ' ' + y;
+  const shiftSet = empShiftDaysSet(empMonthId, y, m);
+  const absSet = empAbsenceDaysSet(empMonthId, y, m);
+  const today = new Date();
+  const firstIdx = RULE_DAY_ORDER.indexOf(new Date(y, m, 1).getDay()); // السبت أول عمود
+  const last = new Date(y, m + 1, 0).getDate();
+  let html = '';
+  RULE_DAY_ORDER.forEach(function(w) { html += '<div class="empcal-head">' + arabicDays[w].slice(0, 3) + '</div>'; });
+  for (let i = 0; i < firstIdx; i++) html += '<div class="empcal-cell empty"></div>';
+  for (let d = 1; d <= last; d++) {
+    const isAbs = !!absSet[d];
+    const isShift = !isAbs && !!shiftSet[d];
+    const isToday = (d === today.getDate() && m === today.getMonth() && y === today.getFullYear());
+    let cls = 'empcal-cell' + (isAbs ? ' absent' : (isShift ? ' shift' : '')) + (isToday ? ' today' : '');
+    html += '<div class="' + cls + '" title="' + (isAbs ? 'غياب' : (isShift ? 'وردية' : '')) + '">' + d + '</div>';
+  }
+  grid.innerHTML = html;
+  document.getElementById('empMonthSummary').innerHTML =
+    '<span class="empcal-dot shift"></span> أيام الوردية: ' + Object.keys(shiftSet).length +
+    ' · <span class="empcal-dot absent"></span> أيام الغياب: ' + Object.keys(absSet).length;
 }
 
 // ===== شاشة إعداد الاتصال بقاعدة Firebase =====
@@ -3092,16 +3200,18 @@ function renderSettingsLists() {
   const countsS = prefS === 'shifts' ? staffShiftCounts() : null;
   const sl = document.getElementById('staffList');
   if (sl) sl.innerHTML = sortedStaffForList(allStaffList()).map(function(s) {
-    return '<div class="border rounded-xl p-3"><div class="flex justify-between items-center gap-2">' +
+    return '<div class="border rounded-xl p-3' + (can('staff') ? ' emp-row clickable' : '') + '"' +
+      (can('staff') ? ' onclick="openEmpMonth(\'' + String(s.code).replace(/'/g, "\\'") + '\')" title="اضغط لعرض تقويم الشهر — وردياته بالأخضر وغيابه بالأحمر"' : '') + '>' +
+      '<div class="flex justify-between items-center gap-2">' +
       '<div><div class="font-bold">' + (s.pinned ? '📌 ' : '') + (isStarEmployee(s, new Date()) ? '<span class="star-badge" title="⭐ الموظف المثالي لهذا الشهر">⭐</span>' : '') + displayName(s) +
         (s.mgr ? ' <span class="text-[10px] bg-amber-100 text-amber-800 rounded-full px-2 py-0.5 font-bold">👔 مدير قسم</span>' : '') + '</div>' +
       '<div class="text-sm text-slate-500">' + (s.title||'') + ' · ' + deptName(s.deptId) +
         (countsS ? ' · ' + (countsS[s.id] || 0) + ' وردية' : '') + '</div></div>' +
       '<div class="flex gap-1 text-sm">' +
-        (can('staff') ? '<button type="button" onclick="toggleStar(\'' + String(s.code).replace(/'/g, "\\'") + '\')" title="' + (isStarEmployee(s, new Date()) ? 'إزالة التميز لهذا الشهر' : '⭐ تعيينه الموظف المثالي لهذا الشهر') + '" class="star-toggle ' + (isStarEmployee(s, new Date()) ? 'on' : '') + ' px-2 py-1 rounded-lg leading-none">⭐</button>' : '') +
-        '<button type="button" onclick="loadStaffToForm(\'' + String(s.code).replace(/'/g, "\\'") + '\')" title="تعديل" class="bg-teal-800 text-amber-100 px-2 py-1 rounded-lg text-xs leading-none">✏️</button>' +
-        '<button type="button" title="' + (s.disabled ? '✅ تفعيل الموظف' : '⛔ إيقاف الموظف') + '" onclick="toggleStaffDisabled(\'' + String(s.code).replace(/'/g, "\\'") + '\',' + (s.disabled ? 'false' : 'true') + ')" class="bg-slate-200 text-slate-700 px-2 py-1 rounded-lg leading-none">' + (s.disabled ? '✅' : '⛔') + '</button>' +
-        '<button type="button" onclick="removeStaff(\'' + String(s.code).replace(/'/g, "\\'") + '\')" title="حذف" class="text-red-500 text-lg px-2 py-1">✕</button>' +
+        (can('staff') ? '<button type="button" onclick="event.stopPropagation();toggleStar(\'' + String(s.code).replace(/'/g, "\\'") + '\')" title="' + (isStarEmployee(s, new Date()) ? 'إزالة التميز لهذا الشهر' : '⭐ تعيينه الموظف المثالي لهذا الشهر') + '" class="star-toggle ' + (isStarEmployee(s, new Date()) ? 'on' : '') + ' px-2 py-1 rounded-lg leading-none">⭐</button>' : '') +
+        '<button type="button" onclick="event.stopPropagation();loadStaffToForm(\'' + String(s.code).replace(/'/g, "\\'") + '\')" title="تعديل" class="bg-teal-800 text-amber-100 px-2 py-1 rounded-lg text-xs leading-none">✏️</button>' +
+        '<button type="button" title="' + (s.disabled ? '✅ تفعيل الموظف' : '⛔ إيقاف الموظف') + '" onclick="event.stopPropagation();toggleStaffDisabled(\'' + String(s.code).replace(/'/g, "\\'") + '\',' + (s.disabled ? 'false' : 'true') + ')" class="bg-slate-200 text-slate-700 px-2 py-1 rounded-lg leading-none">' + (s.disabled ? '✅' : '⛔') + '</button>' +
+        '<button type="button" onclick="event.stopPropagation();removeStaff(\'' + String(s.code).replace(/'/g, "\\'") + '\')" title="حذف" class="text-red-500 text-lg px-2 py-1">✕</button>' +
       '</div></div>' +
       (s.disabled ? '<div class="text-xs bg-red-50 text-red-600 font-bold px-2 py-1 rounded-lg mt-1 inline-block">⛔ موقوف — لا يدخل التوزيع ولا يسجّل الدخول</div>' : '') +
     '</div>';
