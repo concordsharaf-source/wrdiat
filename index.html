@@ -370,6 +370,42 @@ select:focus, textarea:focus {
 .empcal-dot.shift { background: #16a34a; }
 .empcal-dot.absent { background: #dc2626; }
 
+/* ===== منطقة طباعة تقرير PDF (الحضور والغياب والورديات) ===== */
+#printArea { display: none; }
+@media print {
+  body { background: #fff !important; }
+  body > *:not(#printArea) { display: none !important; }
+  #printArea { display: block !important; }
+  @page { size: A4; margin: 12mm; }
+}
+#printArea { font-family: 'Tajawal', sans-serif; color: #111; }
+.rp-title { font-size: 20px; font-weight: 800; color: #0f766e; }
+.rp-sub { font-size: 14px; font-weight: 700; color: #334155; margin-top: 2px; }
+.rp-meta { font-size: 12px; color: #475569; margin-top: 4px; }
+.rp-header { text-align: center; margin-bottom: 10px; border-bottom: 2px solid #0f766e; padding-bottom: 8px; }
+.rp-legend { font-size: 12px; color: #334155; margin: 6px 0; }
+.rp-legend-box { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-inline-end: 2px; vertical-align: -1px; }
+.rp-shift { background: #16a34a; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.rp-abs { background: #dc2626; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.rp-summary { font-size: 13px; font-weight: 700; color: #0f172a; background: #ecfdf5; border: 1px solid #bbf7d0; border-radius: 8px; padding: 6px 10px; margin: 6px 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.rp-emp { border: 1px solid #e2e8f0; border-radius: 10px; padding: 8px 10px; margin-top: 8px; page-break-inside: avoid; -webkit-column-break-inside: avoid; }
+.rp-emp-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; margin-bottom: 6px; }
+.rp-emp-name { font-size: 15px; font-weight: 800; color: #0f172a; }
+.rp-emp-dept { font-size: 12px; color: #64748b; }
+.rp-emp-counts { font-size: 12px; font-weight: 700; margin-inline-start: auto; }
+.rp-g { color: #16a34a; }
+.rp-r { color: #dc2626; }
+.rp-emp-body { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-start; }
+.rp-cal { display: inline-block; }
+.rp-cal-row { display: flex; }
+.rp-dow { width: 22px; text-align: center; font-size: 9px; font-weight: 800; color: #64748b; }
+.rp-day { width: 22px; height: 18px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; border-radius: 3px; margin: 1px; background: #f1f5f9; color: #334155; }
+.rp-day.rp-blank { background: transparent; }
+.rp-day.rp-shift { background: #16a34a; color: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.rp-day.rp-abs { background: #dc2626; color: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.rp-shifts { flex: 1; min-width: 180px; font-size: 11px; color: #334155; line-height: 1.7; }
+.rp-empty { text-align: center; color: #94a3b8; padding: 12px; }
+
 </style>
 </head>
 <body class="bg-slate-100 min-h-screen">
@@ -641,6 +677,15 @@ select:focus, textarea:focus {
       </div>
 
       <div id="tab-absences" class="tab-panel hidden">
+        <section class="bg-white rounded-2xl p-4 shadow mb-4">
+          <h3 class="font-bold text-lg mb-1">🖨️ تصدير تقرير PDF — الحضور والغياب والورديات</h3>
+          <p class="text-sm text-slate-500 mb-3">اختر الشهر ثم اضغط «طباعة» — يُنشأ تقرير لكل الموظفين: أيام وردياتهم (حضورهم) بالأخضر وأيام غيابهم بالأحمر مع تفاصيل الورديات، ومن نافذة الطباعة اختر «حفظ كـ PDF».</p>
+          <div class="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
+            <label class="text-sm font-bold text-slate-600 shrink-0">📅 الشهر:</label>
+            <input id="absMonth" type="month" class="flex-1 border rounded-xl p-3 bg-white text-sm">
+            <button type="button" onclick="printAttendanceReport()" class="btn-teal px-4 py-3 rounded-xl text-sm font-bold whitespace-nowrap">🖨️ طباعة / حفظ PDF</button>
+          </div>
+        </section>
         <section class="bg-white rounded-2xl p-4 shadow">
           <h3 class="font-bold text-lg mb-2">🚫 سجل الغياب</h3>
           <p class="text-sm text-slate-500 mb-3">أي حذف لوردية من صفحة اليوم (زر ✕) يُسجَّل هنا غياباً لذلك اليوم فقط — الموظف يبقى مسؤولاً عن بقية أيامه.</p>
@@ -3491,6 +3536,8 @@ async function recordAbsence(employeeId, dateKey) {
 }
 // ===== قائمة الغياب (الإعدادات — للأدمن) =====
 function renderAbsences() {
+  const mi = document.getElementById('absMonth');
+  if (mi && !mi.value) { const n = new Date(); mi.value = n.getFullYear() + '-' + pad2(n.getMonth() + 1); }
   const box = document.getElementById('absencesList');
   if (!box) return;
   const rows = Object.keys(absences).map(function(k) { return Object.assign({ _key: k }, absences[k]); })
@@ -3528,6 +3575,94 @@ async function removeAbsence(id) {
     renderAbsences();
     toast('تم حذف السجل محلياً — سيُزامن عند عودة الاتصال');
   }
+}
+
+// ===== تصدير تقرير PDF: الحضور والغياب والورديات لكل الموظفين =====
+// ورديات موظف في شهر (تاريخ + وقت) مرتّبة حسب اليوم
+function empShiftsInMonth(empId, y, m) {
+  const out = [];
+  const last = new Date(y, m + 1, 0).getDate();
+  for (let d = 1; d <= last; d++) {
+    daySlots(new Date(y, m, d)).forEach(function(sl) {
+      if (Number(sl.employeeId) === Number(empId)) {
+        out.push({ day: d, date: y + '-' + (m + 1) + '-' + d, start: sl.start || '', end: sl.end || '' });
+      }
+    });
+  }
+  return out;
+}
+// شبكة تقويم شهر مصغّرة للموظف (أخضر = وردية، أحمر = غياب) بصيغة HTML للطباعة
+function reportEmpCalHtml(empId, y, m) {
+  const shiftSet = empShiftDaysSet(empId, y, m);
+  const absSet = empAbsenceDaysSet(empId, y, m);
+  const firstIdx = RULE_DAY_ORDER.indexOf(new Date(y, m, 1).getDay());
+  const last = new Date(y, m + 1, 0).getDate();
+  let cells = [];
+  for (let i = 0; i < firstIdx; i++) cells.push('<div class="rp-day rp-blank"></div>');
+  for (let d = 1; d <= last; d++) {
+    const isAbs = !!absSet[d];
+    const isShift = !isAbs && !!shiftSet[d];
+    cells.push('<div class="rp-day ' + (isAbs ? 'rp-abs' : (isShift ? 'rp-shift' : '')) + '">' + d + '</div>');
+  }
+  while (cells.length % 7 !== 0) cells.push('<div class="rp-day rp-blank"></div>');
+  let html = '<div class="rp-cal"><div class="rp-cal-row">';
+  RULE_DAY_ORDER.forEach(function(w) { html += '<div class="rp-dow">' + arabicDays[w].slice(0, 3) + '</div>'; });
+  html += '</div>';
+  for (let i = 0; i < cells.length; i += 7) {
+    html += '<div class="rp-cal-row">' + cells.slice(i, i + 7).join('') + '</div>';
+  }
+  return html + '</div>';
+}
+// بطاقة موظف داخل التقرير
+function reportEmpHtml(emp, y, m) {
+  const shiftsArr = empShiftsInMonth(emp.id, y, m);
+  const shiftDays = Object.keys(empShiftDaysSet(emp.id, y, m)).length;
+  const absDays = Object.keys(empAbsenceDaysSet(emp.id, y, m)).length;
+  const shiftsStr = shiftsArr.length
+    ? shiftsArr.map(function(sh) { return '<b>' + sh.day + '/' + (m + 1) + '</b> ' + escapeHtml(sh.start) + '–' + escapeHtml(sh.end); }).join('  ·  ')
+    : 'لا ورديات في هذا الشهر';
+  return '<div class="rp-emp">' +
+    '<div class="rp-emp-head">' +
+      '<span class="rp-emp-name">' + escapeHtml(displayName(emp)) + (emp.disabled ? ' <span class="rp-r">(موقوف)</span>' : '') + '</span>' +
+      '<span class="rp-emp-dept">' + escapeHtml(deptName(emp.deptId) || 'بدون قسم') + (emp.title ? ' · ' + escapeHtml(emp.title) : '') + '</span>' +
+      '<span class="rp-emp-counts"><span class="rp-g">ورديات: ' + shiftDays + '</span> · <span class="rp-r">غياب: ' + absDays + '</span></span>' +
+    '</div>' +
+    '<div class="rp-emp-body">' +
+      reportEmpCalHtml(emp.id, y, m) +
+      '<div class="rp-shifts">🗓️ ' + shiftsStr + '</div>' +
+    '</div>' +
+  '</div>';
+}
+function printAttendanceReport() {
+  if (!can('absences')) return;
+  const now = new Date();
+  let y = now.getFullYear(), m = now.getMonth();
+  const mi = document.getElementById('absMonth');
+  if (mi && mi.value) {
+    const p = String(mi.value).split('-');
+    if (p.length === 2 && Number(p[0]) && Number(p[1])) { y = Number(p[0]); m = Number(p[1]) - 1; }
+  }
+  const emps = sortedStaffForList(allStaffList());
+  const monthName = arabicMonths[m] + ' ' + y;
+  const issued = arabicDays[now.getDay()] + ' ' + now.getDate() + ' ' + arabicMonths[now.getMonth()] + ' ' + now.getFullYear();
+  const orgName = (APP_CONFIG && APP_CONFIG.org && APP_CONFIG.org.name) || 'نظام الورديات';
+  let totalShifts = 0, totalAbs = 0;
+  emps.forEach(function(e) {
+    totalShifts += Object.keys(empShiftDaysSet(e.id, y, m)).length;
+    totalAbs += Object.keys(empAbsenceDaysSet(e.id, y, m)).length;
+  });
+  let html = '<div class="rp-page">';
+  html += '<div class="rp-header">' +
+    '<div class="rp-title">📋 تقرير الحضور والغياب والورديات</div>' +
+    '<div class="rp-sub">' + escapeHtml(orgName) + '</div>' +
+    '<div class="rp-meta">الشهر: ' + escapeHtml(monthName) + ' — تاريخ الإصدار: ' + escapeHtml(issued) + '</div>' +
+  '</div>';
+  html += '<div class="rp-legend"><span class="rp-legend-box rp-shift"></span> يوم وردية (حضور) &nbsp;&nbsp; <span class="rp-legend-box rp-abs"></span> يوم غياب &nbsp;&nbsp; الأيام الفارغة = إجازة / بدون وردية</div>';
+  html += '<div class="rp-summary">👥 عدد الموظفين: ' + emps.length + ' · 🟢 إجمالي أيام الورديات: ' + totalShifts + ' · 🔴 إجمالي أيام الغياب: ' + totalAbs + '</div>';
+  html += emps.length ? emps.map(function(e) { return reportEmpHtml(e, y, m); }).join('') : '<p class="rp-empty">لا يوجد موظفون بعد.</p>';
+  html += '</div>';
+  document.getElementById('printArea').innerHTML = html;
+  setTimeout(function() { window.print(); }, 80);
 }
 
 // ===== تبديل سريع من بطاقة اليوم (في حال غياب أحدهم) =====
@@ -3666,5 +3801,6 @@ if ('serviceWorker' in navigator) {
 
 
 </script>
+<div id="printArea" dir="rtl"></div>
 </body>
 </html>
