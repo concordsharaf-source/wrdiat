@@ -3201,7 +3201,7 @@ function renderDay() {
   box.innerHTML = slots.map(function(sl) {
     const st = staffById(sl.employeeId) || { name: 'موظف', hex: '#0f766e', title: '' };
     const del = can('slots') ? '<button onclick="deleteSlot(\'' + sl.id + '\')" class="slot-del">✕</button>' : '';
-    const info = (st.title || '') + (deptName(st.deptId) ? (st.title ? ' · ' : '') + deptName(st.deptId) : '');
+    const info = st.title || ''; // تحت الاسم: المسمى الوظيفي فقط (بدون القسم)
     const starHtml = isStarEmployee(st, viewDate)
       ? '<span class="star-badge" title="⭐ الموظف المثالي لهذا الشهر">⭐</span>'
       : '';
