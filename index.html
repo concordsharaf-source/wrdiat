@@ -991,10 +991,9 @@ async function pickPhoneFromContacts() {
     return;
   }
   try {
-    const contacts = await navigator.contacts.select(['name', 'tel'], { multiple: false });
+    const contacts = await navigator.contacts.select(['tel'], { multiple: false });
     if (!contacts || !contacts.length) { staffMsg('لم تختر جهة اتصال', false); return; }
     const c = contacts[0];
-    const cName = (Array.isArray(c.name) && c.name.length) ? String(c.name[0]) : '';
     const cTel = (Array.isArray(c.tel) && c.tel.length) ? String(c.tel[0]) : '';
     if (!cTel) { staffMsg('جهة الاتصال المختارة بلا رقم هاتف', false); toast('📇 لا يوجد رقم في جهة الاتصال'); return; }
     // الرقم يُحفظ كما هو في جهة الاتصال — بدون إضافة رمز دولة أو أي تعديل
@@ -1002,13 +1001,6 @@ async function pickPhoneFromContacts() {
     if (!digits) { staffMsg('تعذر قراءة الرقم من جهة الاتصال', false); return; }
     const phoneInput = document.getElementById('stPhone');
     if (phoneInput) phoneInput.value = digits;
-    // نملأ الاسمين تلقائياً إن كانا فارغين (الاسم الرباعي من اسم جهة الاتصال)
-    if (cName) {
-      const fn = document.getElementById('stFullName');
-      if (fn && !fn.value.trim()) fn.value = cName;
-      const nm = document.getElementById('stName');
-      if (nm && !nm.value.trim()) nm.value = cName.split(' ')[0] || cName;
-    }
     staffMsg('✔ أُخذ الرقم من جهات الاتصال: ' + digits, true);
     toast('✔ تم إدخال رقم جهة الاتصال');
   } catch (e) {
