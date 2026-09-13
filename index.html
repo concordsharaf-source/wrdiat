@@ -716,7 +716,9 @@ select:focus, textarea:focus {
               <span class="font-bold text-sm" id="staffFormTitle">➕ موظف جديد</span>
               <button type="button" onclick="toggleStaffForm(true)" title="إغلاق" class="text-slate-400 text-xl leading-none">✕</button>
             </div>
-            <input id="stName" class="w-full border rounded-xl p-3 mb-2" placeholder="الاسم">
+            <input id="stName" class="w-full border rounded-xl p-3 mb-2" placeholder="الاسم (يظهر في الورديات)">
+            <input id="stFullName" class="w-full border rounded-xl p-3 mb-2" placeholder="الاسم الرباعي (يظهر في تقارير الغياب)">
+            <input id="stPhone" class="w-full border rounded-xl p-3 mb-2" placeholder="رقم الهاتف" inputmode="tel" dir="ltr">
             <input id="stTitle" class="w-full border rounded-xl p-3 mb-2" placeholder="المسمى الوظيفي مثل مصور / طباخ">
             <select id="stDept" class="w-full border rounded-xl p-3 mb-2 bg-white"></select>
             <p class="text-xs text-slate-400 mb-3">💡 لون الموظف يتبع لون قسمه تلقائياً — الموظف بدون قسم يظهر بلون افتراضي.</p>
@@ -961,6 +963,19 @@ function displayName(s) {
     return String(s.name || '') + ' ' + String(s.lastName || s.laqab || '');
   }
   return String(s.name || s.fullName || '');
+}
+// الاسم الرباعي الكامل: للتقارير والغياب — يرجع للاسم المختصر إن لم يوجد رباعي
+function fullDisplayName(s) {
+  if (!s) return '';
+  return String(s.fullName || s.name || '');
+}
+// الاتصال برقم الموظف: يُطبّع الرقم (رمز الدولة) ويفتح لوحة الاتصال
+function callStaff(code) {
+  const s = staff[String(code)];
+  if (!s) return;
+  const digits = whatsappNumber(s.phone);
+  if (!digits) { toast('📞 لا يوجد رقم هاتف مسجّل لهذا الموظف'); return; }
+  try { window.location.href = 'tel:+' + digits; } catch (e) {}
 }
 function namesMatch(s, typed) {
   const t = String(typed || '').replace(/\s+/g, ' ').trim();
@@ -3200,19 +3215,25 @@ function renderDay() {
   // بطاقتان بجوار بعض: عرض أكبر قدر من المعلومات بأقل مساحة (بلا شارة «تلقائي»)
   box.innerHTML = slots.map(function(sl) {
     const st = staffById(sl.employeeId) || { name: 'موظف', hex: '#0f766e', title: '' };
-    const del = can('slots') ? '<button onclick="deleteSlot(\'' + sl.id + '\')" class="slot-del">✕</button>' : '';
+    const canCall = isAdmin() || isAssistant(); // الأدمن والمساعد فقط يضغطان للاتصال
+    const stCode = String(st.code || '');
+    const del = can('slots') ? '<button onclick="event.stopPropagation();deleteSlot(\'' + sl.id + '\')" class="slot-del">✕</button>' : '';
     const info = st.title || ''; // تحت الاسم: المسمى الوظيفي فقط (بدون القسم)
     const starHtml = isStarEmployee(st, viewDate)
       ? '<span class="star-badge" title="⭐ الموظف المثالي لهذا الشهر">⭐</span>'
       : '';
     const starSlot = isStarEmployee(st, viewDate) ? ' star-slot' : '';
     const nm = can('slots')
-      ? '<button type="button" data-key="' + formatKey(viewDate) + '" data-slot="' + sl.id + '" class="swap-trigger" title="اضغط على الاسم للتبديل في حال الغياب">' + starHtml + (st.mgr ? '👔 ' : '') + displayName(st) + ' ⇄</button>'
+      ? '<button type="button" class="swap-trigger" onclick="event.stopPropagation();openSwapModal(\'' + formatKey(viewDate) + '\',\'' + sl.id + '\')" title="اضغط على الاسم للتبديل في حال الغياب">' + starHtml + (st.mgr ? '👔 ' : '') + displayName(st) + ' ⇄</button>'
       : '<span>' + starHtml + (st.mgr ? '👔 ' : '') + displayName(st) + '</span>';
-    return '<div class="slot shadow' + starSlot + '" style="background:' + staffColor(st) + '">' + del +
+    const phoneTag = (canCall && st.phone) ? ' <span style="opacity:.9">📞</span>' : '';
+    const callAttr = canCall
+      ? ' onclick="callStaff(\'' + stCode.replace(/'/g, "\\'") + '\')" title="' + (st.phone ? '📞 اضغط للاتصال: ' + escapeHtml(st.phone) : 'لا يوجد رقم هاتف لهذا الموظف') + '" style="cursor:pointer;background:' + staffColor(st) + '"'
+      : ' style="background:' + staffColor(st) + '"';
+    return '<div class="slot shadow' + starSlot + '"' + callAttr + '>' + del +
       '<div class="slot-emp">' + nm + '</div>' +
       (info ? '<div class="slot-info">' + info + '</div>' : '') +
-      '<div class="slot-time">⏰ ' + (sl.start || '') + ' — ' + (sl.end || '') + '</div></div>';
+      '<div class="slot-time">⏰ ' + (sl.start || '') + ' — ' + (sl.end || '') + phoneTag + '</div></div>';
   }).join('');
 }
 
@@ -3227,7 +3248,12 @@ function renderStats() {
     });
   }
   document.getElementById('statsBox').innerHTML = sortedStaffForList(staffList()).map(function(s) {
-    return '<div class="p-4 rounded-2xl text-white" style="background:' + staffColor(s) + '"><div class="flex justify-between"><span class="font-bold">' + (s.pinned ? '📌 ' : '') + displayName(s) + (s.mgr ? ' 👔' : '') + '</span><span>' + (counts[s.id]||0) + ' وردية</span></div><div class="text-xs opacity-80">' + (s.title||'') + ' · ' + deptName(s.deptId) + '</div></div>';
+    const canCall = isAdmin() || isAssistant();
+    const callAttr = canCall
+      ? ' onclick="callStaff(\'' + String(s.code).replace(/'/g, "\\'") + '\')" title="' + (s.phone ? '📞 اضغط للاتصال: ' + escapeHtml(s.phone) : 'لا يوجد رقم هاتف لهذا الموظف') + '" style="cursor:pointer;background:' + staffColor(s) + '"'
+      : ' style="background:' + staffColor(s) + '"';
+    const phoneTag = (canCall && s.phone) ? ' <span style="opacity:.85">📞</span>' : '';
+    return '<div class="p-4 rounded-2xl text-white"' + callAttr + '><div class="flex justify-between"><span class="font-bold">' + (s.pinned ? '📌 ' : '') + displayName(s) + (s.mgr ? ' 👔' : '') + '</span><span>' + (counts[s.id]||0) + ' وردية</span></div><div class="text-xs opacity-80">' + (s.title||'') + ' · ' + deptName(s.deptId) + phoneTag + '</div></div>';
   }).join('') || '<p class="text-slate-400">لا يوجد موظفون</p>';
 }
 
@@ -3259,7 +3285,12 @@ function renderSettingsLists() {
       '<div><div class="font-bold">' + (s.pinned ? '📌 ' : '') + (isStarEmployee(s, new Date()) ? '<span class="star-badge" title="⭐ الموظف المثالي لهذا الشهر">⭐</span>' : '') + displayName(s) +
         (s.mgr ? ' <span class="text-[10px] bg-amber-100 text-amber-800 rounded-full px-2 py-0.5 font-bold">👔 مدير قسم</span>' : '') + '</div>' +
       '<div class="text-sm text-slate-500">' + (s.title||'') + ' · ' + deptName(s.deptId) +
-        (countsS ? ' · ' + (countsS[s.id] || 0) + ' وردية' : '') + '</div></div>' +
+        (countsS ? ' · ' + (countsS[s.id] || 0) + ' وردية' : '') + '</div>' +
+      ((s.fullName || s.phone) ? '<div class="text-xs text-slate-400">' +
+        (s.fullName ? escapeHtml(s.fullName) : '') +
+        (s.fullName && s.phone ? ' · ' : '') +
+        (s.phone ? '📞 ' + escapeHtml(s.phone) : '') + '</div>' : '') +
+      '</div>' +
       '<div class="flex gap-1 text-sm">' +
         (can('staff') ? '<button type="button" onclick="event.stopPropagation();toggleStar(\'' + String(s.code).replace(/'/g, "\\'") + '\')" title="' + (isStarEmployee(s, new Date()) ? 'إزالة التميز لهذا الشهر' : '⭐ تعيينه الموظف المثالي لهذا الشهر') + '" class="star-toggle ' + (isStarEmployee(s, new Date()) ? 'on' : '') + ' px-2 py-1 rounded-lg leading-none">⭐</button>' : '') +
         '<button type="button" onclick="event.stopPropagation();loadStaffToForm(\'' + String(s.code).replace(/'/g, "\\'") + '\')" title="تعديل" class="bg-teal-800 text-amber-100 px-2 py-1 rounded-lg text-xs leading-none">✏️</button>' +
@@ -3383,6 +3414,8 @@ function nextStaffKey() { // معرف داخلي تلقائي — لا حاجة 
 function readStaffForm() {
   return {
     name: document.getElementById('stName').value.trim(),
+    fullName: document.getElementById('stFullName').value.trim(),
+    phone: document.getElementById('stPhone').value.trim(),
     title: document.getElementById('stTitle').value.trim(),
     deptId: document.getElementById('stDept').value,
     pinned: !!(document.getElementById('stPinned') || {}).checked,
@@ -3391,6 +3424,8 @@ function readStaffForm() {
 }
 function setStaffForm(d) {
   document.getElementById('stName').value = d.name || '';
+  document.getElementById('stFullName').value = d.fullName || '';
+  document.getElementById('stPhone').value = d.phone || '';
   document.getElementById('stTitle').value = d.title || '';
   document.getElementById('stDept').value = d.deptId || '';
   const pin = document.getElementById('stPinned'); if (pin) pin.checked = !!d.pinned;
@@ -3433,6 +3468,7 @@ async function addStaff() {
       const id = Number(oldRec.id) || Number(key) || Date.now();
       await db.ref(path('staff/' + key)).set({
         name: f.name,
+        fullName: f.fullName, phone: f.phone,
         title: f.title, deptId: f.deptId, id: id,
         pinned: !!f.pinned, mgr: !!f.mgr,
         disabled: !!oldRec.disabled, code: key
@@ -3446,6 +3482,7 @@ async function addStaff() {
     const key = nextStaffKey();
     await db.ref(path('staff/' + key)).set({
       name: f.name,
+      fullName: f.fullName, phone: f.phone,
       title: f.title, deptId: f.deptId, id: Number(key), disabled: false, code: key,
       pinned: !!f.pinned, mgr: !!f.mgr
     });
@@ -3526,7 +3563,7 @@ async function recordAbsence(employeeId, dateKey) {
   const rec = {
     date: dateKey,
     employeeId: Number(employeeId),
-    employeeName: emp ? displayName(emp) : 'موظف',
+    employeeName: emp ? fullDisplayName(emp) : 'موظف',
     deptId: emp ? (emp.deptId || '') : '',
     at: Date.now(),
     by: (currentUser && currentUser.username) || ''
@@ -3619,7 +3656,7 @@ function printAttendanceReport() {
   let body = '';
   rows.forEach(function(r, i) {
     let tr = '<tr><td class="rp-seq">' + (i + 1) + '</td>' +
-      '<td class="rp-name" title="' + escapeHtml(displayName(r.emp)) + '">' + escapeHtml(displayName(r.emp)) + '</td>';
+      '<td class="rp-name" title="' + escapeHtml(fullDisplayName(r.emp)) + '">' + escapeHtml(fullDisplayName(r.emp)) + '</td>';
     for (let d = 1; d <= last; d++) {
       const isAbs = !!r.absSet[d];
       const isShift = !isAbs && !!r.shiftSet[d];
