@@ -720,8 +720,9 @@ select:focus, textarea:focus {
             <input id="stFullName" class="w-full border rounded-xl p-3 mb-2" placeholder="الاسم الرباعي (يظهر في تقارير الغياب)">
             <div class="flex gap-2">
               <input id="stPhone" class="flex-1 border rounded-xl p-3 mb-2" placeholder="رقم الهاتف" inputmode="tel" dir="ltr">
-              <button type="button" onclick="addPhoneToContacts()" title="إضافة الرقم إلى جهات الاتصال" class="btn-teal px-3 mb-2 rounded-xl text-lg">📇</button>
+              <button type="button" onclick="pickPhoneFromContacts()" title="اختيار الرقم من جهات اتصال هاتفك" class="btn-teal px-3 mb-2 rounded-xl text-lg">📇</button>
             </div>
+            <p class="text-xs text-slate-400 mb-2">📇 اضغط الأيقونة لاختيار الرقم من جهات الاتصال المحفوظة في هاتفك (يعمل على كروم أندرويد).</p>
             <input id="stTitle" class="w-full border rounded-xl p-3 mb-2" placeholder="المسمى الوظيفي مثل مصور / طباخ">
             <select id="stDept" class="w-full border rounded-xl p-3 mb-2 bg-white"></select>
             <p class="text-xs text-slate-400 mb-3">💡 لون الموظف يتبع لون قسمه تلقائياً — الموظف بدون قسم يظهر بلون افتراضي.</p>
@@ -981,50 +982,37 @@ function callStaff(code) {
   try { window.location.href = 'tel:+' + digits; } catch (e) {}
 }
 // إضافة الرقم المكتوب في خانة الهاتف إلى جهات اتصال الهاتف (عبر ملف vCard)
-function addPhoneToContacts() {
-  const phone = ((document.getElementById('stPhone') || {}).value || '').trim();
-  if (!phone) { staffMsg('أدخل رقم الهاتف أولاً'); toast('📇 أدخل رقم الهاتف أولاً'); return; }
-  const digits = whatsappNumber(phone);
-  if (!digits) { staffMsg('أدخل رقم هاتف صحيح'); toast('📇 أدخل رقم هاتف صحيح'); return; }
-  const name = ((document.getElementById('stFullName') || {}).value || '').trim()
-    || ((document.getElementById('stName') || {}).value || '').trim()
-    || 'موظف';
-  const vcard = [
-    'BEGIN:VCARD',
-    'VERSION:3.0',
-    'FN:' + name,
-    'N:' + name + ';;;;',
-    'TEL;TYPE=CELL:+' + digits,
-    'END:VCARD'
-  ].join('\r\n');
-  // أولاً: نافذة مشاركة النظام (أندرويد) — تعرض خيار «جهات الاتصال» مباشرة لحفظ الرقم
+// اختيار رقم من جهات اتصال الهاتف وحفظه في خانة الهاتف (استيراد من جهات الاتصال)
+async function pickPhoneFromContacts() {
+  // Contact Picker API — مدعوم على كروم أندرويد ويتطلب HTTPS وضغطة من المستخدم
+  if (!('contacts' in navigator) || !navigator.contacts || typeof navigator.contacts.select !== 'function') {
+    staffMsg('📇 متصفحك لا يدعم فتح جهات الاتصال (يعمل على كروم أندرويد) — اكتب الرقم يدوياً', false);
+    toast('📇 هذا المتصفح لا يدعم اختيار الرقم من جهات الاتصال');
+    return;
+  }
   try {
-    const file = new File([vcard], 'contact_' + digits + '.vcf', { type: 'text/vcard' });
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      navigator.share({ files: [file], title: 'جهة اتصال: ' + name, text: name })
-        .then(function() { toast('📇 اختر «جهات الاتصال» من القائمة لإضافة الرقم'); })
-        .catch(function() { downloadVcard(vcard, digits); toast('📇 تم تنزيل ملف جهة الاتصال — افتحه ليُحفظ في جهاتك'); });
-      staffMsg('📇 اختر «جهات الاتصال» من نافذة المشاركة', true);
-      return;
+    const contacts = await navigator.contacts.select(['name', 'tel'], { multiple: false });
+    if (!contacts || !contacts.length) { staffMsg('لم تختر جهة اتصال', false); return; }
+    const c = contacts[0];
+    const cName = (Array.isArray(c.name) && c.name.length) ? String(c.name[0]) : '';
+    const cTel = (Array.isArray(c.tel) && c.tel.length) ? String(c.tel[0]) : '';
+    if (!cTel) { staffMsg('جهة الاتصال المختارة بلا رقم هاتف', false); toast('📇 لا يوجد رقم في جهة الاتصال'); return; }
+    const digits = whatsappNumber(cTel);
+    if (!digits) { staffMsg('تعذر قراءة الرقم من جهة الاتصال', false); return; }
+    const phoneInput = document.getElementById('stPhone');
+    if (phoneInput) phoneInput.value = digits;
+    // نملأ الاسمين تلقائياً إن كانا فارغين (الاسم الرباعي من اسم جهة الاتصال)
+    if (cName) {
+      const fn = document.getElementById('stFullName');
+      if (fn && !fn.value.trim()) fn.value = cName;
+      const nm = document.getElementById('stName');
+      if (nm && !nm.value.trim()) nm.value = cName.split(' ')[0] || cName;
     }
-  } catch (e) {}
-  // بدون مشاركة (آيفون أو متصفح لا يدعمها): تنزيل ملف vCard
-  downloadVcard(vcard, digits);
-  staffMsg('📇 تم تنزيل ملف جهة الاتصال — افتحه ليُحفظ في جهات اتصال هاتفك', true);
-  toast('📇 تم تنزيل ملف جهة الاتصال');
-}
-// تنزيل ملف vCard (ملف جهة اتصال .vcf)
-function downloadVcard(vcard, digits) {
-  try {
-    const blob = new Blob([vcard], { type: 'text/vcard;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'contact_' + digits + '.vcf';
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(function() { URL.revokeObjectURL(url); a.remove(); }, 800);
-  } catch (e) {}
+    staffMsg('✔ أُخذ الرقم من جهات الاتصال: ' + digits, true);
+    toast('✔ تم إدخال رقم جهة الاتصال');
+  } catch (e) {
+    staffMsg('تعذر فتح جهات الاتصال: ' + ((e && e.message) ? e.message : 'ألغيت الاختيار'), false);
+  }
 }
 function namesMatch(s, typed) {
   const t = String(typed || '').replace(/\s+/g, ' ').trim();
