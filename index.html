@@ -486,8 +486,8 @@ select:focus, textarea:focus {
       <div class="font-bold text-sm" id="welcomeMessage">👀 وضع الاطلاع — يمكن للجميع مشاهدة الورديات</div>
       <div class="flex gap-2">
         <button onclick="showPage('day')" class="p-2" title="اليوم">📅</button>
-        <button onclick="showPage('help')" class="p-2" title="التعليمات">❓</button>
-        <button onclick="showPage('stats')" class="p-2" title="الإحصائيات">📊</button>
+        <button id="helpBtn" onclick="showPage('help')" class="p-2" title="التعليمات">❓</button>
+        <button id="statsBtn" onclick="showPage('stats')" class="p-2" title="الإحصائيات">📊</button>
         <button onclick="openAboutModal()" class="p-2" title="حول التطبيق">ℹ️</button>
         <button id="adminBtn" onclick="onAdminClick()" class="p-2" title="الإعدادات / دخول الأدمن">⚙️</button>
       </div>
@@ -2623,6 +2623,11 @@ function enterApp() {
   document.getElementById('addSlotBtn').classList.toggle('hidden', !can('slots'));
   document.getElementById('adminSettings').classList.toggle('hidden', !(isAdm || isAsst));
   document.getElementById('logoutBtn').classList.toggle('hidden', !(isAdm || isAsst));
+  // الموظف يرى الورديات و«حول التطبيق» فقط — لا إحصائيات ولا دليل ولا زر الإعدادات/الدخول
+  const isEmp = !!(currentUser && currentUser.role === 'employee');
+  document.getElementById('helpBtn').classList.toggle('hidden', isEmp);
+  document.getElementById('statsBtn').classList.toggle('hidden', isEmp);
+  document.getElementById('adminBtn').classList.toggle('hidden', isEmp);
   // تبويبات الإعدادات: الأدمن يرى الكل، والمساعد يرى ما يملك صلاحيته فقط
   const tabsVis = { depts: can('depts'), staff: can('staff'), shifts: can('rules'), security: isAdm, assistant: isAdm, announce: (isAdm || isAsst), absences: can('absences'), signups: isSuperAdmin() };
   Object.keys(tabsVis).forEach(function(n) {
@@ -3133,6 +3138,8 @@ function renderAll() {
 
 function showPage(name) {
   if (name === 'settings' && !isAdmin() && !isAssistant()) { openLoginModal(); return; }
+  // الموظف لا يدخل الإحصائيات ولا دليل الاستخدام — يعاد لصفحة اليوم
+  if ((name === 'help' || name === 'stats') && currentUser && currentUser.role === 'employee') name = 'day';
   ['day','help','stats','settings'].forEach(function(n) {
     document.getElementById(n + 'Page').classList.toggle('hidden', n !== name);
   });
