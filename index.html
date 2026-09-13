@@ -983,29 +983,48 @@ function callStaff(code) {
 // إضافة الرقم المكتوب في خانة الهاتف إلى جهات اتصال الهاتف (عبر ملف vCard)
 function addPhoneToContacts() {
   const phone = ((document.getElementById('stPhone') || {}).value || '').trim();
-  if (!phone) { staffMsg('أدخل رقم الهاتف أولاً'); return; }
+  if (!phone) { staffMsg('أدخل رقم الهاتف أولاً'); toast('📇 أدخل رقم الهاتف أولاً'); return; }
   const digits = whatsappNumber(phone);
-  if (!digits) { staffMsg('أدخل رقم هاتف صحيح'); return; }
+  if (!digits) { staffMsg('أدخل رقم هاتف صحيح'); toast('📇 أدخل رقم هاتف صحيح'); return; }
   const name = ((document.getElementById('stFullName') || {}).value || '').trim()
     || ((document.getElementById('stName') || {}).value || '').trim()
     || 'موظف';
-  const lines = [
+  const vcard = [
     'BEGIN:VCARD',
     'VERSION:3.0',
     'FN:' + name,
     'N:' + name + ';;;;',
     'TEL;TYPE=CELL:+' + digits,
     'END:VCARD'
-  ];
-  const blob = new Blob([lines.join('\r\n')], { type: 'text/vcard;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'contact_' + digits + '.vcf';
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(function() { URL.revokeObjectURL(url); a.remove(); }, 500);
-  staffMsg('📇 فُتح ملف جهة الاتصال — افتحه واحفظه في جهات اتصال هاتفك', true);
+  ].join('\r\n');
+  // أولاً: نافذة مشاركة النظام (أندرويد) — تعرض خيار «جهات الاتصال» مباشرة لحفظ الرقم
+  try {
+    const file = new File([vcard], 'contact_' + digits + '.vcf', { type: 'text/vcard' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file], title: 'جهة اتصال: ' + name, text: name })
+        .then(function() { toast('📇 اختر «جهات الاتصال» من القائمة لإضافة الرقم'); })
+        .catch(function() { downloadVcard(vcard, digits); toast('📇 تم تنزيل ملف جهة الاتصال — افتحه ليُحفظ في جهاتك'); });
+      staffMsg('📇 اختر «جهات الاتصال» من نافذة المشاركة', true);
+      return;
+    }
+  } catch (e) {}
+  // بدون مشاركة (آيفون أو متصفح لا يدعمها): تنزيل ملف vCard
+  downloadVcard(vcard, digits);
+  staffMsg('📇 تم تنزيل ملف جهة الاتصال — افتحه ليُحفظ في جهات اتصال هاتفك', true);
+  toast('📇 تم تنزيل ملف جهة الاتصال');
+}
+// تنزيل ملف vCard (ملف جهة اتصال .vcf)
+function downloadVcard(vcard, digits) {
+  try {
+    const blob = new Blob([vcard], { type: 'text/vcard;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'contact_' + digits + '.vcf';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function() { URL.revokeObjectURL(url); a.remove(); }, 800);
+  } catch (e) {}
 }
 function namesMatch(s, typed) {
   const t = String(typed || '').replace(/\s+/g, ' ').trim();
