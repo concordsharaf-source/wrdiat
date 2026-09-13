@@ -718,7 +718,10 @@ select:focus, textarea:focus {
             </div>
             <input id="stName" class="w-full border rounded-xl p-3 mb-2" placeholder="الاسم (يظهر في الورديات)">
             <input id="stFullName" class="w-full border rounded-xl p-3 mb-2" placeholder="الاسم الرباعي (يظهر في تقارير الغياب)">
-            <input id="stPhone" class="w-full border rounded-xl p-3 mb-2" placeholder="رقم الهاتف" inputmode="tel" dir="ltr">
+            <div class="flex gap-2">
+              <input id="stPhone" class="flex-1 border rounded-xl p-3 mb-2" placeholder="رقم الهاتف" inputmode="tel" dir="ltr">
+              <button type="button" onclick="addPhoneToContacts()" title="إضافة الرقم إلى جهات الاتصال" class="btn-teal px-3 mb-2 rounded-xl text-lg">📇</button>
+            </div>
             <input id="stTitle" class="w-full border rounded-xl p-3 mb-2" placeholder="المسمى الوظيفي مثل مصور / طباخ">
             <select id="stDept" class="w-full border rounded-xl p-3 mb-2 bg-white"></select>
             <p class="text-xs text-slate-400 mb-3">💡 لون الموظف يتبع لون قسمه تلقائياً — الموظف بدون قسم يظهر بلون افتراضي.</p>
@@ -976,6 +979,33 @@ function callStaff(code) {
   const digits = whatsappNumber(s.phone);
   if (!digits) { toast('📞 لا يوجد رقم هاتف مسجّل لهذا الموظف'); return; }
   try { window.location.href = 'tel:+' + digits; } catch (e) {}
+}
+// إضافة الرقم المكتوب في خانة الهاتف إلى جهات اتصال الهاتف (عبر ملف vCard)
+function addPhoneToContacts() {
+  const phone = ((document.getElementById('stPhone') || {}).value || '').trim();
+  if (!phone) { staffMsg('أدخل رقم الهاتف أولاً'); return; }
+  const digits = whatsappNumber(phone);
+  if (!digits) { staffMsg('أدخل رقم هاتف صحيح'); return; }
+  const name = ((document.getElementById('stFullName') || {}).value || '').trim()
+    || ((document.getElementById('stName') || {}).value || '').trim()
+    || 'موظف';
+  const lines = [
+    'BEGIN:VCARD',
+    'VERSION:3.0',
+    'FN:' + name,
+    'N:' + name + ';;;;',
+    'TEL;TYPE=CELL:+' + digits,
+    'END:VCARD'
+  ];
+  const blob = new Blob([lines.join('\r\n')], { type: 'text/vcard;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'contact_' + digits + '.vcf';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function() { URL.revokeObjectURL(url); a.remove(); }, 500);
+  staffMsg('📇 فُتح ملف جهة الاتصال — افتحه واحفظه في جهات اتصال هاتفك', true);
 }
 function namesMatch(s, typed) {
   const t = String(typed || '').replace(/\s+/g, ' ').trim();
