@@ -997,7 +997,8 @@ async function pickPhoneFromContacts() {
     const cName = (Array.isArray(c.name) && c.name.length) ? String(c.name[0]) : '';
     const cTel = (Array.isArray(c.tel) && c.tel.length) ? String(c.tel[0]) : '';
     if (!cTel) { staffMsg('جهة الاتصال المختارة بلا رقم هاتف', false); toast('📇 لا يوجد رقم في جهة الاتصال'); return; }
-    const digits = whatsappNumber(cTel);
+    // الرقم يُحفظ كما هو في جهة الاتصال — بدون إضافة رمز دولة أو أي تعديل
+    const digits = String(cTel).trim();
     if (!digits) { staffMsg('تعذر قراءة الرقم من جهة الاتصال', false); return; }
     const phoneInput = document.getElementById('stPhone');
     if (phoneInput) phoneInput.value = digits;
