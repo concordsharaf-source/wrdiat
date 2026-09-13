@@ -401,6 +401,10 @@ select:focus, textarea:focus {
 .rp-table tbody tr:nth-child(even) td { background-color: #f7f7f7; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 .rp-table tbody tr:nth-child(even) td.rp-cell-h { background-color: #16a34a; }
 .rp-table tbody tr:nth-child(even) td.rp-cell-g { background-color: #dc2626; }
+/* عمودا المجموع الأزرقان في نهاية الجدول: ح (الحضور) و غ (الغياب) */
+.rp-th-blue { background: #2563eb; color: #fff; font-weight: 800; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.rp-tot { background: #dbeafe; color: #1e3a8a; font-weight: 800; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.rp-table tbody tr:nth-child(even) td.rp-tot { background-color: #dbeafe; }
 
 
 </style>
@@ -3600,10 +3604,10 @@ function printAttendanceReport() {
     totalAbs += Object.keys(absSet).length;
     return { emp: e, shiftSet: shiftSet, absSet: absSet };
   });
-  // رأس الجدول: عمود المسلسل + عمود الاسم + أعمدة أيام الشهر مرقّمة
+  // رأس الجدول: عمود المسلسل + عمود الاسم + أعمدة أيام الشهر مرقّمة + عمودا المجموع (ح / غ)
   let head = '<tr><th class="rp-seq">م</th><th class="rp-name">الموظف</th>';
   for (let d = 1; d <= last; d++) head += '<th>' + d + '</th>';
-  head += '</tr>';
+  head += '<th class="rp-th-blue">ح</th><th class="rp-th-blue">غ</th></tr>';
   // صف لكل موظف: ح = وردية (أخضر)، غ = غياب (أحمر)، وإلا فارغة
   let body = '';
   rows.forEach(function(r, i) {
@@ -3616,6 +3620,9 @@ function printAttendanceReport() {
         ? '<td class="rp-cell-g">غ</td>'
         : (isShift ? '<td class="rp-cell-h">ح</td>' : '<td></td>');
     }
+    // عمودا المجموع: ح = عدد أيام الورديات، غ = عدد أيام الغياب
+    tr += '<td class="rp-tot">' + Object.keys(r.shiftSet).length + '</td>' +
+          '<td class="rp-tot">' + Object.keys(r.absSet).length + '</td>';
     body += tr + '</tr>';
   });
   let html = '<div class="rp-page">';
@@ -3624,7 +3631,7 @@ function printAttendanceReport() {
     '<div class="rp-sub">' + escapeHtml(orgName) + '</div>' +
     '<div class="rp-meta">الشهر: ' + escapeHtml(monthName) + ' — عدد الأيام: ' + last + ' — تاريخ الإصدار: ' + escapeHtml(issued) + '</div>' +
   '</div>';
-  html += '<div class="rp-legend"><span class="rp-legend-box rp-shift"></span> ح = وردية (حضور) &nbsp;&nbsp; <span class="rp-legend-box rp-abs"></span> غ = غياب &nbsp;&nbsp; الخانات الفارغة = إجازة / بدون وردية</div>';
+  html += '<div class="rp-legend"><span class="rp-legend-box rp-shift"></span> ح = وردية (حضور) &nbsp;&nbsp; <span class="rp-legend-box rp-abs"></span> غ = غياب &nbsp;&nbsp; الخانات الفارغة = إجازة / بدون وردية &nbsp;&nbsp; <span class="rp-legend-box" style="background:#2563eb;border-radius:3px"></span> العمودان الأزرقان في النهاية: مجموع أيام الحضور والغياب</div>';
   html += '<div class="rp-summary">👥 عدد الموظفين: ' + emps.length + ' · 🟢 أيام الورديات: ' + totalShifts + ' · 🔴 أيام الغياب: ' + totalAbs + '</div>';
   html += emps.length
     ? '<table class="rp-table"><thead>' + head + '</thead><tbody>' + body + '</tbody></table>'
