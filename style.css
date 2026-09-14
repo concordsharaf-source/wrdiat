@@ -1,0 +1,292 @@
+/* =============================================================================
+   style.css — بوابة تثبيت «نظام الورديات» (PWA Install Gatekeeper)
+   ملف مستقل بالكامل: لا يعتمد على tw.css ولا على <style> داخل index.html،
+   لأن البوابة يجب أن تُرسم قبل أي شيء آخر (وقبل أن يشتغل تطبيق Firebase).
+   كل المواقع بخصائص منطقية (inline-/block-) حتى يصحّ الشكل في RTL و LTR.
+   ============================================================================= */
+
+:root {
+  --wg-teal: #0f766e;
+  --wg-teal-deep: #115e59;
+  --wg-teal-deeper: #0b4f47;
+  --wg-amber: #fbbf24;
+  --wg-amber-ink: #92400e;
+  --wg-ink: #0f172a;
+  --wg-muted: #475569;
+  --wg-line: #e2e8f0;
+  --wg-card: #ffffff;
+  --wg-page: #edf4f3;
+  --wg-safe-top: env(safe-area-inset-top, 0px);
+  --wg-safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ============================ 1) الحاويات ============================ */
+
+/*
+   البوابة مفتوحة فقط عندما يضبط HTML الخاصية data-install-gate="gate"
+   (سكربت مصغّر في <head> — يعمل قبل أول رسم). لا JS = التطبيق يعمل كما هو،
+   ولا شاشة بيضاء أبداً.
+*/
+#install-screen {
+  display: none;
+}
+
+html[data-install-gate='gate'] {
+  overflow: hidden;
+  background: var(--wg-teal-deeper);
+}
+
+html[data-install-gate='gate'] body {
+  overflow: hidden;
+}
+
+html[data-install-gate='gate'] #app-content {
+  display: none !important;
+}
+
+html[data-install-gate='gate'] #install-screen {
+  display: flex;
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000; /* فوق كل شيء في التطبيق (التحذيرات تستخدم 9999) */
+  align-items: center;
+  justify-content: center;
+  padding: calc(1rem + var(--wg-safe-top)) 1rem calc(1rem + var(--wg-safe-bottom));
+  overflow-y: auto;
+  background:
+    radial-gradient(1100px 620px at 18% -10%, #0d9488 0%, transparent 55%),
+    linear-gradient(150deg, #0b4f47 0%, #0f766e 48%, #134e4a 100%);
+  color: #f8fafc;
+  font-family: 'Tajawal', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-align: center;
+}
+
+/* ============================ 2) البطاقة ============================ */
+
+.wg-card {
+  box-sizing: border-box;
+  inline-size: min(26rem, 100%);
+  margin: auto;
+  padding: 1.5rem 1.15rem 1.25rem;
+  background: var(--wg-card);
+  color: var(--wg-ink);
+  border: 1px solid rgba(15, 23, 42, .08);
+  border-radius: 22px;
+  box-shadow: 0 26px 60px -22px rgba(3, 30, 27, .75);
+  animation: wg-rise .3s ease-out both;
+}
+
+@keyframes wg-rise {
+  from { opacity: 0; transform: translate3d(0, 10px, 0); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wg-card { animation: none; }
+}
+
+.wg-icon {
+  display: grid;
+  place-items: center;
+  inline-size: 3.75rem;
+  block-size: 3.75rem;
+  margin-inline: auto;
+  border-radius: 18px;
+  background: linear-gradient(160deg, var(--wg-teal) 0%, var(--wg-teal-deep) 100%);
+  color: #fff;
+  box-shadow: 0 14px 28px -14px rgba(15, 118, 110, .9);
+}
+
+.wg-icon svg { inline-size: 1.9rem; block-size: 1.9rem; }
+
+.wg-title {
+  margin: .8rem 0 0;
+  font-size: 1.3rem;
+  font-weight: 800;
+  line-height: 1.45;
+  color: var(--wg-ink);
+}
+
+.wg-sub {
+  margin: .35rem 0 0;
+  font-size: .85rem;
+  line-height: 1.7;
+  color: var(--wg-muted);
+}
+
+/* ============================ 3) الأزرار والروابط ============================ */
+
+.wg-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  inline-size: 100%;
+  margin-block-start: 1.15rem;
+  padding: .8rem 1rem;
+  border: 0;
+  border-radius: 14px;
+  background: linear-gradient(180deg, var(--wg-teal) 0%, var(--wg-teal-deep) 100%);
+  color: #fff;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform .12s ease, filter .12s ease;
+}
+
+.wg-button[hidden] { display: none; }
+.wg-button:hover { filter: brightness(1.06); }
+.wg-button:active { transform: scale(.985); }
+.wg-button:focus-visible { outline: 3px solid var(--wg-amber); outline-offset: 2px; }
+.wg-button[disabled] { opacity: .6; cursor: default; }
+.wg-button svg { inline-size: 1.2rem; block-size: 1.2rem; flex: none; }
+
+/* شارة «التثبيت جاهز» التي تظهر بدل الزر عند عدم دعم الحدث */
+.wg-badge-ready {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  margin-block-start: 1rem;
+  padding: .3rem .7rem;
+  border-radius: 999px;
+  background: #ecfeff;
+  color: var(--wg-teal);
+  font-size: .75rem;
+  font-weight: 800;
+}
+
+.wg-badge-ready[hidden] { display: none; }
+
+.wg-link {
+  inline-size: 100%;
+  margin-block-start: .8rem;
+  padding: .4rem .2rem;
+  border: 0;
+  background: none;
+  color: var(--wg-muted);
+  font: inherit;
+  font-size: .75rem;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.wg-link[hidden] { display: none; }
+.wg-link:hover { color: var(--wg-teal); }
+
+/* ============================ 4) خطوات iOS ============================ */
+
+.wg-steps {
+  margin-block-start: 1.15rem;
+  text-align: start;
+}
+
+.wg-steps[hidden] { display: none; }
+
+.wg-steps-title {
+  margin: 0 0 .5rem;
+  font-size: .8rem;
+  font-weight: 800;
+  color: var(--wg-ink);
+}
+
+.wg-steps-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: .45rem;
+}
+
+.wg-steps-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: .6rem;
+  padding: .6rem .7rem;
+  background: #f1f5f9;
+  border: 1px solid var(--wg-line);
+  border-radius: 14px;
+  font-size: .8rem;
+  line-height: 1.65;
+  color: #1c1917;
+}
+
+.wg-steps-list strong { font-weight: 800; }
+
+.wg-step-num {
+  flex: none;
+  display: grid;
+  place-items: center;
+  inline-size: 1.35rem;
+  block-size: 1.35rem;
+  margin-block-start: .05rem;
+  border-radius: 8px;
+  background: var(--wg-amber);
+  color: #111827;
+  font-size: .75rem;
+  font-weight: 800;
+}
+
+.wg-steps-list svg {
+  inline-size: .9rem;
+  block-size: .9rem;
+  vertical-align: -.1rem;
+}
+
+/* ============================ 5) ملاحظات وحالة ============================ */
+
+.wg-note {
+  margin-block-start: .9rem;
+  padding: .7rem .8rem;
+  text-align: start;
+  background: #fff7ed;
+  border: 1px dashed #fb923c;
+  border-radius: 14px;
+  font-size: .75rem;
+  line-height: 1.7;
+  color: var(--wg-amber-ink);
+}
+
+.wg-note[hidden] { display: none; }
+.wg-note p { margin: 0; }
+
+.wg-ok {
+  background: #ecfdf5;
+  border: 1px solid var(--wg-teal);
+  color: #065f46;
+  font-weight: 700;
+}
+
+.wg-status {
+  min-block-size: 1rem;
+  margin: .6rem 0 0;
+  font-size: .7rem;
+  font-weight: 700;
+  color: var(--wg-teal);
+}
+
+.wg-status[hidden] { display: none; }
+
+/* الوضع الداكن للنظام — بطاقة داكنة بدل البيضاء */
+@media (prefers-color-scheme: dark) {
+  html[data-install-gate='gate'] .wg-card {
+    background: #0f172a;
+    color: #e2e8f0;
+    border-color: rgba(226, 232, 240, .14);
+  }
+  html[data-install-gate='gate'] .wg-title { color: #f8fafc; }
+  html[data-install-gate='gate'] .wg-sub,
+  html[data-install-gate='gate'] .wg-link { color: #94a3b8; }
+  html[data-install-gate='gate'] .wg-steps-title { color: #e2e8f0; }
+  html[data-install-gate='gate'] .wg-steps-list li {
+    background: #111c31;
+    border-color: #1e293b;
+    color: #e2e8f0;
+  }
+  html[data-install-gate='gate'] .wg-badge-ready { background: #0d3b39; color: #99f6e4; }
+  html[data-install-gate='gate'] .wg-note { background: #292018; border-color: #b45309; color: #fcd34d; }
+  html[data-install-gate='gate'] .wg-ok { background: #052e2a; border-color: #0f766e; color: #99f6e4; }
+}

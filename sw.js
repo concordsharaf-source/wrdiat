@@ -1,8 +1,9 @@
-const CACHE_NAME = 'wrdiat-offline-v31';
+const CACHE_NAME = 'wrdiat-offline-v32';
 const ICON = './images/icon-192x192.png';
 const APP_URL = './index.html';
 const APP_SHELL = [
   './', './index.html', './config.js', './tw.css', './fonts.css',
+  './style.css', './app.js',
   './firebase-app.js', './firebase-database.js', './manifest.json',
   './images/icon-192x192.png', './images/icon-512x512.png',
   './fonts/tajawal-400.ttf', './fonts/tajawal-700.ttf'

@@ -11,6 +11,36 @@
 <meta name="theme-color" content="#0f766e">
 <link rel="apple-touch-icon" href="images/icon-192x192.png">
 <script src="config.js"></script>
+<link rel="stylesheet" href="style.css">
+<!--
+  بوابة التثبيت: تصنيف وضع التشغيل قبل أول رسم (لا وميض ولا شاشة بيضاء).
+  · standalone / navigator.standalone  ⇒ data-install-gate="app"   (يُعرض #app-content)
+  · وضع المتصفح                         ⇒ data-install-gate="gate"   (تُعرض #install-screen)
+  أي خطأ ⇒ "app": البوابة توجيه للمستخدم، لا سدّ لباب النظام.
+  المنطق الكامل (زر التثبيت + تعليمات iOS) في app.js
+-->
+<script>
+;(function () {
+  var root = document.documentElement
+  try {
+    var q = null
+    try { q = new URLSearchParams(location.search).get('installgate') } catch (e) {}
+    var standalone = navigator.standalone === true
+    if (!standalone && window.matchMedia) {
+      var modes = ['standalone', 'minimal-ui', 'fullscreen', 'window-controls-overlay']
+      for (var i = 0; i < modes.length; i++) {
+        if (window.matchMedia('(display-mode: ' + modes[i] + ')').matches) { standalone = true; break }
+      }
+    }
+    var skipped = false
+    try { skipped = window.sessionStorage.getItem('wrdiat.install-gate-skip') === '1' } catch (e) {}
+    var gate = q === 'off' || q === 'skip' ? false : q === 'force' ? true : (!standalone && !skipped)
+    root.setAttribute('data-install-gate', gate ? 'gate' : 'app')
+  } catch (e) {
+    root.setAttribute('data-install-gate', 'app')
+  }
+})()
+</script>
 <style>
 @import url('fonts.css');
 body { font-family: 'Tajawal', sans-serif; }
@@ -403,6 +433,60 @@ select:focus, textarea:focus {
 </style>
 </head>
 <body class="bg-slate-100 min-h-screen">
+<!-- =============================================================================
+     بوابة التثبيت — تُعرض في وضع المتصفح فقط (يُخفى #app-content حينها)
+     الظهور تقوده خاصية data-install-gate على <html>، فلا يعتمد على نجاح app.js.
+     ============================================================================ -->
+<div id="install-screen" role="dialog" aria-modal="true" aria-labelledby="wg-title">
+  <div class="wg-card">
+    <span class="wg-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 3v11" /><path d="M7.5 10.5 12 15l4.5-4.5" /><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+      </svg>
+    </span>
+
+    <h1 class="wg-title" id="wg-title">ثبّت «نظام الورديات» على جهازك</h1>
+    <p class="wg-sub">التطبيق يعمل من المتصفح فقط لأغراض التجربة — للاستخدام اليومي ثبّته ليُفتح من أيقونته ويعمل بلا إنترنت.</p>
+
+    <!-- (2) كروم / إيدج / بريف: زر مربوط بحدث beforeinstallprompt -->
+    <button type="button" id="install-button" class="wg-button" data-action="install" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 3v11" /><path d="M7.5 10.5 12 15l4.5-4.5" /><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+      </svg>
+      <span id="install-button-label">تثبيت نظام الورديات</span>
+    </button>
+    <span id="install-ready" class="wg-badge-ready" hidden>التثبيت من متصفحك — بالخطوات أدناه</span>
+
+    <!-- (3) iOS Safari: لا يوجد beforeinstallprompt ⇒ خطوات يدوية -->
+    <div id="install-ios" class="wg-steps" hidden>
+      <p class="wg-steps-title">على آيفون / آيباد — من سفاري:</p>
+      <ol class="wg-steps-list">
+        <li><span class="wg-step-num">1</span><span>اضغط أيقونة <strong>«مشاركة»</strong>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4" /><path d="M8 8l4-4 4 4" /><path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4" /></svg>
+          في شريط أدوات سفاري.</span></li>
+        <li><span class="wg-step-num">2</span><span>اختر <strong>«إضافة إلى الشاشة الرئيسية»</strong> (Add to Home Screen).</span></li>
+        <li><span class="wg-step-num">3</span><span>اضغط <strong>«إضافة»</strong> ثم افتح التطبيق من أيقونته في الشاشة الرئيسية.</span></li>
+      </ol>
+    </div>
+
+    <!-- متصفحات بلا دعم التثبيت التلقائي (فايرفوكس، متصفحات داخلية…) -->
+    <div id="install-manual" class="wg-note" hidden>
+      <p>لا يعرض هذا المتصفح زر التثبيت: افتح قائمة المتصفح (⋮ أو ☰) واختر <strong>«تثبيت التطبيق»</strong> أو <strong>«إضافة إلى الشاشة الرئيسية»</strong>، ثم افتح «ورديات» من الأيقونة.</p>
+    </div>
+
+    <!-- بعد نجاح التثبيت -->
+    <div id="install-done" class="wg-note wg-ok" hidden>
+      <p>تم التثبيت ✅ — اخرج من تبويب المتصفح وافتح التطبيق من أيقونته.</p>
+    </div>
+
+    <p id="install-status" class="wg-status" role="status" aria-live="polite" hidden></p>
+
+    <button type="button" id="install-reload" class="wg-link" data-action="reload" hidden>ثبّتَه؟ اضغط هنا للتحديث وفتح التطبيق</button>
+    <button type="button" id="install-skip" class="wg-link" data-action="skip" hidden>الدخول بدون تثبيت (لتجربة سريعة)</button>
+  </div>
+</div>
+
+<div id="app-content">
 
 <!-- ===== نافذة دخول الأدمن فقط (الموظفون والزوّار يشاهدون الجدول مباشرة) ===== -->
 <!-- ===== شاشة البداية: تسجيل الدخول (أدمن أو موظف) ===== -->
@@ -3844,6 +3928,8 @@ if ('serviceWorker' in navigator) {
 
 
 </script>
+</div><!-- /#app-content -->
 <div id="printArea" dir="rtl"></div>
+<script src="app.js"></script>
 </body>
 </html>
