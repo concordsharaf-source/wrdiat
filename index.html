@@ -3338,8 +3338,8 @@ function renderDay() {
       : '';
     const starSlot = isStarEmployee(st, viewDate) ? ' star-slot' : '';
     const nm = can('slots')
-      ? '<button type="button" class="swap-trigger" onclick="event.stopPropagation();openSwapModal(\'' + formatKey(viewDate) + '\',\'' + sl.id + '\')" title="اضغط على الاسم للتبديل في حال الغياب">' + starHtml + (st.mgr ? '👔 ' : '') + displayName(st) + ' ⇄</button>'
-      : '<span>' + starHtml + (st.mgr ? '👔 ' : '') + displayName(st) + '</span>';
+      ? '<button type="button" class="swap-trigger" onclick="event.stopPropagation();openSwapModal(\'' + formatKey(viewDate) + '\',\'' + sl.id + '\')" title="اضغط على الاسم للتبديل في حال الغياب">' + starHtml + (st.mgr ? '👔 ' : '') + escapeHtml(displayName(st)) + ' ⇄</button>'
+      : '<span>' + starHtml + (st.mgr ? '👔 ' : '') + escapeHtml(displayName(st)) + '</span>';
     const phoneTag = (canCall && st.phone) ? ' <span style="opacity:.9">📞</span>' : '';
     const callAttr = canCall
       ? ' onclick="callStaff(\'' + stCode.replace(/'/g, "\\'") + '\')" title="' + (st.phone ? '📞 اضغط للاتصال: ' + escapeHtml(st.phone) : 'لا يوجد رقم هاتف لهذا الموظف') + '" style="cursor:pointer;background:' + staffColor(st) + '"'
@@ -3367,7 +3367,7 @@ function renderStats() {
       ? ' onclick="callStaff(\'' + String(s.code).replace(/'/g, "\\'") + '\')" title="' + (s.phone ? '📞 اضغط للاتصال: ' + escapeHtml(s.phone) : 'لا يوجد رقم هاتف لهذا الموظف') + '" style="cursor:pointer;background:' + staffColor(s) + '"'
       : ' style="background:' + staffColor(s) + '"';
     const phoneTag = (canCall && s.phone) ? ' <span style="opacity:.85">📞</span>' : '';
-    return '<div class="p-4 rounded-2xl text-white"' + callAttr + '><div class="flex justify-between"><span class="font-bold">' + (s.pinned ? '📌 ' : '') + displayName(s) + (s.mgr ? ' 👔' : '') + '</span><span>' + (counts[s.id]||0) + ' وردية</span></div><div class="text-xs opacity-80">' + (s.title||'') + ' · ' + deptName(s.deptId) + phoneTag + '</div></div>';
+    return '<div class="p-4 rounded-2xl text-white"' + callAttr + '><div class="flex justify-between"><span class="font-bold">' + (s.pinned ? '📌 ' : '') + escapeHtml(displayName(s)) + (s.mgr ? ' 👔' : '') + '</span><span>' + (counts[s.id]||0) + ' وردية</span></div><div class="text-xs opacity-80">' + escapeHtml(s.title||'') + ' · ' + escapeHtml(deptName(s.deptId)) + phoneTag + '</div></div>';
   }).join('') || '<p class="text-slate-400">لا يوجد موظفون</p>';
 }
 
@@ -3396,9 +3396,9 @@ function renderSettingsLists() {
     return '<div class="border rounded-xl p-3' + (can('staff') ? ' emp-row clickable' : '') + '"' +
       (can('staff') ? ' onclick="openEmpMonth(\'' + String(s.code).replace(/'/g, "\\'") + '\')" title="اضغط لعرض تقويم الشهر — وردياته بالأخضر وغيابه بالأحمر"' : '') + '>' +
       '<div class="flex justify-between items-center gap-2">' +
-      '<div><div class="font-bold">' + (s.pinned ? '📌 ' : '') + (isStarEmployee(s, new Date()) ? '<span class="star-badge" title="⭐ الموظف المثالي لهذا الشهر">⭐</span>' : '') + displayName(s) +
+      '<div><div class="font-bold">' + (s.pinned ? '📌 ' : '') + (isStarEmployee(s, new Date()) ? '<span class="star-badge" title="⭐ الموظف المثالي لهذا الشهر">⭐</span>' : '') + escapeHtml(displayName(s)) +
         (s.mgr ? ' <span class="text-[10px] bg-amber-100 text-amber-800 rounded-full px-2 py-0.5 font-bold">👔 مدير قسم</span>' : '') + '</div>' +
-      '<div class="text-sm text-slate-500">' + (s.title||'') + ' · ' + deptName(s.deptId) +
+      '<div class="text-sm text-slate-500">' + escapeHtml(s.title||'') + ' · ' + escapeHtml(deptName(s.deptId)) +
         (countsS ? ' · ' + (countsS[s.id] || 0) + ' وردية' : '') + '</div>' +
       ((s.fullName || s.phone) ? '<div class="text-xs text-slate-400">' +
         (s.fullName ? escapeHtml(s.fullName) : '') +
@@ -3626,7 +3626,7 @@ function openSlotModal() {
   if (!can('slots')) return;
   const sel = document.getElementById('slotEmp');
   sel.innerHTML = staffList().map(function(s) {
-    return '<option value="' + s.id + '">' + displayName(s) + (s.title ? ' — ' + s.title : '') + '</option>';
+    return '<option value="' + s.id + '">' + escapeHtml(displayName(s)) + (s.title ? ' — ' + escapeHtml(s.title) : '') + '</option>';
   }).join('');
   if (!staffList().length) { alert('أضف موظفين أولاً من الإعدادات'); return; }
   document.getElementById('slotModal').classList.remove('hidden');
