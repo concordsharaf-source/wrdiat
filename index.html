@@ -560,7 +560,10 @@ select:focus, textarea:focus {
 <div id="mainApp">
   <nav class="bg-teal-800 text-white sticky top-0 z-40 shadow">
     <div class="max-w-3xl mx-auto px-3 py-2 flex justify-between items-center">
-      <div class="font-bold text-sm" id="welcomeMessage">👀 وضع الاطلاع — يمكن للجميع مشاهدة الورديات</div>
+      <div class="flex items-center gap-2 min-w-0">
+        <span id="connDot" style="flex:none;display:inline-block;width:10px;height:10px;border-radius:999px;background:#94a3b8;box-shadow:0 0 0 2px rgba(255,255,255,.25);" title="حالة الاتصال"></span>
+        <div class="font-bold text-sm" id="welcomeMessage">👀 وضع الاطلاع — يمكن للجميع مشاهدة الورديات</div>
+      </div>
       <div class="flex gap-2">
         <button onclick="showPage('day')" class="p-2" title="اليوم">📅</button>
         <button id="helpBtn" onclick="showPage('help')" class="p-2" title="التعليمات">❓</button>
@@ -1258,11 +1261,18 @@ function saveOfflineStars(value) { try { localStorage.setItem(lk(OFFLINE_STARS_K
 // يدفع المحلي للخادم تلقائياً إن كانت فيه تغييرات لم تُزامَن بعد.
 const DIRTY_RULES_KEY = 'wrdiat_dirty_rules';
 const DIRTY_SHIFTS_KEY = 'wrdiat_dirty_shifts';
+const DIRTY_DEPTS_KEY = 'wrdiat_dirty_depts';
+const DIRTY_STAFF_KEY = 'wrdiat_dirty_staff';
 let rulesDirty = false, shiftsDirty = false, rulesPushing = false, shiftsPushing = false;
+let deptsDirty = false, staffDirty = false, deptsPushing = false, staffPushing = false, absencesPushing = false;
 function markRulesDirty() { rulesDirty = true; try { localStorage.setItem(lk(DIRTY_RULES_KEY), '1'); } catch (e) {} saveOfflineRules(scheduleRules); }
 function markShiftsDirty() { shiftsDirty = true; try { localStorage.setItem(lk(DIRTY_SHIFTS_KEY), '1'); } catch (e) {} saveOfflineShifts(shifts); }
+function markDeptsDirty() { deptsDirty = true; try { localStorage.setItem(lk(DIRTY_DEPTS_KEY), '1'); } catch (e) {} saveOfflineDepartments(departments); }
+function markStaffDirty() { staffDirty = true; try { localStorage.setItem(lk(DIRTY_STAFF_KEY), '1'); } catch (e) {} saveOfflineStaff(staff); }
 function clearRulesDirty() { rulesDirty = false; try { localStorage.removeItem(lk(DIRTY_RULES_KEY)); } catch (e) {} }
 function clearShiftsDirty() { shiftsDirty = false; try { localStorage.removeItem(lk(DIRTY_SHIFTS_KEY)); } catch (e) {} }
+function clearDeptsDirty() { deptsDirty = false; try { localStorage.removeItem(lk(DIRTY_DEPTS_KEY)); } catch (e) {} }
+function clearStaffDirty() { staffDirty = false; try { localStorage.removeItem(lk(DIRTY_STAFF_KEY)); } catch (e) {} }
 async function pushRulesLocal() {
   if (rulesPushing || !rulesDirty) return;
   rulesPushing = true;
@@ -1275,10 +1285,40 @@ async function pushShiftsLocal() {
   try { await db.ref(path('shifts')).set(shifts); clearShiftsDirty(); } catch (e) {}
   shiftsPushing = false;
 }
+async function pushDeptsLocal() {
+  if (deptsPushing || !deptsDirty) return;
+  deptsPushing = true;
+  try { await db.ref(path('departments')).set(departments || {}); clearDeptsDirty(); } catch (e) {}
+  deptsPushing = false;
+}
+async function pushStaffLocal() {
+  if (staffPushing || !staffDirty) return;
+  staffPushing = true;
+  try { await db.ref(path('staff')).set(staff || {}); clearStaffDirty(); } catch (e) {}
+  staffPushing = false;
+}
+// غيابات سُجّلت محلياً بلا اتصال (مفاتيح local_*) — تُرفع فردياً ثم تُحذف نسختها المحلية
+async function pushPendingAbsences() {
+  if (absencesPushing) return;
+  const keys = Object.keys(absences).filter(function(k) { return String(k).indexOf('local_') === 0; });
+  if (!keys.length) return;
+  absencesPushing = true;
+  for (let i = 0; i < keys.length; i++) {
+    const k = keys[i];
+    try { await db.ref(path('absences')).push(absences[k]); delete absences[k]; }
+    catch (e) { break; }
+  }
+  saveOfflineAbsences(absences);
+  renderAbsences();
+  absencesPushing = false;
+}
 async function syncDirtyAll() {
   if (!isAdmin() && !isAssistant()) return;
   if (rulesDirty) await pushRulesLocal();
   if (shiftsDirty) await pushShiftsLocal();
+  if (deptsDirty) await pushDeptsLocal();
+  if (staffDirty) await pushStaffLocal();
+  await pushPendingAbsences();
 }
 function restoreOfflineData() {
   try {
@@ -1311,6 +1351,8 @@ function restoreOfflineData() {
   } catch (e) {}
   try { rulesDirty = localStorage.getItem(lk(DIRTY_RULES_KEY)) === '1'; } catch (e) {}
   try { shiftsDirty = localStorage.getItem(lk(DIRTY_SHIFTS_KEY)) === '1'; } catch (e) {}
+  try { deptsDirty = localStorage.getItem(lk(DIRTY_DEPTS_KEY)) === '1'; } catch (e) {}
+  try { staffDirty = localStorage.getItem(lk(DIRTY_STAFF_KEY)) === '1'; } catch (e) {}
 }
 
 function pad2(n) { return String(n).padStart(2, '0'); }
@@ -1414,6 +1456,13 @@ function rulesMsg(text, ok) {
   el.className = 'text-sm mt-2 mb-2 ' + (ok ? 'text-teal-700' : 'text-red-600');
 }
 let toastTimer = null;
+// مؤشر الاتصال الصغير في الشريط العلوي: أخضر = متصل، رمادي = يعمل محلياً بلا اتصال (لا يمنع شيئاً)
+function updateConnDot(online) {
+  const d = document.getElementById('connDot');
+  if (!d) return;
+  d.style.background = online ? '#22c55e' : '#94a3b8';
+  d.title = online ? 'متصل — المزامنة مع الخادم تعمل' : 'بدون اتصال — التطبيق يعمل من بيانات هذا الجهاز وستُزامن تلقائياً عند عودة الاتصال';
+}
 function toast(msg) {
   const el = document.getElementById('toast');
   if (!el) return;
@@ -1561,7 +1610,7 @@ async function pushAllLocalToFirebase(btn) {
     await db.ref(path('staff')).set(staff || {});
     await db.ref(path('scheduleRules')).set(rulesForFirebase(scheduleRules));
     if (n.days) await db.ref(path('shifts')).set(shifts || {});
-    clearRulesDirty(); clearShiftsDirty();
+    clearRulesDirty(); clearShiftsDirty(); clearDeptsDirty(); clearStaffDirty();
     try { localStorage.setItem(lk(MIGRATE_PUSH_KEY), '1'); } catch (e) {}
     pushAllMsg('✔ تم رفع كل البيانات إلى Firebase (' + localDataSummaryText(n) + ')', true);
     toast('☁️ تم رفع بيانات هذا الجهاز إلى Firebase');
@@ -1586,7 +1635,7 @@ async function autoMigrateLocalToServer() {
     await db.ref(path('staff')).set(staff || {});
     await db.ref(path('scheduleRules')).set(rulesForFirebase(scheduleRules));
     if (n.days) await db.ref(path('shifts')).set(shifts || {});
-    clearRulesDirty(); clearShiftsDirty();
+    clearRulesDirty(); clearShiftsDirty(); clearDeptsDirty(); clearStaffDirty();
     try { localStorage.setItem(lk(MIGRATE_PUSH_KEY), '1'); } catch (e) {}
     toast('☁️ القاعدة الجديدة فارغة — تم رفع بيانات هذا الجهاز إليها تلقائياً');
   } catch (e) {}
@@ -1595,6 +1644,12 @@ async function autoMigrateLocalToServer() {
 // معالجات وصول بيانات الخادم: لا تمسح نسخة الجهاز حين تكون القاعدة فارغة
 function onDepartmentsValue(val) {
   val = val || {};
+  // تعديلات محلية لم تُزامَن (أُضيفت بلا اتصال) → المحلي هو المعتمد حتى يُرفع
+  if (deptsDirty && (isAdmin() || isAssistant())) {
+    if (JSON.stringify(val) !== JSON.stringify(departments || {})) pushDeptsLocal();
+    return;
+  }
+  if (deptsDirty) clearDeptsDirty();
   if (Object.keys(val).length) { departments = val; saveOfflineDepartments(departments); renderAll(); return; }
   if (Object.keys(departments).length) { autoMigrateLocalToServer(); return; }
   departments = {}; saveOfflineDepartments(departments); renderAll();
@@ -1651,12 +1706,22 @@ function onShiftsValue(val) {
 }
 function onStaffValue(val) {
   val = val || {};
+  // تعديلات محلية لم تُزامَن → المحلي هو المعتمد حتى يُرفع للخادم
+  if (staffDirty && (isAdmin() || isAssistant())) {
+    if (JSON.stringify(val) !== JSON.stringify(staff || {})) pushStaffLocal();
+    return;
+  }
+  if (staffDirty) clearStaffDirty();
   if (Object.keys(val).length) { staff = val; saveOfflineStaff(staff); renderAll(); return; }
   if (Object.keys(staff).length) { autoMigrateLocalToServer(); return; }
   staff = {}; saveOfflineStaff(staff); renderAll();
 }
 function onAbsencesValue(val) {
   val = val || {};
+  // غيابات سُجّلت محلياً بلا اتصال (مفاتيح local_*) تُدمج مع بيانات الخادم حتى تُرفع
+  Object.keys(absences).forEach(function(k) {
+    if (String(k).indexOf('local_') === 0 && !val[k]) val[k] = absences[k];
+  });
   if (Object.keys(val).length) { absences = val; saveOfflineAbsences(absences); renderAbsences(); return; }
   if (Object.keys(absences).length) { // الخادم فارغ وهذا الجهاز فيه سجلات غير مزامنة → تُرفع
     try { db.ref(path('absences')).set(absences); } catch (e) {}
@@ -2495,12 +2560,44 @@ async function fetchOrgRecord(key) {
   const snap = await db.ref('orgs/' + key).once('value');
   return snap.val();
 }
+// مهلة لطلبات الفايربيس: بدونها تبقى الطلبات معلّقة للأبد عند غياب الاتصال
+function fetchWithTimeout(promise, ms) {
+  return Promise.race([
+    promise,
+    new Promise(function(_, reject) { setTimeout(function() { reject(new Error('NET_TIMEOUT')); }, ms || 8000); })
+  ]);
+}
+// دخول محلي بلا اتصال: يفيد إن سبق الدخول على هذا الجهاز ووُجدت جلسة محفوظة بنفس الحساب
+async function offlineLocalLogin(id, pass) {
+  let u = null;
+  try { u = JSON.parse(localStorage.getItem('wrdiatUser') || 'null'); } catch (e) {}
+  if (!u || !u.email || emailKey(u.email) !== emailKey(id)) return null;
+  const hash = await hashPassword(pass);
+  if (!u.passwordHash || u.passwordHash !== hash) return null;
+  const cu = applySession(u);
+  if (!cu) return null;
+  return u.loginType || null;
+}
+const LOGIN_OFFLINE_MSG = 'لا يوجد اتصال بالإنترنت — البيانات المحفوظة على هذا الجهاز تعمل دون اتصال، والدخول الأول من جديد يحتاج اتصالاً';
 // يحدّد نوع الدخول: أدمن (إيميله + كلمة مروره) أو موظف (إيميل الأدمن + كلمة مرور الموظفين)
 async function loginWithCredentials(id, pass) {
   const key = emailKey(id);
+  // وضع عدم الاتصال: دخول محلي فوري إن وُجدت جلسة مطابقة على هذا الجهاز
+  if (navigator && navigator.onLine === false) {
+    const local = await offlineLocalLogin(id, pass);
+    if (local) return local;
+    throw new Error(LOGIN_OFFLINE_MSG);
+  }
   let rec = null;
-  try { rec = await fetchOrgRecord(key); }
-  catch (e) { throw new Error('تعذر الاتصال بالخادم — تحقق من الإنترنت وحاول مرة أخرى'); }
+  try { rec = await fetchWithTimeout(fetchOrgRecord(key), 8000); }
+  catch (e) {
+    if (e && e.message === 'NET_TIMEOUT') {
+      const local = await offlineLocalLogin(id, pass);
+      if (local) return local;
+      throw new Error(LOGIN_OFFLINE_MSG);
+    }
+    throw new Error('تعذر الاتصال بالخادم — تحقق من الإنترنت وحاول مرة أخرى');
+  }
   if (!rec) {
     // أدمن مساعد؟ يُبحث في فهرس المساعدين ثم في سجل مؤسسته
     let orgKey = null;
@@ -2552,6 +2649,7 @@ function afterLogin() {
   document.getElementById('loginModal').classList.add('hidden');
   document.body.classList.remove('start-mode');
   try { if (window.__dataStarted) { window.__dataStarted = false; location.reload(); return; } } catch (e) {}
+  restoreOfflineData(); // بيانات هذا الجهاز تظهر فوراً (تعمل بلا اتصال) ثم تأتي تحديثات الخادم
   enterApp();
 }
 async function handleLogin() {
@@ -3449,9 +3547,15 @@ function addDepartment() {
   const noColor = !!(document.getElementById('deptNoColor') || {}).checked;
   const colorInput = document.getElementById('deptColor');
   const hex = noColor ? '' : ((colorInput && colorInput.value) || '');
-  db.ref(path('departments')).push({ name: name, hex: hex, createdAt: Date.now() });
+  // حفظ محلي فوري (يعمل بلا اتصال) ثم مزامنة مع الخادم
+  const id = 'd' + Date.now().toString(36);
+  departments[id] = { name: name, hex: hex, createdAt: Date.now() };
+  markDeptsDirty();
+  renderAll();
+  db.ref(path('departments')).set(departments).then(clearDeptsDirty).catch(function() {});
   document.getElementById('newDeptName').value = '';
   if (colorInput) colorInput.__touched = false; // يقترح لوناً جديداً غير مستخدم للإضافة التالية
+  toast('✔ أُضيف القسم' + (navigator.onLine === false ? ' — محفوظ على هذا الجهاز وسيُزامن عند عودة الاتصال' : ''));
 }
 // ===== لون القسم: لوحة الألوان + منتقي مخصص =====
 function refreshDeptColorPalette() {
@@ -3484,12 +3588,21 @@ function pickDeptColor(hex) {
 async function setDeptColor(id, hex) {
   if (!can('depts')) return;
   const v = /^#[0-9a-f]{6}$/i.test(String(hex || '')) ? String(hex).toLowerCase() : '';
-  if (departments[id]) departments[id].hex = v;
-  try { await db.ref(path('departments/' + id + '/hex')).set(v); } catch (e) {}
+  if (departments[id]) { departments[id].hex = v; markDeptsDirty(); }
+  db.ref(path('departments')).set(departments).then(clearDeptsDirty).catch(function() {});
   renderAll();
   toast(v ? '✔ تم تعيين لون القسم' : '✔ أُلغي اللون الموحد — يرجع كل موظف للونه');
 }
-function removeDept(id) { if (!can('depts')) return; if (confirm('حذف القسم؟')) db.ref(path('departments/' + id)).remove(); }
+function removeDept(id) {
+  if (!can('depts')) return;
+  if (!confirm('حذف القسم؟')) return;
+  // حذف محلي فوري ثم مزامنة
+  delete departments[id];
+  markDeptsDirty();
+  renderAll();
+  db.ref(path('departments')).set(departments).then(clearDeptsDirty).catch(function() {});
+  toast('تم حذف القسم' + (navigator.onLine === false ? ' — سيُزامن عند عودة الاتصال' : ''));
+}
 
 // ===== لوحة ألوان الموظف: مجموعة أوسع + منتقي مخصص + الألوان المختارة حديثاً =====
 const STAFF_COLORS = [
@@ -3580,13 +3693,16 @@ async function addStaff() {
       const key = editingStaffCode;
       const oldRec = staff[key] || {};
       const id = Number(oldRec.id) || Number(key) || Date.now();
-      await db.ref(path('staff/' + key)).set({
+      staff[key] = {
         name: f.name,
         fullName: f.fullName, phone: f.phone,
         title: f.title, deptId: f.deptId, id: id,
         pinned: !!f.pinned, mgr: !!f.mgr,
         disabled: !!oldRec.disabled, code: key
-      });
+      };
+      markStaffDirty();
+      renderAll();
+      db.ref(path('staff/' + key)).set(staff[key]).then(clearStaffDirty).catch(function() {});
       cancelStaffEdit();
       staffMsg('✔ تم تحديث بيانات الموظف', true);
       toggleStaffForm(true); // طيّ النموذج بعد الحفظ
@@ -3594,12 +3710,15 @@ async function addStaff() {
     }
     // إضافة جديدة: مفتاح داخلي تلقائي (لا أرقام دخول)
     const key = nextStaffKey();
-    await db.ref(path('staff/' + key)).set({
+    staff[key] = {
       name: f.name,
       fullName: f.fullName, phone: f.phone,
       title: f.title, deptId: f.deptId, id: Number(key), disabled: false, code: key,
       pinned: !!f.pinned, mgr: !!f.mgr
-    });
+    };
+    markStaffDirty();
+    renderAll();
+    db.ref(path('staff/' + key)).set(staff[key]).then(clearStaffDirty).catch(function() {});
     cancelStaffEdit();
     staffMsg('✔ تم حفظ الموظف', true);
     toggleStaffForm(true); // طيّ النموذج بعد الحفظ
@@ -3612,14 +3731,22 @@ async function toggleStaffDisabled(code, disabled) {
   if (!can('staff')) return;
   const rec = staff[String(code)];
   if (!rec) return;
-  await db.ref(path('staff/' + code + '/disabled')).set(disabled);
+  // حفظ محلي فوري ثم مزامنة
+  rec.disabled = !!disabled;
+  markStaffDirty();
+  renderAll();
+  db.ref(path('staff/' + code + '/disabled')).set(!!disabled).then(clearStaffDirty).catch(function() {});
   toast(disabled ? '🛑 تم إيقاف الموظف' : '✅ تم تفعيل الموظف');
 }
 async function removeStaff(code) {
   if (!can('staff')) return;
   if (!confirm('حذف الموظف نهائياً؟ ستبقى وردياته السابقة لكن لن يظهر في التوزيع أو الدخول.')) return;
-  await db.ref(path('staff/' + code)).remove();
-  toast('تم حذف الموظف');
+  // حذف محلي فوري ثم مزامنة
+  delete staff[String(code)];
+  markStaffDirty();
+  renderAll();
+  db.ref(path('staff/' + code)).remove().then(clearStaffDirty).catch(function() {});
+  toast('تم حذف الموظف' + (navigator.onLine === false ? ' — سيُزامن عند عودة الاتصال' : ''));
 }
 
 function openSlotModal() {
@@ -3647,8 +3774,13 @@ function saveSlot() {
   const key = formatKey(viewDate);
   const list = daySlots(viewDate);
   list.push({ id: Date.now().toString(36), employeeId: employeeId, start: start, end: end });
-  db.ref(path('shifts/' + key)).set(list);
+  // حفظ محلي فوري (يعمل بلا اتصال) ثم مزامنة مع الخادم
+  shifts[key] = list;
+  markShiftsDirty();
+  renderDay();
   closeSlotModal();
+  db.ref(path('shifts/' + key)).set(list).then(clearShiftsDirty).catch(function() {});
+  toast('✔ حُفظت الوردية' + (navigator.onLine === false ? ' — محفوظة على هذا الجهاز وستُزامن عند عودة الاتصال' : ''));
 }
 // حذف وردية من صفحة اليوم: بتأكيد، لليوم المحدد فقط، ويُسجَّل الموظف غياباً لذلك اليوم
 async function deleteSlot(id) {
@@ -3682,16 +3814,16 @@ async function recordAbsence(employeeId, dateKey) {
     at: Date.now(),
     by: (currentUser && currentUser.username) || ''
   };
-  try {
-    await db.ref(path('absences')).push(rec);
-    toast('✔ حُذفت الوردية وسُجِّل غياب «' + rec.employeeName + '»');
-  } catch (e) {
-    // لا اتصال: يُحفظ محلياً ويُرفع عند أول مزامنة
-    absences['local_' + Date.now()] = rec;
-    saveOfflineAbsences(absences);
-    renderAbsences();
-    toast('✔ حُذفت الوردية وسُجِّل الغياب محلياً — سيُزامن عند عودة الاتصال');
-  }
+  // تسجيل محلي فوري (مفتاح local_*) ثم رفع للخادم — يعمل بلا اتصال ولا يضيع
+  const localKey = 'local_' + Date.now();
+  absences[localKey] = rec;
+  saveOfflineAbsences(absences);
+  renderAbsences();
+  db.ref(path('absences')).push(rec).then(function() {
+    // وصل الخادم — تُحذف النسخة المحلية (النسخة الأصلية ستصل عبر المستمع)
+    if (absences[localKey]) { delete absences[localKey]; saveOfflineAbsences(absences); renderAbsences(); }
+  }).catch(function() {});
+  toast('✔ حُذفت الوردية وسُجِّل غياب «' + rec.employeeName + '»' + (navigator.onLine === false ? ' — محلياً، وسيُزامن عند عودة الاتصال' : ''));
 }
 // ===== قائمة الغياب (الإعدادات — للأدمن) =====
 function renderAbsences() {
@@ -3896,8 +4028,10 @@ window.addEventListener('load', async function() {
     document.body.appendChild(warn);
   }
   // مزامنة تلقائية: عند عودة الاتصال أو دورياً يُدفع المحلي المعلَّق للخادم
-  window.addEventListener('online', function() { syncDirtyAll(); });
-  setInterval(function() { if (isAdmin()) syncDirtyAll(); }, 60000);
+  window.addEventListener('online', function() { updateConnDot(true); syncDirtyAll(); });
+  window.addEventListener('offline', function() { updateConnDot(false); });
+  try { db.ref('.info/connected').on('value', function(s) { updateConnDot(!!s.val()); if (s.val()) syncDirtyAll(); }); } catch (e) {}
+  setInterval(function() { if (isAdmin() || isAssistant()) syncDirtyAll(); }, 60000);
   let u = null;
   try { u = JSON.parse(localStorage.getItem('wrdiatUser') || 'null'); } catch (e) {}
   const cu = u ? applySession(u) : null;
