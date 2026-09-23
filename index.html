@@ -34,8 +34,16 @@
     }
     var skipped = false
     try { skipped = window.sessionStorage.getItem('wrdiat.install-gate-skip') === '1' } catch (e) {}
-    var gate = q === 'off' || q === 'skip' ? false : q === 'force' ? true : (!standalone && !skipped)
+    // بلا إنترنت ⇒ لا بوابة: التطبيق يعمل، والتثبيت نفسه يحتاج شبكة
+    var offline = navigator.onLine === false
+    var gate = q === 'off' || q === 'skip' ? false : q === 'force' ? true : (!standalone && !skipped && !offline)
     root.setAttribute('data-install-gate', gate ? 'gate' : 'app')
+    // حارس زمن: لو لم يصل app.js (كاش قديم/404/شبكة ضعيفة) نكشف التطبيق بعد 2.5 ث
+    if (gate) {
+      window.__igWatchdog = window.setTimeout(function () {
+        if (!window.__igReady) root.setAttribute('data-install-gate', 'app')
+      }, 2500)
+    }
   } catch (e) {
     root.setAttribute('data-install-gate', 'app')
   }

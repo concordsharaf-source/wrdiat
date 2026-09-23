@@ -56,6 +56,13 @@
   var installed = false
   var bound = false
 
+  /* وصل السكربت ⇒ لا حاجة للحارس الزمني في index.html */
+  global.__igReady = true
+  if (global.__igWatchdog) {
+    global.clearTimeout(global.__igWatchdog)
+    global.__igWatchdog = null
+  }
+
   /* ================================ أدوات ================================ */
 
   function el(id) {
@@ -151,10 +158,16 @@
   }
 
   /* 'gate' = وضع المتصفح (البوابة ظاهرة) · 'app' = التطبيق المثبّت أو تجاوز */
+  function isOffline() {
+    return Boolean(global.navigator) && global.navigator.onLine === false
+  }
+
   function decide() {
     var flag = queryFlag()
     if (flag === 'off' || flag === 'skip') return { mode: 'app', reason: 'param' }
     if (flag === 'force') return { mode: 'gate', reason: 'force' }
+    // انقطاع الشبكة ⇒ التطبيق يعمل بلا بوابة (لا نطالب بالإنترنت إلا عند الضرورة)
+    if (isOffline()) return { mode: 'app', reason: 'offline' }
     if (isStandalone()) return { mode: 'app', reason: 'standalone' }
     if (read(CONFIG.skipKey) === '1') return { mode: 'app', reason: 'skipped' }
     return { mode: 'gate', reason: 'browser' }
@@ -317,6 +330,11 @@
 
     doc.addEventListener('click', handleClick)
 
+    // انقطعت الشبكة ونحن نعرض البوابة ⇒ نكشف التطبيق فورًا
+    global.addEventListener('offline', function () {
+      apply()
+    })
+
     /* إعادة التصنيف عند «الدخول» فقط — لا تذكير أثناء الاستخدام */
     var recheck = function () { apply() }
     doc.addEventListener('visibilitychange', recheck)
@@ -356,6 +374,7 @@
     isIOS: isIOS,
     isIOSNativeBrowser: isIOSNativeBrowser,
     isDevHost: isDevHost,
+    isOffline: isOffline,
     supportsBeforeInstallPrompt: supportsBeforeInstallPrompt,
     hasPrompt: function () { return Boolean(deferredPrompt) },
     isInstalled: function () { return installed }
